@@ -1,0 +1,17 @@
+{
+  "layers": [
+    {
+      "name": "api",
+      "paths": [
+        "api/**"
+      ]
+    },
+    {
+      "name": "db",
+      "paths": [
+        "db/**"
+      ]
+    }
+  ],
+  "allow": []
+}

@@ -1,0 +1,9 @@
+{
+  "committed": [
+    "base.py",
+    ".v4/config.json",
+    ".v4/fixture.json",
+    ".v4/claim_kinds.json",
+    ".v4/checkers.json"
+  ]
+}

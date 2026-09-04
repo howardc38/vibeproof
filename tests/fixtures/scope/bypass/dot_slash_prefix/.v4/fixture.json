@@ -1,0 +1,21 @@
+{
+  "parent_content": {
+    "src/a.py": "x = 1\n"
+  },
+  "committed": [
+    "src/a.py",
+    ".v4/config.json",
+    ".v4/fixture.json"
+  ],
+  "params": {
+    "scope_globs": [
+      "src/**"
+    ]
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/a.py"
+    }
+  ]
+}

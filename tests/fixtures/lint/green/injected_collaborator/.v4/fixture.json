@@ -1,0 +1,16 @@
+{
+  "params": {
+    "scope_globs": [
+      "**"
+    ]
+  },
+  "committed": [
+    ".v4/config.json",
+    ".v4/fixture.json",
+    ".v4/lint_baseline.json",
+    "core/__init__.py",
+    "core/base.py",
+    "core/flow_engine/__init__.py",
+    "core/flow_engine/handlers/__init__.py"
+  ]
+}

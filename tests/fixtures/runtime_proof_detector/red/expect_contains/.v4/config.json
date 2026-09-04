@@ -1,0 +1,1 @@
+{"runtime_proof": [{"name":"n","trigger":"t","truth":"q","expect":"contains:ok"}], "truth_command": "sh ask.sh"}

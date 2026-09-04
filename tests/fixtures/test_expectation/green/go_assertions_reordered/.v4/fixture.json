@@ -1,0 +1,10 @@
+{
+  "committed": [
+    ".v4/config.json",
+    ".v4/fixture.json",
+    "m_test.go"
+  ],
+  "parent_content": {
+    "m_test.go": "package m\n\nimport \"testing\"\n\nfunc TestBoth(t *testing.T) {\n\tif got := A(); got != \"a\" {\n\t\tt.Errorf(\"A() = %q\", got)\n\t}\n\tif got := B(); got != \"b\" {\n\t\tt.Errorf(\"B() = %q\", got)\n\t}\n}\n"
+  }
+}

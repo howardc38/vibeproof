@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "src/parse.test.ts": "import { it, expect } from 'vitest'\n\nit('parses a selector', () => {\n  expect(parse('a')).toBeTruthy()\n})\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/parse.test.ts"
+    }
+  ],
+  "committed": [
+    "src/parse.test.ts"
+  ]
+}

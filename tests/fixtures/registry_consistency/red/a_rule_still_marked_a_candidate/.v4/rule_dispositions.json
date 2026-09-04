@@ -1,0 +1,14 @@
+{
+  "source": "fx",
+  "rules": [
+    {
+      "id": "R-aaaaaaaa",
+      "rule": "x",
+      "sources": [
+        "a"
+      ],
+      "assigned": "2-checker",
+      "landed": "checker-candidate-survived"
+    }
+  ]
+}

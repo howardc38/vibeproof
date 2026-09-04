@@ -1,0 +1,11 @@
+{
+  "test_command": "true",
+  "policy": "allow_accepted_risk",
+  "protected_paths": [
+    ".v4/**",
+    "checkers/**"
+  ],
+  "derive_exclude": [
+    "**/__pycache__/**"
+  ]
+}

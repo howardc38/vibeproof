@@ -1,0 +1,74 @@
+{
+  "name": "Implementation Layer Boundaries",
+  "source": "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md",
+  "checks": [
+    "Domain/core logic has NO direct I/O (no DB calls, no API calls, no file/network access)",
+    "Adapters/integrations own external I/O only — no business policy embedded",
+    "Orchestration/application layer coordinates use cases — not merged into entry surfaces or adapters",
+    "Entry surfaces (routes/handlers/actions) are thin (~50 lines max per handler); delegate to orchestration",
+    "Workers/execution units are deterministic, scoped, and do not own approval truth or business policy",
+    "Projections/read models do not mutate authority state or become hidden truth",
+    "Config/env access is centralized — no scattered `process.env` / `os.environ` deep in business logic",
+    "Validation exists at mutation boundaries; expected vs unexpected errors are separated",
+    "Read paths and write/mutation paths are distinguishable (not collapsed into a single ambiguous helper)",
+    "Type safety maintained across layer boundaries — no untyped blobs at boundaries",
+    "External I/O boundary is respected: DB/storage/API/provider calls stay in adapter layer",
+    "Write/read boundary payload must be explicit, stable, verifiable — mutation inputs and query outputs have defined shapes, not ad-hoc objects",
+    "Action/mutation naming reflects business intent — names describe what the business operation does, not implementation mechanics (e.g., `approveOrder` not `updateRow`)",
+    "Error handling contract: expected errors have stable structured representation — expected failure cases return typed/structured errors, not raw exceptions or ad-hoc strings",
+    "UI/Surface testability: stable selector strategy — UI components expose stable test selectors (data-testid or equivalent), not relying on CSS classes or DOM structure",
+    "DevX hygiene subjective: function name 與 observable side effect 一致（R-NAME-BEHAVIOR per §15.1）",
+    "DevX hygiene subjective: 同一 function 不混雜 >2 個 abstraction level（R-ABSTRACTION-MIX per §15.1）",
+    "DevX hygiene subjective: shared mutable state edge case 超出 mechanical lint 偵測範圍（R-SHARED-MUTABLE subjective edge per §15.1）",
+    {
+      "check": "Complex core logic is extractable from framework surfaces.",
+      "from": "R-2f60f637"
+    },
+    {
+      "check": "Config and runtime settings own no business rules, orchestration or hidden application logic.",
+      "from": "R-91af2efb"
+    },
+    {
+      "check": "Domain vocabulary is not polluted by transport or adapter naming, and the domain renders no transport output.",
+      "from": "R-ed6d1b41"
+    },
+    {
+      "check": "Projection failure must not alter truth-owning state, and a sync failure must not contaminate the truth workflow.",
+      "from": "R-0bb42bd2"
+    },
+    {
+      "check": "Ops and runtime assets are replaceable without touching core, and must not have become workflow truth.",
+      "from": "R-bb146ed3"
+    },
+    {
+      "check": "Parsing that only shapes transport stays at the entry surface; parsing whose result drives a workflow or approval decision belongs to orchestration.",
+      "from": "R-13a56077"
+    },
+    {
+      "check": "Multi-step operations stay atomic, or document the compensating action.",
+      "from": "R-b102b72e"
+    },
+    {
+      "check": "Objects returned to a pool or cache are clean; reset or invalidation happens at the right boundary.",
+      "from": "R-dd07ef9c"
+    },
+    {
+      "check": "Substitute detection by eye: self-defined schema fields replacing framework templates, and a harness that runs the orchestration shell while swapping out the mechanism actually at risk.",
+      "from": "R-51aac64b"
+    }
+  ],
+  "anti_patterns": [
+    "Folder names treated as architecture instead of actual responsibility boundaries",
+    "Domain code making DB / API / file calls directly",
+    "Adapters carrying business policy or redefining truth",
+    "Route/action/handler becoming a \"god object\" with thick orchestration",
+    "Workers becoming truth or approval owners",
+    "Projections becoming hidden truth source",
+    "Framework convenience replacing architecture reasoning",
+    "UI state becoming hidden truth",
+    "Self-HTTP hops where direct in-process calls are appropriate",
+    "Sheet/bot/temp file becoming hidden truth — spreadsheets, chat bots, or temp files silently become the system's actual source of truth instead of the designated authority store",
+    "Adapter return shape becoming de facto truth — adapter response objects are consumed directly by business logic without mapping, making the adapter's schema the implicit contract",
+    "Signature changes without call-site audit — required kwarg added to function signature but callers not enumerated and updated (typical: cold paths like worker handlers / error branches / legacy adapters missed; see IMPLEMENTATION_ARCHITECTURE_GUIDELINE §5A.1 Signature Evolution)"
+  ]
+}

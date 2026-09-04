@@ -1,0 +1,36 @@
+{
+  "layers": [
+    {
+      "name": "analysis",
+      "paths": [
+        "pkg/analysis/**"
+      ]
+    },
+    {
+      "name": "core",
+      "paths": [
+        "pkg/**"
+      ]
+    },
+    {
+      "name": "app",
+      "paths": [
+        "app/**"
+      ]
+    }
+  ],
+  "allow": [
+    [
+      "core",
+      "analysis"
+    ],
+    [
+      "app",
+      "core"
+    ],
+    [
+      "app",
+      "analysis"
+    ]
+  ]
+}

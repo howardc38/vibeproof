@@ -1,0 +1,21 @@
+{
+ "committed": [
+  "client.py",
+  "media.py",
+  ".v4/config.json",
+  ".v4/fixture.json"
+ ],
+ "parent_content": {
+  "client.py": "\"\"\"Minimal HTTP wrapper around the service API.\"\"\"\n\n\ndef fetch(u):\n    return u\n"
+ },
+ "subject_refs": [
+  {
+   "kind": "file",
+   "path": "client.py"
+  }
+ ],
+ "params": {
+  "text_gone": "Minimal HTTP wrapper around the service API.",
+  "parent_commit": "HEAD"
+ }
+}

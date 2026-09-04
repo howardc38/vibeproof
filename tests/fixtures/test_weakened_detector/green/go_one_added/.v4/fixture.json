@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "thing_test.go": "package app\n\nimport \"testing\"\n\nfunc TestA(t *testing.T) { t.Log(\"a\") }\n\nfunc TestB(t *testing.T) { t.Log(\"b\") }\n"
+  },
+  "committed": [
+    "thing_test.go"
+  ],
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "thing_test.go"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+ "subject_refs": [
+  {
+   "kind": "file",
+   "path": "internal/client/client.go"
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+{
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "api/h.ts"
+    },
+    {
+      "kind": "file",
+      "path": "api/ok.ts"
+    }
+  ],
+  "committed": [
+    "api/h.ts",
+    "api/ok.ts"
+  ]
+}

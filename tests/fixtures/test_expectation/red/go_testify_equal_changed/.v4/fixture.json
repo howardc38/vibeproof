@@ -1,0 +1,10 @@
+{
+  "committed": [
+    ".v4/config.json",
+    ".v4/fixture.json",
+    "m_test.go"
+  ],
+  "parent_content": {
+    "m_test.go": "package m\n\nimport (\n\t\"testing\"\n\n\t\"github.com/stretchr/testify/assert\"\n)\n\nfunc TestCount(t *testing.T) {\n\tassert.Equal(t, 42, Count())\n}\n"
+  }
+}

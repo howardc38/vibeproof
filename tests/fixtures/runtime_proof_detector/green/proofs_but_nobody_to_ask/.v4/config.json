@@ -1,0 +1,1 @@
+{"runtime_proof": [{"name":"a lead magnet lands","trigger":"python3 -m app.cli make","truth":"select count(*) from lead_magnets","expect":"gt:0"}]}

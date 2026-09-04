@@ -1,0 +1,7 @@
+{
+  "probe": {
+    "checker": "p",
+    "staleness": "repo",
+    "ghost_field": true
+  }
+}

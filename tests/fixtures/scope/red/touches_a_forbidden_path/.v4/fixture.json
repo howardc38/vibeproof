@@ -1,0 +1,24 @@
+{
+  "parent_content": {
+    "src/retry.py": "def retry(n):\n    return n\n"
+  },
+  "committed": [
+    "src/retry.py",
+    ".v4/config.json",
+    ".v4/fixture.json"
+  ],
+  "params": {
+    "scope_globs": [
+      "**"
+    ],
+    "forbid_globs": [
+      "src/retry.py"
+    ]
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/retry.py"
+    }
+  ]
+}

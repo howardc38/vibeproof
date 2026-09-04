@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "src/parse.rs": "#[cfg(test)]\nmod tests {\n    use super::*;\n    use test_case::test_case;\n\n    #[test_case(\"a\",  true  ; \"plain\")]\n    #[test_case(\"a b\", true ; \"descendant\")]\n    #[test_case(\"!\",  false ; \"invalid\")]\n    fn parses(input: &str, ok: bool) {\n        assert_eq!(parse(input).is_ok(), ok);\n    }\n}\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/parse.rs"
+    }
+  ],
+  "committed": [
+    "src/parse.rs"
+  ]
+}

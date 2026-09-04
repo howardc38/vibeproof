@@ -1,0 +1,10 @@
+{
+  "committed": [
+    ".v4/config.json",
+    ".v4/fixture.json",
+    "test_thing.py"
+  ],
+  "parent_content": {
+    "test_thing.py": "def test_x():\n    assert a() == 1\n    assert b() == 2\n"
+  }
+}

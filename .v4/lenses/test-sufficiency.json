@@ -1,0 +1,79 @@
+{
+  "name": "Test Sufficiency",
+  "source": "UNIT_TEST_GENERATION_GUIDELINE.md",
+  "checks": [
+    "Core high-risk paths have tests: auth/permission, billing/payment/webhook, data consistency/idempotency",
+    "Tests are repeatable and deterministic (no real external service dependency)",
+    "External I/O (DB, network, storage, auth provider) is mocked/stubbed",
+    "Test naming follows: `it('should [behavior] when [condition]')`",
+    "Pure logic / domain layer tests have minimal or no mocks",
+    "Mocks are placed at module boundaries only, not on internal implementation details",
+    "Tests assert contracts (input/output), NOT internal implementation steps",
+    "Failure / unhappy / edge paths are tested (not just happy path)",
+    "State transition correctness is tested (for stateful features)",
+    "Validation/schema has negative tests (invalid input rejected)",
+    "Test failures are locatable and reproducible — when a test fails, the failure message and test structure make it possible to identify the exact cause without re-running in debug mode",
+    "Cleanup/rollback behavior is tested — features that create resources, open connections, or write state have tests verifying proper cleanup on success and rollback on failure",
+    "Thread-through invariants use positive end-state assertions — when Plan invariant says \"X threads through Y to downstream Z\", tests assert `downstream.X == expected` (end-state equality), NOT signature inspection (`inspect.signature` / `typeof` / reflection); signature-only tests pass but cannot catch dead param (see UNIT_TEST_GENERATION_GUIDELINE §7B Thread-Through Positive-Assertion Rule)",
+    "PR has automated test feedback — CI runs tests on PR and results are visible before merge [SHOULD",
+    "Test file names reflect module/contract, not phase/cycle artifacts — no `test_worker_phase15.py`-style names; rename via git mv at first commit opportunity (see UNIT_TEST_GENERATION_GUIDELINE §20.1) [SHOULD",
+    "No low-cohesion test files (test_helpers/test_misc/test_infrastructure) — each test file maps to one concern (see UNIT_TEST_GENERATION_GUIDELINE §20.2) [SHOULD",
+    "Superseded tests removed in same commit as replacement — no stale passing tests shadowing newer stronger coverage (see UNIT_TEST_GENERATION_GUIDELINE §20.3) [SHOULD",
+    "Shared fixtures placed in scope-aware shared location (conftest.py/BaseTest/beforeAll/TestMain), not duplicated per-directory (see UNIT_TEST_GENERATION_GUIDELINE §20.4) [SHOULD",
+    {
+      "check": "Every reachable decision branch introduced by the change has a test, and loop boundaries cover zero, one and many.",
+      "from": "R-ca90245d"
+    },
+    {
+      "check": "Test generation considers all eight scenario classes: happy path, validation failure, authorization failure, dependency failure, retry/duplicate/replay, state transition, cleanup/rollback, and empty/boundary/malformed input.",
+      "from": "R-6a43fdcd"
+    },
+    {
+      "check": "Per-layer test focus and mock rule for each of the seven layers (config, domain, orchestration, execution units, adapters, projections, entry surfaces).",
+      "from": "R-9c450f44"
+    },
+    {
+      "check": "Long-lived processes are tested beyond the happy path: claim/lock, cleanup and artifact lifecycle, state transitions asserted on real state, checkpoint recovery, concurrency guard, failure handling.",
+      "from": "R-ead47b5c"
+    },
+    {
+      "check": "Adapter tests cover request payload shape, response mapping, and error interpretation with retry.",
+      "from": "R-4bbba711"
+    },
+    {
+      "check": "Config tests cover missing required config crashing at startup, invalid format producing a clear error, and coercion.",
+      "from": "R-b072b144"
+    },
+    {
+      "check": "UI components are tested across props, loading, empty and error states.",
+      "from": "R-9dd2a65a"
+    },
+    {
+      "check": "When a new test is genuinely stronger and covers the same invariant, the old one is deleted in the same commit.",
+      "from": "R-c8b916ed"
+    },
+    {
+      "check": "Integration tests are few and aimed at the high-risk seams; external systems get contract tests or stubs.",
+      "from": "R-8fbde430"
+    },
+    {
+      "check": "A thread-through that changes a signature also enumerates callers and justifies the ones not threaded, so no dead caller path goes untested.",
+      "from": "R-0845506a"
+    }
+  ],
+  "anti_patterns": [
+    "Coverage-chasing without protecting real behavior",
+    "Over-mocking until tests lose meaning (mock everything, assert nothing real)",
+    "Only happy-path tests (skipping failure/approval/edge paths)",
+    "Tests generated without reading architecture or source context",
+    "Asserting implementation details instead of contract behavior",
+    "Projection tests that accidentally verify projection as truth",
+    "Treating prompt template as more important than test design — test quality degraded because focus is on crafting the \"perfect prompt\" for AI-generated tests rather than designing meaningful test scenarios and assertions",
+    "Signature-inspection tests for thread-through invariants — `assert 'kwarg_name' in inspect.signature(f).parameters` passes trivially, doesn't catch dead kwarg; downstream never receives value despite \"signature accepts\" → P1 runtime bug",
+    "Migration text-grep — schema migration verified via `str_contains`/`grep` on SQL text instead of schema introspection (`information_schema`/`pg_catalog`/`sqlite_master`/`SHOW CREATE TABLE`); brittle to whitespace/casing/ordering changes (E4) [P2 should-fix]",
+    "Source-grep negative-presence — runtime behavior asserted by grepping source text (e.g. `grep \"deprecated_field\"`) instead of runtime behavior verification, AST walk, or pre-commit lint hook; passes when text is renamed but behavior survives (E5) [P2 should-fix]",
+    "Duplicate count-tripwire sites — same count invariant (e.g. \"tool count = N\") hardcoded in multiple test files; every addition/removal requires multi-file edits and risks partial update; should have single canonical assertion site with shared constant (E6) [P3 note]",
+    "Worker happy-path-only coverage — worker/daemon/scheduler has tests only for normal execution success, with no tests for claim/lock, cleanup/artifact lifecycle, checkpoint recovery, concurrency guard, or external write safety; flag as coverage gap even if all existing tests pass (E9) [P2 should-fix]",
+    "Test caller pattern fidelity gap — test setup 引入 production caller 不存在之 synthetic outer wrap（context manager / fixture stack / DI scope），測得 synthetic-mode behaviour 而非 production behaviour；對比 production caller invocation 上下文與 test setup → flag P1（per UNIT_TEST_GENERATION_GUIDELINE §10A）"
+  ]
+}

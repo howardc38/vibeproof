@@ -1,0 +1,116 @@
+{
+  "repo": "vibeproof",
+  "generated_from_commit": "3cd8c2fe4c37ed9488c91db258600e6ca982d47f",
+  "outbound_write": [
+    {
+      "pattern": ".write_text",
+      "seen_at": "kernel/doctrine.py:445",
+      "kind": "fs",
+      "note": "生成 CLAUDE.md"
+    },
+    {
+      "pattern": "subprocess.run",
+      "seen_at": "kernel/runner.py:55",
+      "kind": "system",
+      "note": "git,同埋 kernel 親自 exec checker"
+    },
+    {
+      "pattern": "INSERT INTO",
+      "seen_at": "kernel/ledger.py:402",
+      "kind": "db",
+      "match": "regex",
+      "note": "只喺 append_attempt 同 insert 入面"
+    }
+  ],
+  "outbound_read": [
+    {
+      "pattern": ".read_text",
+      "seen_at": "kernel/config.py:125",
+      "kind": "fs"
+    },
+    {
+      "pattern": "SELECT",
+      "seen_at": "kernel/ledger.py:396",
+      "kind": "db",
+      "match": "regex"
+    },
+    {
+      "pattern": ".execute",
+      "seen_at": "kernel/doctor.py:666",
+      "kind": "db",
+      "note": "每一次 ledger 讀寫都經呢個 call。個表本來只有 SQL 動詞 SELECT/INSERT INTO,而佢哋撞唔到多行 call —— `conn.execute(` 一行、`SELECT` 下一行,所以一個宣告咗嘅 surface 睇落似冇宣告。呢一行講嘅係個 call 本身。"
+    }
+  ],
+  "auth_decision": [
+    {
+      "pattern": "verify_checker",
+      "seen_at": "kernel/register.py:499",
+      "kind": "authz",
+      "note": "決定一個 checker 入唔入得 registry。Fixture 唔過就註冊唔到。"
+    },
+    {
+      "pattern": "assert_ruler_unmoved",
+      "seen_at": "kernel/cli.py:439",
+      "kind": "authz",
+      "note": "一輪量度開咗之後,判準凍結;郁咗就拒絕量度。"
+    },
+    {
+      "pattern": ".protected",
+      "seen_at": "hooks/bash_guard.py:116",
+      "kind": "authz",
+      "note": "邊啲路徑改動要一個簽名。三個 call site,得呢個會 deny —— `kernel/doctrine.py:270` 把個 list render 落 CLAUDE.md,`kernel/scope.py:162` 淨係數 hit。"
+    },
+    {
+      "pattern": "judge_text",
+      "seen_at": "kernel/engagement.py:332",
+      "kind": "authz",
+      "note": "決定一句 engagement 收唔收。七條機械判準,冇判官。"
+    },
+    {
+      "pattern": "writing",
+      "seen_at": "kernel/ledger.py:376",
+      "kind": "authz",
+      "note": "Ledger 寫入閘。六張 append-only 表每一句 INSERT 都要經佢 —— `v4_kernel_can_write` 加 `gate_insert_<t>` trigger,唔喺 gate 入面就 raise。"
+    },
+    {
+      "pattern": "isatty",
+      "seen_at": "kernel/risk.py:268",
+      "kind": "authz",
+      "note": "邊個簽得。`stdin` 唔係 TTY 就拒簽。摩擦,唔係邊界 —— pty 過得到,所以簽名同時記低當時 `isatty()` 嘅真值。"
+    },
+    {
+      "pattern": "writes_to_protected",
+      "seen_at": "hooks/bash_guard.py:116",
+      "kind": "authz",
+      "note": "邊個寫得乜。Hook 判一句 shell 有冇寫 protected path,有就出 `permissionDecision: deny`;`hooks/write_block.py` 對 Write/Edit 做同一件事。"
+    },
+    {
+      "pattern": "refuse_the_stop",
+      "seen_at": "hooks/stop_gate.py:429",
+      "kind": "authz",
+      "note": "邊個結束得一個 turn。三個拒絕(冇 claim、全部答完但未 ship、仲有 claim 未閂)全部經呢個 symbol 出 `decision: block`。呢個檔喺 entrypoint_globs 入面,兩個 sibling hook 由 `.protected` 同 `writes_to_protected` 覆蓋,得佢一個會拒絕而喺呢張表度冇名。呢一行取代咗 `_matches_auth`:嗰個住喺 kernel/analysis/ 嘅純分類器返一個 label 或者 None,raise 唔到亦拒絕唔到,亦冇任何 entrypoint_glob 蓋到佢 —— 一張講「邊個做得乜」嘅表唔應該指住一個只係判「個名似乜」嘅 function。"
+    }
+  ],
+  "entrypoint_globs": [
+    "bin/**",
+    "kernel/cli.py",
+    "hooks/**",
+    "checkers/**",
+    "detectors/**"
+  ],
+  "ui_globs": [],
+  "config_files": [
+    ".v4/config.json",
+    ".v4/claim_kinds.json",
+    ".v4/checkers.json",
+    ".v4/control_plane_budget.json",
+    ".claude/settings.template.json",
+    ".github/workflows/v4.yml"
+  ],
+  "protected_paths": [
+    ".v4/**",
+    "checkers/**",
+    "detectors/**",
+    ".github/**"
+  ]
+}

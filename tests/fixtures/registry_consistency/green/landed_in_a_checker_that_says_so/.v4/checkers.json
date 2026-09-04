@@ -1,0 +1,14 @@
+{
+  "probe": {
+    "fixtures": "tests/fx",
+    "kinds": [
+      "probe"
+    ],
+    "path": "checkers/probe.py",
+    "reads": [
+      "**"
+    ],
+    "sha256": "da0c2c08f3987d2268ae64beb57ca8680d916ee5a40581b148cf2cd685286c83",
+    "timeout_sec": 60
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "source": "fx",
+  "rules": [
+    {
+      "id": "R-cccccccc",
+      "rule": "x",
+      "sources": [
+        "a"
+      ],
+      "assigned": "2-checker",
+      "landed": "owed",
+      "why": "no checker exists; the high-value half is already covered by design-pins, and what is left is prose citing another repo."
+    }
+  ]
+}

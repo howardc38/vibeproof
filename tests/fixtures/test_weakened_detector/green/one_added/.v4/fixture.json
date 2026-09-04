@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "test_thing.py": "def test_a():\n    assert 1\n"
+  },
+  "committed": [
+    "test_thing.py"
+  ],
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "test_thing.py"
+    }
+  ]
+}

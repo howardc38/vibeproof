@@ -1,0 +1,20 @@
+{
+  "parent_content": {
+    "app.py": "def f():\n    return 2\n",
+    "test_app.py": "import app\n\n\ndef test_f():\n    assert app.f() == 2\n",
+    "gone.py": "def obsolete():\n    return 'this module is removed by the change'\n"
+  },
+  "committed": [
+    "app.py",
+    "test_app.py",
+    "gone.py",
+    ".v4/config.json",
+    ".v4/fixture.json"
+  ],
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": ".v4/config.json"
+    }
+  ]
+}

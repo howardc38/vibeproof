@@ -1,0 +1,47 @@
+{
+  "repo": "vibeproof",
+  "test_command": "python3 tests/run_without_silent_skips.py",
+  "policy": "allow_accepted_risk",
+  "thresholds": {
+    "min_chars": 40,
+    "dup_threshold": 0.8,
+    "ship_rederive_max": 3,
+    "widen_warn_pct": 5,
+    "report_max_open": 10,
+    "report_max_days": 14,
+    "report_max_repeat": 5
+  },
+  "protected_paths": [
+    ".v4/**",
+    "checkers/**",
+    "detectors/**",
+    ".github/**"
+  ],
+  "derive_exclude": [
+    "tests/fixtures/**",
+    "**/__pycache__/**"
+  ],
+  "doctrine": true,
+  "lens_sweep": {
+    "every_days": 4,
+    "weekday": null,
+    "not_before_hour": null
+  },
+  "runtime_proof": [
+    {
+      "name": "opening a task leaves a row in the table that owns tasks",
+      "trigger": "bash tools/runtime_probe.sh {run_id}",
+      "truth": "select count(*) from task where id = '{run_id}';",
+      "expect": "eq:1"
+    },
+    {
+      "name": "and it is the request that was asked for, not any request",
+      "trigger": "bash tools/runtime_probe.sh {run_id}",
+      "truth": "select request from task where id = '{run_id}';",
+      "expect": "contains:runtime-proof probe"
+    }
+  ],
+  "truth_command": "sqlite3 \"${V4_RUNTIME_PROBE:-${TMPDIR:-/tmp}/v4-runtime-probe}/.git/v4/ledger.db\"",
+  "surface_command": "bash tools/surface_probe.sh",
+  "surface_cwd": "."
+}

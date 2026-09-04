@@ -1,0 +1,37 @@
+{
+  "name": "A general rule, and the instance where it is false",
+  "source": "PL-9. Written from the three findings a nine-lens closed sweep missed.",
+  "why": "Nine lenses, 61 findings, and three more surfaced later while somebody was fixing something else. All three have one shape:\n\n  D5      a docstring says a fallback `fails closed to the base permission`.\n          For one tool of two the base is AUTO, so falling back is widening --\n          and that tool is the only one that deletes an operator's memory.\n  G10     a TOML emitter escapes everything with `ord < 0x20`. U+007F is not\n          below 0x20, so it passes through, and three writers use that emitter.\n  role    a flow selects `role=photo`; the inference that assigns roles to\n          images only ever produces `product` or `reference`.\n\nA general statement, and one instance where it does not hold. A closed checklist cannot ask this, because the question is not `does the code do X` -- it is `here is a claim the code makes about itself, now go and enumerate every case it covers and find the one it is wrong about`. That work has no list; it is the reason to have a reader rather than a rule.\n\nSo this lens has no checklist. It has a method, three worked examples of what it found, and one instruction: read for the gap between what something says about itself and what it does in every case it says it about.",
+  "checks": [
+    {
+      "check": "Find a sentence -- a docstring, a comment, a constant's name, a field description -- that states a general property of some code. Enumerate every case that sentence covers. Report the case where the sentence is false, or say you enumerated and found none.",
+      "why_not_a_checker": "Enumerating the cases is the work, and what counts as a case is different every time: two permission overrides, the Unicode range below a boundary, the values an inference can produce. A checker would need the enumeration handed to it, which is the part nobody has.",
+      "from": "PL-9"
+    },
+    {
+      "check": "Find a boundary written as a comparison -- a threshold, a range, a cutoff. Say what is immediately on the far side of it, and whether being there is safe.",
+      "why_not_a_checker": "`ord < 0x20` is correct-looking code. Knowing that U+007F belongs with the control characters it is excluding is knowledge about the domain, not about the syntax.",
+      "from": "PL-9. G10."
+    },
+    {
+      "check": "Find two places that must agree on a set of values -- an enum and its consumers, a producer and a selector, a schema and a validator. Say whether every value one produces is a value the other accepts.",
+      "why_not_a_checker": "Both sides are usually literals in different files with no type between them. When they are typed, the checker is the type system and this question is already answered; the cases that survive are the ones where they are strings.",
+      "from": "PL-9. role auto-infer."
+    },
+    {
+      "check": "Find a fallback, a default, or an error path. Say which direction it moves in -- more permission or less, more data or less, retry or drop -- and whether that direction is the safe one for every caller.",
+      "why_not_a_checker": "`fail-closed` asks whether control can leave a handler without raising. It cannot ask whether the value being fallen back to is more permissive than the one being replaced, because that depends on what the values mean.",
+      "from": "PL-9. D5."
+    },
+    {
+      "check": "Anything else. If a finding does not fit the four above, that is the most interesting kind: say what you found and why no existing lens would have asked for it.",
+      "why_not_a_checker": "The four above are last sweep's misses. The point of an open lens is next sweep's, and pinning it to a list would make it a closed one with extra steps.",
+      "from": "PL-9"
+    }
+  ],
+  "anti_patterns": [
+    "Repeating what a closed lens already asks. Nine of them run alongside this; a finding one of them would have raised is that one's finding, and reporting it here is noise in the only place that was left open.",
+    "A mechanism with no instance. `this could be wrong for some case` is the hypothesis; the finding is the case. Enumerate, or report that you enumerated and it held.",
+    "Ranking by how alarming the mechanism sounds. A defect that is mechanically real and has never happened is worth writing down and worth saying so -- the sweep this lens comes from had four of those, each written up as though it had happened."
+  ]
+}

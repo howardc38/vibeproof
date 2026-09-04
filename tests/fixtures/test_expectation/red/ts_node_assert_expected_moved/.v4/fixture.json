@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "src/w.test.ts": "import assert from 'node:assert'\nimport { widths } from './w'\n\nit('measures', () => {\n  assert.strictEqual(widths('a'), 42)\n})\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/w.test.ts"
+    }
+  ],
+  "committed": [
+    "src/w.test.ts"
+  ]
+}

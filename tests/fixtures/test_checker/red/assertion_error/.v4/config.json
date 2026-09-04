@@ -1,0 +1,5 @@
+{
+  "test_command": "python3 -c \"raise AssertionError('1 failed')\"",
+  "test_timeout_sec": 60,
+  "policy": "allow_accepted_risk"
+}

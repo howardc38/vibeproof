@@ -1,0 +1,17 @@
+{
+  "parent_content": {
+    "app.py": "def f():\n    return 1\n"
+  },
+  "committed": [
+    "app.py",
+    "test_app.py",
+    ".v4/config.json",
+    ".v4/fixture.json"
+  ],
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": ".v4/config.json"
+    }
+  ]
+}

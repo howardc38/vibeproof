@@ -1,0 +1,48 @@
+{
+  "name": "Security & Permission",
+  "source": "SECURITY_AUDIT_GUIDELINE.md",
+  "checks": [
+    "All protected routes have authentication (middleware / route guard)",
+    "All non-public routes must be intercepted — no route is accidentally exposed without auth middleware",
+    "Sensitive data read/write has authorization (RLS / DAL / policy engine)",
+    "No client-trusted identity parameters without server-side verification (`userId`, `orgId`, `shopId`)",
+    "All webhooks have signature verification",
+    "Payment/webhook flows have idempotency (using provider event ID or equivalent)",
+    "API responses do not leak internal info (stack traces, internal paths, secret fragments)",
+    "Error handlers fail closed (deny on exception), NOT fail open (continue on exception)",
+    "Lockfile exists, committed, pinning exact dependency versions",
+    "Hash verification of dependencies — dependency integrity verified via hash/checksum, not just version pinning",
+    "No long-lived credentials where short-lived identity is possible",
+    "External writes have audit trail (`user_id` + `timestamp` + `trace_id`)",
+    "Automation systems have emergency stop / kill switch mechanism",
+    "Signed commits — code provenance is verifiable through commit signing",
+    "Dual control for high-risk operations — privileged operations (key rotation, production data deletion, permission escalation) require two-party approval",
+    "Immutable logs (WORM) for critical operations — audit logs for financial, auth, and data-deletion events cannot be retroactively modified",
+    "Network security: default deny ingress, egress filtering, critical zone isolation — network posture follows least-privilege principle",
+    "CI pipeline dependency audit: automated vulnerability scan on dependencies in CI [Growth",
+    "Production DB dashboard write restriction: production DB writes restricted to application service accounts only, not human dashboards [Growth",
+    "Rate limiting on sensitive endpoints: auth, payment, and admin endpoints have rate limits [Growth",
+    "SBOM auto-generation in CI: Software Bill of Materials generated automatically during build [Scale",
+    "Incident Response Playbook formalized: documented response procedures for security incidents [Scale",
+    "Public Bucket Audit scheduled: periodic audit ensuring no storage buckets are unintentionally public [Scale",
+    "Infrastructure scanning integrated: automated infra scanning (IaC, container images) in pipeline [Scale",
+    "Dependency updates staged rollouts: dependency updates deployed progressively, not all-at-once [Scale",
+    {
+      "check": "Auth is applied through unified wrappers rather than re-implemented per route.",
+      "from": "R-730adf1b"
+    },
+    {
+      "check": "Each service has its own identity with fine-grained permissions rather than sharing a broad credential.",
+      "from": "R-9d67c6e1"
+    }
+  ],
+  "anti_patterns": [
+    "Catch-all error handlers that fail open instead of fail closed",
+    "Client-trusted identity parameters without server-side verification",
+    "Long-lived credentials where short-lived identity exchange is available",
+    "No kill switch for privileged automation",
+    "Overly broad egress permissions",
+    "Privileged writes with no audit trail",
+    "Secret material present in repo or unvalidated runtime paths"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "LLM / Agent Action Surface (conditional — when system includes LLM agent)",
+  "source": "STEP_7_AUDIT_LENS.md",
+  "checks": [
+    "Action descriptions accurately describe handler behavior (description = contract surface for LLM router)",
+    "Tool parameter schemas (name, type, enum) match handler parsing",
+    "System prompt does not claim capabilities the system doesn't have",
+    "System prompt does not omit capabilities the system does have",
+    "Tool descriptions do not embed example values that LLM could parrot as real data",
+    "Representative natural language inputs map to correct tool selection",
+    "Agent correctly refuses unsupported requests (no hallucinated actions)",
+    "Action surface exposure/pruning rules respected (no actions exposed that should be hidden)",
+    "Approval/side-effect boundaries correctly enforce permission gates",
+    "Tests cover: tool description accuracy, parameter schema consistency, routing correctness",
+    {
+      "check": "Runtime coverage questions per path type: request/response (did it arrive, where did it fail, why slow), background (did it start, did it duplicate, which step), stateful (which truth owner changed, where is the evidence), external (provider or local failure).",
+      "from": "R-22df1862"
+    }
+  ],
+  "anti_patterns": [
+    "Tool descriptions treated as code comments (not tested or maintained)",
+    "System prompt lists capabilities that don't exist",
+    "Only English input tested when users speak other languages",
+    "Tool registry changed but system prompt not updated",
+    "Agent suggests actions that aren't available"
+  ]
+}

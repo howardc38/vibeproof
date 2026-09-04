@@ -1,0 +1,10 @@
+{
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "test_c.py"
+    }
+  ],
+  "params": {},
+  "variant": ""
+}

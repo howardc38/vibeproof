@@ -1,0 +1,24 @@
+{
+  "parent_content": {
+    "src/other.py": "def other():\n    return 1\n"
+  },
+  "committed": [
+    "src/other.py",
+    ".v4/config.json",
+    ".v4/fixture.json"
+  ],
+  "params": {
+    "scope_globs": [
+      "**"
+    ],
+    "forbid_globs": [
+      "src/retry.py"
+    ]
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/other.py"
+    }
+  ]
+}

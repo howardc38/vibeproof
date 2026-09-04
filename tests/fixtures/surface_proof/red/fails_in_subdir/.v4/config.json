@@ -1,0 +1,6 @@
+{
+  "test_command": "true",
+  "policy": "allow_accepted_risk",
+  "surface_command": "python3 -c \"print('x'); raise SystemExit(1)\"",
+  "surface_cwd": "web"
+}

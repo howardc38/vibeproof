@@ -1,0 +1,11 @@
+{
+  "committed": [
+    ".v4/config.json"
+  ],
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "SPEC.md"
+    }
+  ]
+}

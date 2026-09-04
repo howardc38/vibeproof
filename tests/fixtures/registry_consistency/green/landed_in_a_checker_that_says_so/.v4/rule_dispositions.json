@@ -1,0 +1,15 @@
+{
+ "source": "fixture",
+ "how_to_verify": "see registry-consistency",
+ "rules": [
+  {
+   "rule": "A fake token in a test says it is fake.",
+   "sources": [
+    "fixture"
+   ],
+   "assigned": "2-checker",
+   "landed": "checkers/probe.py",
+   "id": "R-abcdef01"
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+{
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "worker.go"
+    }
+  ],
+  "params": {},
+  "variant": ""
+}

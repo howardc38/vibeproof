@@ -1,0 +1,21 @@
+{
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/b.ts"
+    },
+    {
+      "kind": "file",
+      "path": "src/barrel.ts"
+    },
+    {
+      "kind": "file",
+      "path": "src/mod.ts"
+    }
+  ],
+  "committed": [
+    "src/b.ts",
+    "src/barrel.ts",
+    "src/mod.ts"
+  ]
+}

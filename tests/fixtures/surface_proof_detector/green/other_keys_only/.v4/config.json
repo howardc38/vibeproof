@@ -1,0 +1,1 @@
+{"test_command": "pytest -q", "truth_command": "psql"}

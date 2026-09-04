@@ -1,0 +1,20 @@
+{
+  "parent_content": {
+    "src/w.test.ts": "import { it, expect } from 'vitest'\nimport { widths } from './w'\n\nit('measures', () => {\n  expect(widths('a')).toBe(42)\n})\n",
+    "src/w.ts": "export const widths = (s: string) => 42\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/w.test.ts"
+    },
+    {
+      "kind": "file",
+      "path": "src/w.ts"
+    }
+  ],
+  "committed": [
+    "src/w.test.ts",
+    "src/w.ts"
+  ]
+}

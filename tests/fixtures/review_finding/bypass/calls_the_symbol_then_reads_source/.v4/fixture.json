@@ -1,0 +1,22 @@
+{
+  "committed": [
+    "app.py",
+    ".v4/config.json",
+    ".v4/fixture.json"
+  ],
+  "parent_content": {
+    "app.py": "def notify(name):\n    return f'[{name}] hi'\n"
+  },
+  "params": {
+    "closing_test": "test_new.py",
+    "parent_commit": "HEAD",
+    "test_one_file_command": "python3 -m unittest discover -s . -p {path} -q"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "app.py"
+    }
+  ],
+  "symbol": "notify"
+}

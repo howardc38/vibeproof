@@ -1,0 +1,209 @@
+# The anchor the spec keeps pointing at.
+#
+# Several mechanisms here are described as "detectable, not preventable", and
+# every one of them names CI as the place the detection happens. Until this
+# file existed, that anchor was a sentence: the hash chain could be rebuilt and
+# nothing would ever have walked it, and the two checkers that hold the
+# document to the code ran only when somebody remembered.
+#
+# It also runs against a fresh clone, which is the point. The ledger lives in
+# .git/v4/ and is not cloned, so anything that only holds because of local
+# state fails here.
+name: v4
+
+on:
+  push:
+  pull_request:
+  # The after-gate. `v4 sweep` answers "is it due" and starts nothing --
+  # SPEC.md §10.1 calls `--if-due` the form "for cron to give up on" -- so the
+  # trigger has to live outside the kernel, and for a while it lived nowhere.
+  # 145 of the 254 migrated rules (57%) landed in a lens, and a lens layer with
+  # no trigger is a layer that has never been read.
+  schedule:
+    - cron: "0 2 * * 1"          # Mondays 02:00 UTC; `every_days` decides the rest
+  workflow_dispatch:
+
+# Every job here reads the checkout and writes nothing back. With no block at
+# all the `GITHUB_TOKEN` handed to all three carried whatever the repository or
+# organisation default happens to be -- a setting that lives outside this file,
+# can change without a commit here, and is `write-all` on repositories created
+# before the default moved. Stated once at the top so a job added later starts
+# from `contents: read` and has to say in its own diff that it needs more.
+permissions:
+  contents: read
+
+jobs:
+  kernel:
+    runs-on: ubuntu-latest
+    steps:
+      # Every third-party action is pinned to a commit, not to a tag. `v4` and
+      # `v5` are branches their owners move, so what ran here was decided by
+      # whoever could move them and by nothing in this repo -- and these two are
+      # the only external programs this repo declares, which is the fact
+      # `.v4/risks/repo/dep-provenance.json` is signed against ("this repo
+      # declares nothing, so nothing can be resolved"). The comment carries the
+      # release the commit was, because a bare sha says nothing to a reader.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          # A clone carries the history; `fetch-depth: 1` does not, and the
+          # difference is not cosmetic here. `.v4/lenses/near-miss.json` cites
+          # two commits as its evidence and
+          # `tests/test_a_lens_reaches_the_reviewer.py` resolves them with
+          # `git cat-file` -- so from `f608135`, the commit that added that
+          # lens, the `Tests` step failed on all nine pushes, and the three
+          # steps below it never ran once. `kernel/accept._history` is the same
+          # repair on the other tree that runs these tests.
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Tests
+        run: python3 tests/run_without_silent_skips.py
+
+      # This repo's facts table still cites something that exists. `--gone-only`
+      # because a citation is true of a commit: line numbers move on any commit
+      # that adds an import, and verifying those meant a job that failed
+      # constantly, so it was never wired -- and this repo's own table sat
+      # failing its own verifier with four rows citing symbols that were not
+      # there. Drift is printed and does not fail; gone does.
+      #
+      # Only the table whose `repo` is this one. The adopter's table under
+      # tests/fixtures/facts/ describes a different checkout and every row of it
+      # is "gone" from here; it is verified by tests/test_facts.py where that
+      # repo exists. It is out of `.v4/` for a second reason: two tables there
+      # make this lookup answer `None` in any directory not named after the
+      # repo, which is what a `Download ZIP` unpacks into.
+      - name: This repo's facts table still cites something that exists
+        run: |
+          python3 - <<'PY'
+          import json, subprocess, sys
+          from pathlib import Path
+          name = Path.cwd().name
+          table = Path(f".v4/facts.{name}.json")
+          if not table.is_file():
+              sys.exit(f"no .v4/facts.{name}.json -- this repo has no table of its own")
+          assert json.loads(table.read_text())["repo"] == name
+          sys.exit(subprocess.run([sys.executable, "-m", "kernel.facts", "verify",
+                                   str(table), ".", "--gone-only"]).returncode)
+          PY
+
+      # The document against the code, in both directions: every pin resolves,
+      # and every command, path and mechanism the spec names exists.
+      #
+      # `v4 accept` owns which four checkers ask a whole-tree question rather
+      # than a delta one, and why. It was a list here and a list nowhere else,
+      # so it could not be run before pushing -- which is how two new commands
+      # reached this workflow with `docs/SPEC.md` never mentioning them.
+      #
+      # `--here`, not an archive: this checkout already is one.
+      - name: The spec still describes this repo
+        run: ./bin/v4 --repo . accept --here --docs
+
+      # Every registered checker still holds against its own fixtures, and
+      # every registered detector too -- the detector half was never here, so
+      # `verify-detector` ran only when somebody remembered.
+      #
+      # A checker edited after registration refuses to run one claim at a time,
+      # with the reason buried in a row nobody reads; here it is loud.
+      - name: Every checker and detector still passes its fixtures
+        run: ./bin/v4 --repo . accept --here --fixtures
+
+
+  chain:
+    # The ledger lives in .git/v4/ and a clone does not carry it, so this job
+    # walks the export `v4 ship` writes instead. Until this existed, the
+    # detection the whole tamper argument rests on had never run once.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with: { python-version: "3.12" }
+      - name: Walk the exported chain
+        run: |
+          # Two different things look the same here, and only one is a fault.
+          # A repo that has never shipped has no export because there is
+          # nothing to export, and failing it makes every adopter's first push
+          # red for doing nothing wrong. A repo that has shipped and left the
+          # export out is the case this job exists for, and `.v4/chain_head.json`
+          # is how they are told apart: it is written by `v4 ship` and committed
+          # with the work, so its presence means a chain exists somewhere.
+          if [ ! -f .v4/ledger_export.jsonl ]; then
+            if [ -f .v4/chain_head.json ]; then
+              echo "A chain head is committed and no export is. Run 'v4 ship' and commit .v4/ledger_export.jsonl."
+              exit 1
+            fi
+            echo "Nothing has shipped here yet: no export and no chain head, so there is no chain to walk."
+            exit 0
+          fi
+          ./bin/v4 --repo . audit --events .v4/ledger_export.jsonl
+      - name: Refuse a truncated export
+        run: |
+          # Nothing shipped, nothing to truncate. The step above already tells
+          # a chain head with no export apart from a repo that has never
+          # shipped, and exits 0 for the second; this step then read the file
+          # unconditionally, so that same checkout died here with a
+          # FileNotFoundError -- measured on the public snapshot of this repo,
+          # nine runs red for that alone.
+          if [ ! -f .v4/ledger_export.jsonl ]; then
+            echo "No export here, so there is no chain to check for truncation."
+            exit 0
+          fi
+          # A chain that only verifies forward is defeated by dropping the tail,
+          # so the count is checked against the anchor -- the one written inside
+          # the export, not `.v4/chain_head.json`. That file is refreshed by
+          # every `v4 check` while the export is written only by `ship`, so the
+          # two are snapshots of different moments: comparing them failed all
+          # six runs of this workflow at "export has 72 attempts, anchor records
+          # 81", which is the ordinary gap between a ship and the checks after
+          # it, reported as tampering.
+          #
+          # `verify_exported` does this now, and the step above runs it. What is
+          # left here is the assertion that it was possible at all: an export
+          # with no anchor row is one this check cannot make.
+          python3 - <<'EOF'
+          import json, sys
+          from pathlib import Path
+          rows = [json.loads(l) for l in
+                  Path(".v4/ledger_export.jsonl").read_text().splitlines() if l.strip()]
+          anchor = next((r for r in rows if r.get("_table") == "_chain_head"), None)
+          if anchor is None:
+              sys.exit("the export carries no chain anchor, so a chain truncated "
+                       "from the end cannot be detected. Re-export with `v4 ship`.")
+          n = sum(1 for r in rows if r.get("_table") == "attempt")
+          print(f"{n} attempts, anchored at {str(anchor['head_hash'])[:12]}")
+          EOF
+
+  # Not a gate. It prints whether the interval has elapsed and stops there, so
+  # a green run means "this ran", never "not due" and never "reviewed and
+  # clean". Reviewing is a reader's job and no kernel here calls a model.
+  #
+  # It also does not claim the second half of `sweep.due`: whether somebody is
+  # standing in a half-written tree is a fact about a working tree, and this is
+  # a checkout. A reader who sees DUE runs `v4 sweep` where the ledger is, and
+  # that is the command that holds off on a half-written one.
+  sweep:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      # `v4 sweep` asks the ledger, and this job has none: `.git/v4/` is not
+      # cloned, `ledger.connect` makes an empty database when it finds none, and
+      # the answer was therefore fixed. Measured in a clone of `dbd0a60`:
+      # `DUE -- last sweep never, and nothing is open`, from a checkout whose
+      # committed export holds two sweeps and whose `repo-review` was open. The
+      # `|| true` then made even a crash look like that sentence.
+      #
+      # So it reads the export instead, the way the `chain` job above already
+      # does, and `sweep.due_from_export` says in its own answer which half of
+      # the question a checkout cannot put. No `|| true`: a reminder that could
+      # not be computed is a failure, and a missing export raises.
+      - name: is the after-gate due
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from kernel import config, sweep
+          root = Path.cwd()
+          due, why = sweep.due_from_export(root, config.RepoConfig(root))
+          print(("DUE -- " if due else "not due -- ") + why)
+          PY

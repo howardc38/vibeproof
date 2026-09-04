@@ -1,0 +1,19 @@
+{
+  "repo": "probe",
+  "generated_from_commit": "0000000000000000000000000000000000000000",
+  "outbound_write": [
+    {"pattern": ".write_text", "seen_at": "kernel/ledger.py:1", "kind": "fs"}
+  ],
+  "outbound_read": [
+    {"pattern": ".read_text", "seen_at": "kernel/ledger.py:1", "kind": "fs"}
+  ],
+  "auth_decision": [
+    {"pattern": "a", "seen_at": "kernel/ledger.py:1", "kind": "authz"},
+    {"pattern": "b", "seen_at": "kernel/ledger.py:1", "kind": "authz"},
+    {"pattern": "c", "seen_at": "kernel/ledger.py:1", "kind": "authz"}
+  ],
+  "entrypoint_globs": ["kernel/cli.py"],
+  "ui_globs": [],
+  "config_files": [".v4/config.json"],
+  "protected_paths": [".v4/**"]
+}

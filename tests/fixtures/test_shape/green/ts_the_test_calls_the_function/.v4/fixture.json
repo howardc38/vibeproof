@@ -1,0 +1,11 @@
+{
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "tests/handler.test.ts"
+    }
+  ],
+  "committed": [
+    "tests/handler.test.ts"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "query_test.go"
+    }
+  ],
+  "params": {},
+  "variant": ""
+}

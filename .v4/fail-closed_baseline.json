@@ -1,0 +1,17 @@
+{
+  "note": "Guards this repo's own code puts around a call that has no degraded state to degrade to -- verified, each of them, as not fail-open. The rule is structural and cannot see where the None goes; these are where it goes. Signed `unprovable` nine times each before this file existed (gosource twice, secret_patterns once), which is what SPEC's Baseline section forbids in as many words: 唔用簽名扛既有違規. Nothing new joins this list without a signature.",
+  "accepted": [
+    {
+      "id": "098f604b531cc7f8",
+      "why": "kernel/analysis/gosource.py::shape_source -- `except OSError: return None` around `f.write_text` into a TemporaryDirectory. The OSError here is a full or read-only temp dir and says nothing about the Go source. `None` is this module's one word for 'the toolchain could not answer', and checkers/fail_closed.py:160 turns `shape is None` into an `unverifiable` entry, which is exit 4 and never 0. Re-read 2026-08-26 at gosource.py:150-159."
+    },
+    {
+      "id": "a1514e0cc0a02131",
+      "why": "kernel/analysis/gosource.py::_build -- `except OSError` around `os.replace(staged, out)`. It does not continue as if the write happened: the handler re-checks the artefact (`if not (out.is_file() and os.access(out, os.X_OK)): return None`), so a lost race means another process wrote the same binary and any other OSError returns None. Same exit 4 path as its sibling. Re-read 2026-08-26 at gosource.py:92-105."
+    },
+    {
+      "id": "5458d4ecd1bc2c59",
+      "why": "kernel/analysis/secret_patterns.py::_encoded_matches -- the `continue` drops one reading of one token, not a file. It fires when a base64-looking run will not decode or does not decode to UTF-8, in which case there is no inner text a credential could be in; `scan` is `_direct_matches(text) + _encoded_matches(text)` (secret_patterns.py:799), so the raw file is scanned by the other half regardless. Re-read 2026-08-26 at secret_patterns.py:718-735, 799."
+    }
+  ]
+}

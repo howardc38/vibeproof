@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "tests/w.tests.js": "import * as tt from 'lib0/testing'\nimport { widths } from '../w.js'\n\nexport const testWidths = tc => {\n  tt.compare(widths('a'), 42)\n}\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "tests/w.tests.js"
+    }
+  ],
+  "committed": [
+    "tests/w.tests.js"
+  ]
+}

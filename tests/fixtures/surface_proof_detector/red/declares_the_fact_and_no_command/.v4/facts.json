@@ -1,0 +1,11 @@
+{
+  "repo": "fx",
+  "generated_from_commit": "0000000000000000000000000000000000000000",
+  "outbound_write": [],
+  "outbound_read": [],
+  "auth_decision": [],
+  "entrypoint_globs": [],
+  "ui_globs": [
+    "web/**"
+  ]
+}

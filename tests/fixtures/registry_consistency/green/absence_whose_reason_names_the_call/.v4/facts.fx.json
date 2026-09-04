@@ -1,0 +1,20 @@
+{
+  "repo": "fx",
+  "generated_from_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "outbound_write": [],
+  "outbound_read": [],
+  "auth_decision": [],
+  "entrypoint_globs": [
+    "app/**"
+  ],
+  "ui_globs": [],
+  "config_files": [],
+  "protected_paths": [
+    ".v4/**"
+  ],
+  "absent": {
+    "outbound_write": "逐行睇過 app/ at aaaaaa：得 requests.post 一個，而佢係一個 dry-run stub，唔會真係出去",
+    "outbound_read": "app/ 得一個 module，冇任何讀外面嘅 call，逐行睇過",
+    "auth_decision": "呢個 repo 冇 route layer、冇 decorator、冇 identity 分支"
+  }
+}

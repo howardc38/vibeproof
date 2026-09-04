@@ -1,0 +1,5 @@
+{
+  "test_command": "true",
+  "policy": "allow_accepted_risk",
+  "surface_command": "python3 -c \"print('8 passed')\""
+}

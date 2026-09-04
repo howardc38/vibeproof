@@ -1,0 +1,7 @@
+{
+  "test_command": "true",
+  "policy": "allow_accepted_risk",
+  "thresholds": {
+    "min_chars": 40
+  }
+}

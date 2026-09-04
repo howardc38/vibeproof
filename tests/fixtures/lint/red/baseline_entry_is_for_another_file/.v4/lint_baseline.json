@@ -1,0 +1,12 @@
+{
+  "findings": [
+    {
+      "detail": "core.util._first",
+      "id": "b1859a208322f39a",
+      "note": "",
+      "path": "app/other.py",
+      "rule": "LINT-PRIVATE-IMPORT"
+    }
+  ],
+  "version": 1
+}

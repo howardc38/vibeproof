@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "src/w.test.ts": "import { it, expect } from 'vitest'\nimport { widths } from './w'\n\nit('describes', () => {\n  expect(widths('a')).toStrictEqual({ kind: 'check', n: 3 })\n})\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/w.test.ts"
+    }
+  ],
+  "committed": [
+    "src/w.test.ts"
+  ]
+}

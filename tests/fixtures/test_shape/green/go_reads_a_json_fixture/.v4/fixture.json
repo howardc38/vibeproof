@@ -1,0 +1,10 @@
+{
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "fixture_test.go"
+    }
+  ],
+  "params": {},
+  "variant": ""
+}

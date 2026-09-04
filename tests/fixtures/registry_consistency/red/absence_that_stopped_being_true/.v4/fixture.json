@@ -1,0 +1,6 @@
+{
+ "task_id": "t-fixture",
+ "subject_refs": [],
+ "params": {},
+ "committed": ["app/m.py", ".v4/facts.fx.json"]
+}

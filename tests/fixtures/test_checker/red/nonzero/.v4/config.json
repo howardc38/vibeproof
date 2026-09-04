@@ -1,0 +1,1 @@
+{"test_command": "python3 -c 'import sys; sys.exit(3)'", "test_timeout_sec": 60, "policy": "allow_accepted_risk"}

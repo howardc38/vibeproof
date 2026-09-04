@@ -1,0 +1,1 @@
+Two proofs, one run id. The second reads its own key, so the row the first one wrote does not answer for it -- which is the whole point of the id naming what this run produced.

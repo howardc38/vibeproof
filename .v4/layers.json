@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "邊一層 import 得邊一層。`layers` 由最具體排到最闊 —— 一個檔喺 kernel/analysis/**",
+    "同 kernel/** 兩者之下,前者贏。",
+    "`allow` 係一張**邊嘅白名單**,而呢個方向係刻意嘅:合法嘅邊細、有名、有得拗;",
+    "不合法嗰堆係每一對冇人諗過嘅組合。",
+    "呢張表寫出嚟嗰日,全 repo 得一條邊行錯:kernel/analysis/external_write.py",
+    "import kernel.facts,而 analysis 自己個 contract 寫住冇 I/O、facts 有 subprocess。",
+    "已經修咗(純語法半邊搬去 kernel/analysis/facts_grammar.py),唔係 baseline 咗。"
+  ],
+  "layers": [
+    {"name": "analysis", "paths": ["kernel/analysis/**"]},
+    {"name": "kernel", "paths": ["kernel/**"]},
+    {"name": "checkers", "paths": ["checkers/**"]},
+    {"name": "detectors", "paths": ["detectors/**"]},
+    {"name": "hooks", "paths": ["hooks/**"]}
+  ],
+  "allow": [
+    ["kernel", "analysis"],
+    ["checkers", "kernel"], ["checkers", "analysis"], ["checkers", "detectors"],
+    ["detectors", "kernel"], ["detectors", "analysis"],
+    ["hooks", "kernel"], ["hooks", "analysis"]
+  ]
+}

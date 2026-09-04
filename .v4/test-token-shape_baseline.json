@@ -1,0 +1,10 @@
+{
+  "note": "Three literals in tests/test_secret_scan.py. They are the secret scanner's own test data, and each one has to look live or the test it is in proves nothing: test_a_real_token_body_is_a_secret asserts a high-entropy AWS key body IS judged a secret, test_degenerate_monotone_run asserts a monotone one is NOT, and test_a_finding_is_redacted_in_stdout_and_in_the_out_payload asserts the value never reaches stdout. Putting TEST-NOT-A-REAL-TOKEN in any of them lowers the entropy the assertion is about and the test stops testing. This is the one place in this repo where the two rules genuinely conflict, and it is written down rather than exempted by a pattern that would also cover the next one. A fourth, same conflict one file over: tests/test_a_word_list_means_what_its_sentence_says.py's APortMappingIsNotACredential feeds `123:SECRET` to `test_token_shape.scan` to assert the telegram shape is still reported after the port-mapping exemption was added. Putting the word TEST in it makes the checker pass over it, which is the checker being right and the test having nothing left to assert. A fifth, and the same conflict again: tests/test_what_each_rule_actually_reads.py's WhatTheCheckerPrintsGoesIntoACommittedFile writes a telegram-shaped literal into a throwaway repo and asserts `test_token_shape` reports it AND redacts it on the way out. The word TEST in that value makes the checker pass over it, which is the checker being right and the test having nothing left to assert; splitting the literal across a concatenation would be the evasion its own bypass corpus is about.",
+  "accepted": [
+    "0dd255d760a3a594",
+    "f93d134d3fda8b56",
+    "5e3748df72743341",
+    "a33e9ecef1df672e",
+    "0d109e962de82149"
+  ]
+}

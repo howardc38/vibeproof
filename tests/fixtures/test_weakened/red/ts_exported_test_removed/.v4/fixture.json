@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "tests/y-map.tests.js": "import * as t from 'lib0/testing'\n\nexport const testMapConflict = tc => {\n  t.compare(1, 1)\n}\n\nexport const testMapDelete = tc => {\n  t.compare(2, 2)\n}\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "tests/y-map.tests.js"
+    }
+  ],
+  "committed": [
+    "tests/y-map.tests.js"
+  ]
+}

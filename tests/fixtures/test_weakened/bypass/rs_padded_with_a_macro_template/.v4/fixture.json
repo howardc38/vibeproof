@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "src/parse.rs": "#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn parses_a_selector() {\n        assert_eq!(parse(\"a\").is_ok(), true);\n    }\n\n    #[test]\n    fn rejects_a_bad_selector() {\n        assert!(parse(\"!\").is_err());\n    }\n}\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/parse.rs"
+    }
+  ],
+  "committed": [
+    "src/parse.rs"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "findings": [
+    {
+      "detail": "core.util._first",
+      "id": "5c0e20786e47326e",
+      "note": "",
+      "path": "app/fresh.py",
+      "rule": "LINT-PRIVATE-IMPORT"
+    }
+  ],
+  "version": 1
+}

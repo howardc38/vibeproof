@@ -1,0 +1,10 @@
+{
+  "committed": [
+    ".v4/config.json",
+    ".v4/fixture.json",
+    "m_test.go"
+  ],
+  "parent_content": {
+    "m_test.go": "package m\n\nimport \"testing\"\n\nfunc TestDouble(t *testing.T) {\n\tcases := []struct{ in, want int }{\n\t\t{in: 1, want: 2},\n\t\t{in: 2, want: 4},\n\t}\n\tfor _, c := range cases {\n\t\tif got := Double(c.in); got != c.want {\n\t\t\tt.Errorf(\"Double(%d) = %d\", c.in, got)\n\t\t}\n\t}\n}\n"
+  }
+}

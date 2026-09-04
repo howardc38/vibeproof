@@ -1,0 +1,9 @@
+{
+  "probe": {
+    "question_template": "q",
+    "checker": "probe",
+    "detector": "probe.py",
+    "staleness": "repo",
+    "engagement": true
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "src/width.rs": "#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn spans_start_where_they_say() {\n        assert_eq!(span(\"a\").start(), Position::new(line, col));\n    }\n}\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/width.rs"
+    }
+  ],
+  "committed": [
+    "src/width.rs"
+  ]
+}

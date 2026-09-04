@@ -1,0 +1,8 @@
+{
+ "subject_refs": [
+  {
+   "kind": "file",
+   "path": "tests/test_client.py"
+  }
+ ]
+}

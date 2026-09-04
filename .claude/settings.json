@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "由 settings.template.json copy 出嚟。呢個 repo 用自己個框架,所以 hook 真係要接住 —— 一份只有 template 嘅接線,同冇接線一樣。",
+    "Hook 路徑由 git 問出嚟,唔用相對路徑,亦唔用 $CLAUDE_PROJECT_DIR。",
+    "相對路徑實測會鎖死:hook 嘅 cwd 係 shell 嘅 cwd,唔係 repo root —— 一句",
+    "`cd tests/fixtures/…` 之後 `python3 hooks/bash_guard.py` 就搵唔到自己,",
+    "跟住每一個 Bash / Write / Edit 都喺執行之前被拒,連 `cd` 返去嗰個都行唔到。",
+    "$CLAUDE_PROJECT_DIR 冇用,因為 settings schema 冇為 hook 保證呢個變數,",
+    "實測亦讀唔到 —— 一個展開成空字串嘅路徑,同相對路徑一樣係死結。",
+    "`git rev-parse --show-toplevel` 由 repo 內任何一層都答得出,而 hook 本來",
+    "就只會喺一個 git repo 入面行。fail-closed 唔係靜靜放行,但一個解唔到嘅",
+    "死結,同一個關咗嘅閘一樣係冇閘。",
+    "而嗰個死結今日出現咗:repo 目錄喺一個開住嘅 session 途中改咗名,`git rev-parse`",
+    "由一個唔再存在嘅 cwd 答唔出嘢,路徑塌成 `/hooks/*.py`。PreToolUse 當佢係拒絕,",
+    "於是每一句 Bash / Write / Edit 都被擋,連 cd 返去嗰句都擋埋;Stop 反方向,exit 0",
+    "當放行,個閘靜靜熄咗。兩個 script 入面嘅 fail-open 由頭到尾冇行過,因為 shell",
+    "喺佢哋開始之前已經死咗 —— 一個 hook 保護唔到自己搵唔到自己嗰個情況。",
+    "所以路徑照樣由 git 問,問唔到就企定出聲:stderr 一句 + `{}`。呢個就係",
+    "hooks/_framework.py 一路嘅做法 —— 接唔到就企定,而企定唔可以靜。"
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then exec python3 \"$D/hooks/write_block.py\"; fi; echo \"write_block stood down: $PWD is not in a git repository\" >&2; echo '{}'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then exec python3 \"$D/hooks/bash_guard.py\"; fi; echo \"bash_guard stood down: $PWD is not in a git repository\" >&2; echo '{}'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then exec python3 \"$D/hooks/stop_gate.py\"; fi; echo \"stop_gate stood down: $PWD is not in a git repository\" >&2; echo '{}'"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "probe.py": {
+    "cases": 6,
+    "fixtures": "tests/fixtures/probe_detector",
+    "path": "detectors/probe.py",
+    "sha256": "14c75fb904c57c2197695141fb784fa0202c233163005a789791e5dc339d109c"
+  }
+}

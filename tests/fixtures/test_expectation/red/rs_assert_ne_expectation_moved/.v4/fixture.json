@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "src/width.rs": "#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn measures_a_glyph() {\n        assert_eq!(width(\"a\"), 42);\n    }\n\n    #[test]\n    fn measures_a_pair() {\n        assert_ne!(width(\"ab\"), 84);\n    }\n}\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/width.rs"
+    }
+  ],
+  "committed": [
+    "src/width.rs"
+  ]
+}

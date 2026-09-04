@@ -1,0 +1,5 @@
+{
+  "test_command": "python3 -c \"print('collected 2 items');print('2 passed')\"",
+  "test_timeout_sec": 60,
+  "policy": "allow_accepted_risk"
+}

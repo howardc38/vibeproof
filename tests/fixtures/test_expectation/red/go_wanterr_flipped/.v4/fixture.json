@@ -1,0 +1,10 @@
+{
+  "committed": [
+    ".v4/config.json",
+    ".v4/fixture.json",
+    "m_test.go"
+  ],
+  "parent_content": {
+    "m_test.go": "package m\n\nimport \"testing\"\n\nfunc TestParse(t *testing.T) {\n\tcases := []struct {\n\t\tin      string\n\t\twantErr bool\n\t}{\n\t\t{in: \"\", wantErr: true},\n\t}\n\tfor _, c := range cases {\n\t\tif err := Parse(c.in); (err != nil) != c.wantErr {\n\t\t\tt.Fatalf(\"Parse(%q) err = %v\", c.in, err)\n\t\t}\n\t}\n}\n"
+  }
+}

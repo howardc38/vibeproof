@@ -1,0 +1,13 @@
+{
+  "test_command": "true",
+  "policy": "allow_accepted_risk",
+  "truth_command": "python3 -c \"print(1)\"",
+  "runtime_proof": [
+    {
+      "name": "not reading the query",
+      "trigger": "python3 -c \"open('s_{run_id}','w').write('ok')\"",
+      "truth": "print(open('s_{run_id}').read().strip() if __import__('os').path.exists('s_{run_id}') else '')",
+      "expect": "contains:ok"
+    }
+  ]
+}

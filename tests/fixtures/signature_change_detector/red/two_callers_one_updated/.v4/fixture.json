@@ -1,0 +1,17 @@
+{
+  "parent_content": {
+    "mod.py": "def g(a):\n    return a\n"
+  },
+  "committed": [
+    "mod.py",
+    "app.py",
+    ".v4/config.json",
+    ".v4/fixture.json"
+  ],
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "mod.py"
+    }
+  ]
+}

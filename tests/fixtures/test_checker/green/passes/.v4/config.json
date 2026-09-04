@@ -1,0 +1,5 @@
+{
+  "test_command": "python3 -c \"import unittest;print('Ran 3 tests in 0.01s');print('OK')\"",
+  "test_timeout_sec": 60,
+  "policy": "allow_accepted_risk"
+}

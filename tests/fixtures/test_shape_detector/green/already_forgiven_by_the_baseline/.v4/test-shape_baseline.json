@@ -1,0 +1,6 @@
+{
+  "accepted": [
+    "0630ab6d904f7122"
+  ],
+  "why": "The same source it is copied from is a red case. The only difference is this file, so a claim appearing here means the detector is not reading the baseline."
+}

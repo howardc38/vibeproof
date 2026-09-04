@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "src/parse.ts": "export const parse = (s: string) => s\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/parse.ts"
+    }
+  ],
+  "committed": [
+    "src/parse.ts"
+  ]
+}

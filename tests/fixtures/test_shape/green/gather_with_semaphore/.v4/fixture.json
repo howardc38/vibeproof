@@ -1,0 +1,10 @@
+{
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "svc2.py"
+    }
+  ],
+  "params": {},
+  "variant": ""
+}

@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "src/render.rs": "#[cfg(test)]\nmod tests {\n    use super::*;\n    use insta::assert_snapshot;\n\n    #[test]\n    fn renders_a_path() {\n        assert_snapshot!(render(\"M0 0L1 1\"));\n    }\n}\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/render.rs"
+    }
+  ],
+  "committed": [
+    "src/render.rs"
+  ]
+}

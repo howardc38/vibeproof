@@ -1,0 +1,10 @@
+{
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "fanout2.go"
+    }
+  ],
+  "params": {},
+  "variant": ""
+}

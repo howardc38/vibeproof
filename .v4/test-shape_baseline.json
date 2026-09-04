@@ -1,0 +1,64 @@
+{
+  "note": "Assertions in this repo's own tests that read source text instead of running it. Real, and standing: tests/test_chain_integrity.py's test_argv_does_not_resolve_off_path asserts a string is absent from kernel/runner.py, which passes for any rewrite of the same bug and fails for a harmless refactor. Written down rather than fixed in the same breath as the checker that found them: each one needs a behavioural test to replace it, which is work, not a rename. Nothing new joins this list without a signature. Narrowed from 27 ids to 18 on 2026-08-10: the rule took every string in the enclosing function, so one unrelated .py literal made every read_text in that function a finding. The 9 that left were never real.",
+  "accepted": [
+    {
+      "id": "4c4a6b75670bb9b0",
+      "why": "tests/test_what_the_output_says_it_did.py::test_review_close_says_it_has_not_been_checked — reads kernel/cli.py and asserts the closure offer prints that it has not been verified. Running it means raising a real finding claim, binding a closing test to it, and capturing stdout, in order to check a print statement — a fabricated finding testing a sentence written in the same commit. Three of the five source assertions in this file were converted rather than accepted: `risk.attribution` was extracted so three tests call it with an agent record, a person record and a pre-field record, and the two status numbers are read from a real `bin/v4 status --json` run. These two are what is left."
+    },
+    {
+      "id": "767db1b19c63f536",
+      "why": "tests/test_what_the_output_says_it_did.py::test_and_names_the_command_that_gives_the_verdict — the same print, asserting it names `ledger.REVIEW_TASK` rather than describing a condition. Separate from the one above because they are two claims about one line and merging them would go green when either half alone survived. The behavioural half of this class is `test_and_names_the_command_that_gives_the_verdict`'s second assertion, which calls nothing but reads the constant: `REVIEW_TASK == 'repo-review'` is checked against the module, not against the file."
+    },
+    {
+      "id": "ea6e656fd74940ce",
+      "why": "tests/test_a_language_the_tracer_can_read.py::test_the_closing_gate_asks_rather_than_spelling_it — reads checkers/review_finding.py and asserts it calls `redgreen.traceable` rather than spelling `endswith(\".py\")` itself. It calls nothing, and behaviour cannot replace it: a second copy of \"which languages can be traced\" answers identically to the owner until it drifts, which is precisely what happened here — the tracer gained Go and Node and this file went on refusing everything but Python, giving a reason about `sitecustomize` that had stopped being true. The eleven cases beside it in the same file do run: they call `traceable`, `resolve_symbol` and the checker itself, and pin exits 0, 1 and 4."
+    },
+    {
+      "id": "43a951f4b47c1f3f",
+      "why": "tests/test_a_language_the_tracer_can_read.py::test_and_so_does_the_command_that_refuses_a_symbol — the same assertion against kernel/review.py, which carried the second copy. Kept separate from the one above rather than merged: they are two files that drifted independently, and a single test covering both would go green when either one alone was repaired. `resolve_symbol` still reads `.py` a few lines further down, for whether a Python AST can be run over the file, and that is a different question which behaviour does cover — `test_python_normalisation_is_untouched` and `test_and_a_module_level_constant_is_still_refused` call it."
+    },
+    {
+      "id": "69d3eb5797fb7ecd",
+      "why": "tests/test_a_landmark_in_a_language_the_checker_reads.py::test_every_site_reads_the_same_owner — reads kernel/spec_coverage.py and asserts no site spells a past-run mark of its own. It never calls anything, and there is nothing behavioural to replace it with: `當時 in line or 前身 in line` at three sites and `_about_the_past(line)` at three sites answer identically for every input, so no execution can tell them apart. That is exactly how the third site came to be missing `V3` and `rev 1` while the other two had them — the divergence was invisible to behaviour, and the test that would have caught it is this one. The three cases beside it in the same class do run: they call `_about_the_past` on each mark and on three sentences that must not be exempt."
+    },
+    "07ac4a67022dedfe",
+    "098bfe1125337855",
+    "1b683ad6b04c0400",
+    {
+      "id": "2bede56e0eafdff6",
+      "why": "tests/test_kernel.py::test_a_value_the_repo_chose_is_left_alone — the same over-reach as c97e789dde05c58e. It reads back the JSON the test itself just wrote, and the rule fires because `.py` string literals (`my_lint.py`, `always_lint.py` — detector filenames, which is what the assertion is about) sit beside a `read_text`. Nothing here asserts on source text; the file being read is this test's own output."
+    },
+    "304bfefacd73ff70",
+    {
+      "id": "38add3ed479a8ef3",
+      "why": "tests/test_kernel.py::test_the_marker_the_writer_writes_is_the_one_the_reader_matches — asserts the writer does not spell the marker a second time. Same shape: a second literal would pass every behavioural case above it in the same test, which is why the source check is there."
+    },
+    "393a5e23c0ba76f4",
+    "3d7a8c7dd3c94493",
+    "491d2bf4b379786e",
+    "4c8926c7658aca24",
+    "4dc6c42306440843",
+    "50ddcab44c1f6f90",
+    "51374a0c76b58de6",
+    "5ca74d330b36c488",
+    "66ed2a6e7a9b85f4",
+    "8c09eced0ebcfa55",
+    "9a2a1158b2c34d31",
+    "a2bd11301b5ae46c",
+    "b24e68d41db3c037",
+    {
+      "id": "c25823a5f8524b55",
+      "why": "tests/test_kernel.py::test_no_v4_path_falls_between_the_two_sets — parses kernel/cli.py to find every `stamp_generated` call site. The source IS the subject: the question is whether any `.v4/` path is answered for by neither route, and that is a fact about the code's shape, not about what a call returns. Nothing to execute instead."
+    },
+    {
+      "id": "c97e789dde05c58e",
+      "why": "tests/test_secret_scan.py::_module — not an assertion at all. It execs the top of checkers/secret_scan.py to import the half above `def inspect(`, because the file shadows the builtin. The checker reads any source-file read inside a test as this shape; this one is a loader. Worth noting as the rule's one known over-reach here."
+    },
+    "cc10d4820916f819",
+    {
+      "id": "f89b5aedd54e1707",
+      "why": "tests/test_rust_without_a_rust_parser.py::test_a_checker_that_reads_neither_rust_nor_go_is_unmoved — the `read_text` is a probe, not an assertion: it saves the Go emitter's bytes, appends a line, recomputes `hashing.program_sha` for a checker that reads neither Rust nor Go, asserts the sha did not move, and restores the file in `addCleanup`. Nothing in the file asserts on source text. Signed `baseline_raise` eight times across fw-rust, fw-lens and five more before anyone wrote it down -- the file it belongs in has existed the whole time."
+    }
+  ],
+  "why": "\n\n2026-08-13: `test-shape` became repo-wide (NF-3). Three findings in this repo's own tests were standing before that change and none was created by a task; each is listed with why it stays. A fourth (test_derive_passes_both) was written the same hour, was raised the same hour, and was rewritten to run `derive` instead of reading its source -- the rule was right about it."
+}

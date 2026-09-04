@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.v4/ledger.db*
+tests/fixtures/**/.git/
+
+.DS_Store
+**/.DS_Store

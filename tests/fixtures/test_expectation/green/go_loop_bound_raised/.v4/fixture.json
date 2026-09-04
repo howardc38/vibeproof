@@ -1,0 +1,10 @@
+{
+  "committed": [
+    ".v4/config.json",
+    ".v4/fixture.json",
+    "m_test.go"
+  ],
+  "parent_content": {
+    "m_test.go": "package m\n\nimport \"testing\"\n\nfunc TestRetries(t *testing.T) {\n\tfor i := 0; i < 10; i++ {\n\t\tif got := Try(i); got != \"ok\" {\n\t\t\tt.Errorf(\"Try(%d) = %q\", i, got)\n\t\t}\n\t}\n}\n"
+  }
+}

@@ -1,0 +1,578 @@
+{
+  "name": "Prevention",
+  "source": "前身 33 份守則 · 由 checker 候選降級落嚟",
+  "why": "每一條都曾經被判「做得到 checker」,然後喺對抗核(要求提出真實 red 同 green)度企唔住。**企唔住唔等於規則假**,而四個理由要分開睇 —— 每條 check 帶住佢自己嗰個。\n最重要嗰個係「今日冇實例」:一條預防規則喺一個健康 repo 度應該就係揾唔到嘢。用「冇發生過」去否證一個防禦,就係 Wald 嗰架轟炸機 —— 你數緊飛得返嚟嗰啲。\n放喺 lens 唔放喺 checker,因為 reviewer 睇住一個 diff 判得到,而一個 checker 對住成個 repo 會誤報。",
+  "checks": [
+    {
+      "check": "Every repo-relative path and every cross-document section anchor mentioned in an active document must resolve.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-007bd7f5"
+    },
+    {
+      "check": "A count or enum literal stated in prose must point at one canonical source: the same literal-plus-noun must not appear unpinned in more than two documents, and a stated count must match the length of the array it describes.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-2018a6e9"
+    },
+    {
+      "check": "The same count invariant must not be hardcoded in more than one test file.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-e7af16d6"
+    },
+    {
+      "check": "Blocks marked as a declared sync pair must stay verbatim identical after whitespace normalisation.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-aff2caae"
+    },
+    {
+      "check": "Authority documents describe the system's current form: no `Phase N`, 7-hex commit hash, before/after narrative or \"currently a stub\" outside a traceability appendix.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-d2cb6640"
+    },
+    {
+      "check": "No low-signal metadata in stable docs: inline dates in headings, generation/version footers, leftover TODO/FIXME, author attribution.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-7c5ba74e"
+    },
+    {
+      "check": "No `##` section over 300 lines with zero sub-headings.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-1ed472a3"
+    },
+    {
+      "check": "Markdown code fences and diagram blocks must balance: even fence-marker count, every subgraph closed.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-ee376555"
+    },
+    {
+      "check": "Structure entropy: `new_`/`temp_`/`legacy_`/`_v2` module names persisting, empty packages, directories nothing imports, duplicated adapters left in the real path.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-cf16bf3d"
+    },
+    {
+      "check": "A client-supplied identity value must not reach a query or write unless the same function also makes an auth decision.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-6bffe12c"
+    },
+    {
+      "check": "Webhook and callback handlers must verify a signature before processing the body.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-e94b7848"
+    },
+    {
+      "check": "Route registry, handler and auth contract must stay in three-way parity.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-72a1d264"
+    },
+    {
+      "check": "Environment access is centralised: `os.environ` / `process.env` must appear only in declared config files.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-c9f48fc8"
+    },
+    {
+      "check": "Critical infrastructure config (DB URL, bucket, project id, endpoint, DSN) must have no default fallback in code.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-93b692d8"
+    },
+    {
+      "check": "A missing required secret crashes at import: no optional-read form for a SECRET/KEY/TOKEN/PASSWORD-named value in a config module without a module-level failure.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-f9d6d8f3"
+    },
+    {
+      "check": "Each config value has exactly one truth location — not one in an env file and another in code.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-65782d89"
+    },
+    {
+      "check": "Environment definitions keep key-set parity across dev, staging and production.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-c2cba667"
+    },
+    {
+      "check": "No `.env*` file (other than an example with placeholder values) may be tracked in git — checked against the whole index, not the diff.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-1ff78392"
+    },
+    {
+      "check": "Threshold / score / tunable numeric literals come from settings, and appear exactly once — not privately in logic, and not written twice as a settings default plus an inline constant.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-34053965"
+    },
+    {
+      "check": "No secrets or PII in logs or debug output: a credential- or PII-named value must not flow into a logging call, and log extras must be redacted before emission.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-ae7a0067"
+    },
+    {
+      "check": "API responses must not carry exception text, stack traces or internal paths.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-f9d14a70"
+    },
+    {
+      "check": "Production build configuration must not emit source maps.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-f7f9f586"
+    },
+    {
+      "check": "Domain / core logic performs no direct external I/O.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-86770309"
+    },
+    {
+      "check": "No DML statement without a WHERE clause.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-6491a845"
+    },
+    {
+      "check": "No self-HTTP hop: an HTTP call whose host and port are the application's own bind address.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-1489dc04"
+    },
+    {
+      "check": "Handlers stay thin — roughly 50 lines maximum per handler in an entry file.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-c8173f02"
+    },
+    {
+      "check": "Entry surfaces validate input before any downstream processing: a schema or typed parse must precede the first service call.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-a7b27bcc"
+    },
+    {
+      "check": "Invalid input must not be silently coerced into a business operation: an except branch assigning a literal default and falling through into a mutation.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-de234a10"
+    },
+    {
+      "check": "Typed response contracts: every union branch carries all discriminant fields.",
+      "why_not_a_checker": "佢假設咗一個唔存在嘅機制。",
+      "from": "R-a2e8168d"
+    },
+    {
+      "check": "A signature change adding a required parameter must leave no call site at the old arity.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-4dec9cbd"
+    },
+    {
+      "check": "Cross-layer signatures carry no type escape hatch — no bare dict, `Any` or `unknown` on a boundary.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-c883d892"
+    },
+    {
+      "check": "File and function size thresholds — a file or function over the calibrated threshold with no sub-structure is a god module.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-c8c23ca3"
+    },
+    {
+      "check": "Net improvement on touch: a grandfathered file you edit must not grow, and you must not add a new over-threshold function to it.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-5ea8f257"
+    },
+    {
+      "check": "No parallel copy of an algorithm: extending behaviour means parameterising the existing function, not duplicating its body.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-fd4558c0"
+    },
+    {
+      "check": "Resources acquired must be released on every path: an acquire with no context manager and no try/finally.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-8a87e24e"
+    },
+    {
+      "check": "Shared mutable state written from more than one execution unit must be synchronised.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-192afd2c"
+    },
+    {
+      "check": "No machine-specific paths and no environment-specific identifiers hardcoded outside config — absolute home paths, drive letters, tenant/account ids.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-f08922bf"
+    },
+    {
+      "check": "Every temporary marker carries a decidable removal trigger — a version, an issue reference, a date or an event.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-0015f04c"
+    },
+    {
+      "check": "Critical UI controls expose a stable test selector rather than relying on CSS classes or DOM structure.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-52c66720"
+    },
+    {
+      "check": "UI tests must not select by CSS class or XPath when a stable selector is available.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-c928e22a"
+    },
+    {
+      "check": "A thread-through invariant must be asserted by downstream end state, not by signature or reflection inspection.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-25eff9aa"
+    },
+    {
+      "check": "Mocks of typed objects must be spec-aware — no bare patch or plain-object stand-in for a strongly typed dependency.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-e3af0261"
+    },
+    {
+      "check": "No non-deterministic test sources: sleep-then-assert, a live clock inside an assertion, or module-level mutable state written with no restore fixture.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-536cbde8"
+    },
+    {
+      "check": "Test file names reflect the module or contract under test, carry no phase/cycle/version marker, and no low-cohesion catch-all names.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-12792701"
+    },
+    {
+      "check": "Test names state behaviour and condition.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-d7736bae"
+    },
+    {
+      "check": "A shared fixture must live at the nearest common parent scope, never be copied into sibling scopes.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-75f091b4"
+    },
+    {
+      "check": "Tests touching a real database, network or filesystem carry a test-type marker so CI can layer them.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-ac8e9f95"
+    },
+    {
+      "check": "Every changed non-test file has a changed test file (advisory).",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-2dbfbe10"
+    },
+    {
+      "check": "A test must not bypass the production entrypoint by importing a private helper directly when the only production caller is an entrypoint.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-9f298681"
+    },
+    {
+      "check": "A validation-shaped function whose return value does not depend on its parameters is hollow.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-381df981"
+    },
+    {
+      "check": "A registered check that inspects nothing and produces no subject-derived output must not report completion. Exit status alone proves no requested behaviour.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-4f2b5ba5"
+    },
+    {
+      "check": "Log event names are stable literals — no f-string, concatenation or format call in the event-name position, and no free-prose event names.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-336223dc"
+    },
+    {
+      "check": "Log extras must not collide with standard log-record field names.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-6910bc54"
+    },
+    {
+      "check": "A declared event or metric literal must be greppable in its target source; an empty result means the plan item is unimplemented.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-21da107a"
+    },
+    {
+      "check": "Core paths emit structured success and failure logs carrying a trace or correlation id.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-ca562c2a"
+    },
+    {
+      "check": "Error logs carry an exception object and request context, not a stringified exception.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-e1e214fe"
+    },
+    {
+      "check": "No bare print or console output in production files.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-0c590532"
+    },
+    {
+      "check": "A deployed service exposes a health endpoint.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-ed99c8c9"
+    },
+    {
+      "check": "No synchronous blocking I/O inside an async hot path.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-fa70ac69"
+    },
+    {
+      "check": "Every outbound call sets a timeout.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-65e92a9b"
+    },
+    {
+      "check": "Retries have a budget and a backoff — no unbounded loop whose except branch continues without an attempt limit or a sleep.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-07ca0832"
+    },
+    {
+      "check": "Heavy clients are not constructed inside a request handler.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-9d274718"
+    },
+    {
+      "check": "No query call inside a loop body.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-38ee9305"
+    },
+    {
+      "check": "Dev-mode database clients are singletons guarded against hot-reload connection storms.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-d8693d80"
+    },
+    {
+      "check": "Dependency integrity is verified by hash or checksum, not by version pin alone.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-30ee4c11"
+    },
+    {
+      "check": "Commits are signed.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-fb77910f"
+    },
+    {
+      "check": "Work does not happen on a protected branch, and the branch name communicates scope.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-4c6108d6"
+    },
+    {
+      "check": "Requirements and deliverables map bidirectionally: no orphan requirement and no dangling reference.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-1acd1149"
+    },
+    {
+      "check": "A diff that introduces a risk class (outbound write, auth decision, surface change) must have a declared claim of that class.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-82b51da4"
+    },
+    {
+      "check": "A changed executable surface must have a same-cycle observation.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-8bbb632e"
+    },
+    {
+      "check": "A result claiming success must not contradict its own evidence — no failure object, no error string, no failing derived assertion alongside a pass.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-94d49c19"
+    },
+    {
+      "check": "A result claiming failure must carry a non-empty reason and the step it failed at.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-49fb3917"
+    },
+    {
+      "check": "Each attempt writes to a uniquely named artifact path; a retry must not overwrite the previous attempt's output.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-12232374"
+    },
+    {
+      "check": "Existing violations are a backlog, not a licence: every mechanised rule runs against a recorded baseline so new violations fail while old ones are visible.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-a850c4dc"
+    },
+    {
+      "check": "Tool parameter schemas match handler parsing (name, type, enum).",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-d8bece09"
+    },
+    {
+      "check": "Every registered tool name appears in the system prompt.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-64ae3807"
+    },
+    {
+      "check": "Declared scope lists exact repo-relative paths, never globs or prefixes.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-a4f341a6"
+    },
+    {
+      "check": "A cited mechanism must actually execute — an import, a comment, a string, a dead helper or an unexecuted branch is not proof.",
+      "from": "R-9715fb46",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "The effective value comes from the resolver that runs, not from a config file plus a code default.",
+      "from": "R-2d960d9c",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Artifact lifecycle: stable identity, collision prevention, cleanup, rollback, orphan handling.",
+      "from": "R-9a45b89a",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Generated assets handle all five paths: persist, regenerate, blocked, moderation, failure.",
+      "from": "R-845a501f",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Fan-out and batch work: bounded, per-item identity, partial failure, retry exhaustion.",
+      "from": "R-d68c4bb7",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Approval and manual-review flows: durable approval states, blocked and regenerate paths, operator proof.",
+      "from": "R-96033a2b",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Mock-only proof cannot cover persistence, integration or read-back obligations; mock evidence covers typed failure paths, not success or read-back.",
+      "from": "R-381a50a1",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "A workflow, decision-flow or routing change produces a diagram, and the diagram marks truth owner, external write boundaries, forbidden paths, and at least one error path.",
+      "from": "R-4b100ce0",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Shotgun surgery: the same rule or logic spread across three or more files needing lockstep edits.",
+      "from": "R-1b5767ce",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Artifact entropy: runtime outputs, evidence, review logs and snapshots accumulating with no retention, archive or active-window rule, and staging artifacts left in the active reasoning path.",
+      "from": "R-a0109b9d",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Semantic entropy: one concept carrying several names, one name covering several concepts, or retired terminology reappearing in new code.",
+      "from": "R-9473bd6e",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "The same code may be reported by two review axes only when the impacts differ and each impact is independently concrete.",
+      "from": "R-cbcfe262",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Human-authored free-text values (form fields, config edits, spreadsheet cells) are untrusted regardless of source and are parsed before use.",
+      "from": "R-e74a6251",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "A hardcoded list that must track reality will go stale; judge by property, or read from verified config. One missing entry means the rule silently stops applying.",
+      "from": "R-971c1c69",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Hunk-level scope: is this hunk necessary to complete the approved outcome?",
+      "from": "R-055fc959",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Opportunistic rewriting disguised as feature delivery, or an unrelated rewrite carried in under a clean-replacement banner.",
+      "from": "R-484c58ad",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Legacy design patterns, abstractions or control-plane conventions imported into new code for convenience.",
+      "from": "R-8fe76a44",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "An approval gate present in the approved design must be enforced in the implementation.",
+      "from": "R-88b661ee",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Seven ownership slots are explicit: workflow truth, approval truth, file/media truth, which surfaces are projections, which are transport, which runtime metadata must never become product truth, and which derived surfaces must never write back to authority state.",
+      "from": "R-bf69b6a0",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Is the model a semantic selector or a tool caller, and who owns final validation, sequencing and side effects?",
+      "from": "R-591511ee",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Each selectable action carries a usable purpose, when-to-use, when-not-to-use, schema, side-effect level, approval semantics and scope assumptions — and the negative guidance is actually informative.",
+      "from": "R-5a9f7c5e",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Agent guardrails: transport never owns truth, advisory paths never mutate truth, the active action subset is mandatory, and a canonical preview precedes schedule mutation.",
+      "from": "R-2082744d",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Hot paths use exact queries with a workable index strategy and do not over-fetch.",
+      "from": "R-1eb338a5",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Lock contention and retry amplification are bounded — nothing slow inside a critical section.",
+      "from": "R-b04a8dde",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Batch paths define memory caps, control disk pressure, and clean up temporary output.",
+      "from": "R-6386a0e6",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Projection paths define a staleness tolerance and monitor reconciliation lag and quota pressure.",
+      "from": "R-116980d0",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Scheduled and unattended work prevents overlap and duplicate execution.",
+      "from": "R-302fa020",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Unattended workers bound artifact and log retention and monitor cadence drift.",
+      "from": "R-20de5756",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Cold start cost is controlled and connection management prevents a connection storm.",
+      "from": "R-841915c7",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Core paths are measured (at least p50), and the metric set matches the workload class — tail latency for interactive, throughput under bounded concurrency for batch, lag for async, quota for external, before/after for material changes.",
+      "from": "R-1383e53a",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Event-level sync loops: does A writing trigger B, which triggers A?",
+      "from": "R-9efd581f",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Where partial loading is expected, the expected endpoint is called, a full route reload is absent or within threshold, and status codes are as expected.",
+      "from": "R-16f3cf2f",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "When a surface signal and the server response disagree, the server response is the root-cause truth — assertions must bind to it, not to the surface.",
+      "from": "R-736b7a1e",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Console noise: a small allowlist for known non-blocking errors, new uncategorised errors surfaced, and no automatic failure on noise alone unless acceptance criteria are violated.",
+      "from": "R-36bb34f9",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "State invariants are implemented and transitions have explicit boundaries.",
+      "from": "R-eeced45b",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "Heavy paths have isolation or batching guardrails, and connection, retry and lock behaviour is reasonable.",
+      "from": "R-02226b12",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
+    },
+    {
+      "check": "A test that reaches a networked symbol must carry a marker. `test_command` carries a marker filter, so an unmarked test enters the one oracle every `test` claim rests on and goes green wherever the thing it tests is unreachable.",
+      "why_not_a_checker": "建過,量過,拆咗。靜態掃出 66 個 test 檔,而抽驗第一個(tests/agent/test_loop.py)有 66 處 mock 迹象 —— 佢 mock 到貼地。分辨「真係打出去」同「mock 咗」要跟得到 fixture、monkeypatch、MagicMock 三條路,而一個睇住 diff 嘅 reviewer 一眼睇得出。",
+      "from": "measured-2026-08-07"
+    }
+  ],
+  "anti_patterns": []
+}

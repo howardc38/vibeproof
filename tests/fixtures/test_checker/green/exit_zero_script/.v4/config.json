@@ -1,0 +1,5 @@
+{
+  "test_command": "python3 -c \"print('Ran 1 test');print('OK')\"",
+  "test_timeout_sec": 60,
+  "policy": "allow_accepted_risk"
+}

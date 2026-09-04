@@ -1,0 +1,68 @@
+{
+  "dangling_ref.py": {
+    "cases": 6,
+    "fixtures": "tests/fixtures/dangling_ref_detector",
+    "path": "detectors/dangling_ref.py",
+    "sha256": "69e589bb3a587f7074e1950c02b617bd7da5b5a8b1a1f6b65bc4f99332d4707e"
+  },
+  "design_pins.py": {
+    "cases": 6,
+    "fixtures": "tests/fixtures/design_pins_detector",
+    "path": "detectors/design_pins.py",
+    "sha256": "bd9afaddd7bdd18ba358e7e85fd097f6294ce85be4b6baad72cbc4f7319b1762"
+  },
+  "external_write.py": {
+    "cases": 43,
+    "fixtures": "tests/fixtures/external_write",
+    "path": "detectors/external_write.py",
+    "sha256": "1e434b08617b2d437d524e8ac9448d5d1561e13614ea2973100ee7653085562e"
+  },
+  "fail_closed.py": {
+    "cases": 47,
+    "fixtures": "tests/fixtures/fail_closed",
+    "path": "detectors/fail_closed.py",
+    "sha256": "fbd192533fcfcc04c2f7c48f91fc65c99c1a2cb2bdf27e5c7afa4eb0ba24ca1f"
+  },
+  "runtime_proof.py": {
+    "cases": 8,
+    "fixtures": "tests/fixtures/runtime_proof_detector",
+    "path": "detectors/runtime_proof.py",
+    "sha256": "3def7d60892d3a495f659f465e17f9f024fd9a832d777a86b173fae611f4d9e3"
+  },
+  "signature_change.py": {
+    "cases": 25,
+    "fixtures": "tests/fixtures/signature_change",
+    "path": "detectors/signature_change.py",
+    "sha256": "caa3f02034135e31aece27402cea8d252ebb4170074dc78d8425ec57b30eb2c8"
+  },
+  "surface_proof.py": {
+    "cases": 8,
+    "fixtures": "tests/fixtures/surface_proof_detector",
+    "path": "detectors/surface_proof.py",
+    "sha256": "ad950d3a80181c2034b21770cf27eac64b955ad04be0bbb078a0b275e47b4cea"
+  },
+  "test_expectation.py": {
+    "cases": 46,
+    "fixtures": "tests/fixtures/test_expectation",
+    "path": "detectors/test_expectation.py",
+    "sha256": "8cf3213a7174bc15c7f2a32e650a93f28788a0c2c89bb4cefd99486481fb2926"
+  },
+  "test_shape.py": {
+    "cases": 11,
+    "fixtures": "tests/fixtures/test_shape_detector",
+    "path": "detectors/test_shape.py",
+    "sha256": "17653f09e9901197e34bf7f8f48ea25ef01b26a6abd961575a1be265fac8dd63"
+  },
+  "test_token_shape.py": {
+    "cases": 9,
+    "fixtures": "tests/fixtures/test_token_shape_detector",
+    "path": "detectors/test_token_shape.py",
+    "sha256": "d8fc202eee468ee4c1a083fdf65b1e5d5fadfe64df7670861fd79d162c7e4040"
+  },
+  "test_weakened.py": {
+    "cases": 49,
+    "fixtures": "tests/fixtures/test_weakened",
+    "path": "detectors/test_weakened.py",
+    "sha256": "cb2bdc07d5b3ee3c738fe8de7e1ccdf1bb0e6c269e029637198c2be14af82d7b"
+  }
+}

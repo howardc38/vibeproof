@@ -1,0 +1,10 @@
+{
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "assembled_test.go"
+    }
+  ],
+  "params": {},
+  "variant": ""
+}

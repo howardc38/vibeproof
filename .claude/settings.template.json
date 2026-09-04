@@ -1,0 +1,74 @@
+{
+  "_comment": [
+    "Without this file the hooks are files nobody calls. `hooks/write_block.py`",
+    "sat here while the spec listed it as built, and every ship report printed",
+    "DEGRADED because nothing had ever fired it.",
+    "Copy to .claude/settings.json and set V4_TASK per task. None of these is a",
+    "boundary -- all three are friction. A shell defeats any of them, and the",
+    "checkers catch at ship what the hooks catch early.",
+    "bash_guard 同 write_block 係同一個問題嘅兩半:一個睇 Write/Edit,一個睇 Bash。冇後者,一句 sed -i .v4/config.json 就繞過晒。",
+    "root -- 一句 `cd tests/fixtures/...` 之後,`python3 hooks/bash_guard.py` 就搵唔到",
+    "自己,而跟住每一個 Bash / Write / Edit 都喺執行之前被拒,連 `cd` 返去嗰個都行唔到。",
+    "所以呢個係死結唔係假綠 —— 但一個解唔到嘅死結,同一個關咗嘅閘一樣係冇閘。",
+    "Hook 路徑由 git 問出嚟,唔用相對路徑,亦唔用 $CLAUDE_PROJECT_DIR。",
+    "相對路徑實測會鎖死:hook 嘅 cwd 係 shell 嘅 cwd,唔係 repo root —— 一句",
+    "`cd tests/fixtures/…` 之後 `python3 hooks/bash_guard.py` 就搵唔到自己,",
+    "跟住每一個 Bash / Write / Edit 都喺執行之前被拒,連 `cd` 返去嗰個都行唔到。",
+    "$CLAUDE_PROJECT_DIR 冇用,因為 settings schema 冇為 hook 保證呢個變數,",
+    "實測亦讀唔到 —— 一個展開成空字串嘅路徑,同相對路徑一樣係死結。",
+    "`git rev-parse --show-toplevel` 由 repo 內任何一層都答得出,而 hook 本來",
+    "就只會喺一個 git repo 入面行。fail-closed 唔係靜靜放行,但一個解唔到嘅",
+    "死結,同一個關咗嘅閘一樣係冇閘。",
+    "而嗰個死結今日出現咗:repo 目錄喺一個開住嘅 session 途中改咗名,`git rev-parse`",
+    "由一個唔再存在嘅 cwd 答唔出嘢,路徑塌成 `/hooks/*.py`。PreToolUse 當佢係拒絕,",
+    "於是每一句 Bash / Write / Edit 都被擋,連 cd 返去嗰句都擋埋;Stop 反方向,exit 0",
+    "當放行,個閘靜靜熄咗。兩個 script 入面嘅 fail-open 由頭到尾冇行過,因為 shell",
+    "喺佢哋開始之前已經死咗 —— 一個 hook 保護唔到自己搵唔到自己嗰個情況。",
+    "所以路徑照樣由 git 問,問唔到就企定出聲:stderr 一句 + `{}`。呢個就係",
+    "hooks/_framework.py 一路嘅做法 —— 接唔到就企定,而企定唔可以靜。",
+    "呢度本來仲有一句 `\"env\": {\"V4_REPO\": \".\"}`,而佢就係上面嗰個死結嘅另一半:",
+    "hook 路徑由 git 問出嚟,hook 守邊個 repo 就由一個相對值決定,而相對值對住嘅",
+    "係 hook 個 process cwd。實測:同一個受保護路徑嘅 Write payload,喺 repo root",
+    "拒得到,喺同一個 repo 嘅子目錄行 relative_to 拋 ValueError、返 {} = 放行、",
+    "而且一行 hook_seen 都冇寫 —— 一句 cd 就熄咗個閘,兼且喺 ledger 度同「從來冇裝過」",
+    "一模一樣。所以呢個 key 冇咗:repo root 而家由 hooks/_framework.py::repo_root",
+    "答,而佢同 hook 路徑問同一條問題 —— `git rev-parse --show-toplevel`。一個目錄",
+    "只可以做嗰條問題嘅起點,唔可以做佢嘅答案:repo 入面每一個目錄都答到同一個",
+    "toplevel,而入面只有一個係 repo。冇 set V4_REPO 就由 hook 自己個檔嗰度起 ——",
+    "`v4 install` 會把 hooks/*.py copy 入 adopter,所以個 hook 一定坐喺佢守緊嗰棵",
+    "樹入面。仲要指去第二個 repo 嘅話,set V4_REPO,佢一樣係一個起點:`.` 喺子目錄",
+    "度指返嗰個子目錄所屬嘅 repo,唔再係嗰個子目錄。"
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then exec python3 \"$D/hooks/write_block.py\"; fi; echo \"write_block stood down: $PWD is not in a git repository\" >&2; echo '{}'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then exec python3 \"$D/hooks/bash_guard.py\"; fi; echo \"bash_guard stood down: $PWD is not in a git repository\" >&2; echo '{}'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then exec python3 \"$D/hooks/stop_gate.py\"; fi; echo \"stop_gate stood down: $PWD is not in a git repository\" >&2; echo '{}'"
+          }
+        ]
+      }
+    ]
+  }
+}

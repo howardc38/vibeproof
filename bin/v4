@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Every example in the spec is written `v4 <command>`, so `v4` has to be a
+# thing. Without this, a reader following §11 gets "command not found" on the
+# first line of the walkthrough -- a poor showing for a document whose thesis
+# is that prose about a contract is not a contract.
+#
+# `PYTHONPATH` from this file's own location, which is what makes `v4 --repo
+# <somewhere else>` work from anywhere. It used to be a bare `exec python3 -m
+# kernel.cli`, so the launcher only ran with the framework root as the working
+# directory -- and `install.write_launcher` has always written an adopter
+# launcher that sets it, so the two launchers disagreed about whether that was
+# needed. Measured by the first thing that ran the documented walkthrough from
+# a throwaway repo: `No module named 'kernel'` on the first command.
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PYTHONPATH="$HERE${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m kernel.cli "$@"

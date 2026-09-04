@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "lib/__tests/parse.js": "import { it, expect } from 'vitest'\n\nit('parses a selector', () => {\n  expect(parse('a')).toBeTruthy()\n})\n\nit('rejects a bad selector', () => {\n  expect(() => parse('!')).toThrow()\n})\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "lib/__tests/parse.js"
+    }
+  ],
+  "committed": [
+    "lib/__tests/parse.js"
+  ]
+}

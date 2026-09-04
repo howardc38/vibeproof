@@ -1,0 +1,42 @@
+{
+  "name": "Electrification",
+  "source": "PL-8. Six ships in a row went green while the feature never ran once.",
+  "why": "Every other lens asks whether the change is right. This one asks whether it is connected. A migration file that exists and was never applied, a config key the code reads and the environment never sets, a worker written with no scheduler row, a make target that exits 0 having done nothing -- each is a change that passed review, passed CI, shipped, and did nothing. The shape is one end declared and the other absent, and `dead-wiring` now asks it of tables and config; the rest of it needs somebody to look, because what counts as `connected` is the adopter's knowledge and not the framework's.\n\nNot a checker, and the reason is specific: `dead-wiring` can ask `does anything read this column` from source alone, and cannot ask `is the latest migration applied in the environment this repo actually deploys to`. That question needs the environment. The lens already reads production -- the 2026-08-10 sweep read a 535MB log and counted 481 live occurrences -- so this is asking it to look at something it can already reach.",
+  "checks": [
+    {
+      "check": "The most recent migration in the migrations directory is applied in the environment this repo deploys to. Name the migration and how you checked.",
+      "why_not_a_checker": "The file's existence is visible from source; whether it ran is a question about a database. Measured on one adopter: a table created by a migration, and every mention of it in Python is a comment saying it was removed.",
+      "from": "PL-8"
+    },
+    {
+      "check": "Every configuration key the code reads has a value in the environment that runs it -- not a default in a settings table, an actual value where it deploys.",
+      "why_not_a_checker": "`dead-wiring` asks whether anything reads the key. Whether the key is set where it runs is one layer past what source can see. Measured: an env allowlist silently dropped two keys three consumers read, and the probe that would have caught it checked the wrong port.",
+      "from": "PL-8"
+    },
+    {
+      "check": "Every worker or job the change adds has a row in whatever schedules work here, and the schedule is loaded.",
+      "why_not_a_checker": "A worker class and a scheduler row are two files with nothing tying them together, and the failure is silence: the worker exists, nothing calls it, and no test notices because the test calls it directly.",
+      "from": "PL-8"
+    },
+    {
+      "check": "Every command a document tells somebody to run, runs. Report the exit code, not the intent.",
+      "why_not_a_checker": "`spec-coverage` resolves the paths a document names; it does not execute them. Measured: `make ui-validate` was declared `.PHONY`, documented as a step, and had no recipe -- so it exited 0, and `make ui-test && make ui-validate` reported success.",
+      "from": "PL-8"
+    },
+    {
+      "check": "For a feature the change claims to deliver: trigger it once, then read the table the repo's own migrations name as the truth owner for that data. Say what you read.",
+      "why_not_a_checker": "This is PL-3, and it is here until PL-3 exists. Six cuts shipped green while the feature never ran; a claim that something works is a claim about a row somebody can go and look at.",
+      "from": "PL-8"
+    },
+    {
+      "check": "Anything installed as a dependency for a purpose is invoked by something. Name what invokes it.",
+      "why_not_a_checker": "Measured: `pip-audit` was in the dependency file and `.github/`, `Makefile`, `.githooks/` and `scripts/` had zero mentions of it. Installed is not wired.",
+      "from": "PL-8"
+    }
+  ],
+  "anti_patterns": [
+    "Reporting that a file exists as evidence that it took effect. The whole lens is the gap between those two.",
+    "Answering from source when the question is about an environment. `I read the migration and it looks applied` is not an answer to `is it applied`.",
+    "Raising the same finding once per site. One finding, every site listed -- a repair that fixes one occurrence of a fact that appears six times has fixed one sixth of it."
+  ]
+}

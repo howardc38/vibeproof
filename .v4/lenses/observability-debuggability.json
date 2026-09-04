@@ -1,0 +1,53 @@
+{
+  "name": "Observability & Debuggability",
+  "source": "DEBUGGING_OBSERVABILITY_GUIDELINE.md",
+  "checks": [
+    "All logs are JSON format with `trace_id` / `correlation_id`",
+    "Core paths (auth, billing, generation, data mutation) have structured success/failure logs",
+    "Errors include stack trace + request context",
+    "No PII or secrets in logs",
+    "Every request/task has a trackable ID (`trace_id`, `x-request-id`, `run_id`)",
+    "Production does NOT rely solely on unstructured `console.log`",
+    "Background jobs/workers produce unique `run_id` per execution",
+    "External dependency calls log: response time, status code, retry count",
+    "Failure paths have explicit instrumentation (not just generic error log)",
+    "Log event names are specific and stable (no `something happened`)",
+    "Debuggability does not depend on local reproduction only — production issues can be diagnosed from logs/traces/metrics without requiring local environment recreation",
+    "Upstream observability plan items have corresponding literal emit calls — events / trace identifiers declared in Step 1 Observability Plan are grep-verifiable in implementation code as literal `logger.*(<event_name>, ...)` / equivalent emit calls (see DEBUGGING_OBSERVABILITY_GUIDELINE §6A.5 Plan Literal-Match Rule)",
+    "High-risk flows have alert rules — critical paths (auth failure spikes, payment errors, data mutation failures) trigger automated alerts [SHOULD",
+    "Key operations have Span recording — important operations emit distributed tracing spans with timing and metadata [SHOULD",
+    "Cross-service requests are traceable end-to-end — trace IDs propagate across service boundaries for full request lifecycle visibility [SHOULD",
+    "Log drain configured to external platform — logs shipped to external aggregation platform (not only local disk) [SHOULD",
+    "Frontend Real User Monitoring (RUM) — when project has user-facing frontend",
+    "External dependency monitoring — when project depends on third-party services",
+    "Health check endpoint — when project is a deployed service",
+    {
+      "check": "Background and worker paths can answer: did it start, did it run twice, which step failed, and did checkpoint, retry and cleanup behave as intended.",
+      "from": "R-cdcd86db"
+    },
+    {
+      "check": "Logs distinguish provider failure from local failure.",
+      "from": "R-db5d131a"
+    },
+    {
+      "check": "Trace context is injected by middleware, not added by hand in each handler.",
+      "from": "R-9e7717b2"
+    },
+    {
+      "check": "External writes leave an audit trail: actor, timestamp, trace id.",
+      "from": "R-d1f420b9",
+      "why_not_a_checker": "要知邊個算 actor、邊個算 trace id，係逐個 repo 嘅詞彙。而 X/Y 實驗顯示呢條喺前閘度 25 次曝光只換到 2 句提及，喺後閘度提出 6 次兩臂都認真拒絕連理由 —— 佢係一個讀住 code 先諗得起嘅問題。"
+    }
+  ],
+  "anti_patterns": [
+    "Unstructured logs as only observability source",
+    "No correlation ID / trace ID across related events",
+    "Runtime validation without durable evidence",
+    "Reactive-only debugging (add instrumentation only after incident)",
+    "High-risk paths with no visibility into inputs, outputs, failures",
+    "PII or secrets leaked in logs",
+    "Errors silently caught and ignored (catch-and-swallow)",
+    "Stub-as-proof: Step 5 commands_run 經 stub / placeholder ID / signature inspection / harness probe / low-level helper 旁路 production entrypoint，取代 truth-owner read-back → flag P1",
+    "Surface validation schema compliance gap: surface validation evidence commands_run 缺 schema validation script invocation；驗證 exit=0 與 PASS marker；空結果 → flag P1"
+  ]
+}

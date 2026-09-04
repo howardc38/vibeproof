@@ -1,0 +1,14 @@
+{
+  "parent_content": {
+    "test/helpers.ts": "export const build = (s: string) => s.trim()\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "test/helpers.ts"
+    }
+  ],
+  "committed": [
+    "test/helpers.ts"
+  ]
+}

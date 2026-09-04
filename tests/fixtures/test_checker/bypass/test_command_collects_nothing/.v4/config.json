@@ -1,0 +1,5 @@
+{
+  "test_command": "python3 -c \"print('collected 0 items')\"",
+  "policy": {},
+  "protected_paths": []
+}

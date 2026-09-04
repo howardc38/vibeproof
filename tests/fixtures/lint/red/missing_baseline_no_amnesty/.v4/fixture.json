@@ -1,0 +1,15 @@
+{
+  "params": {
+    "scope_globs": [
+      "**"
+    ]
+  },
+  "committed": [
+    ".v4/config.json",
+    ".v4/fixture.json",
+    "app/__init__.py",
+    "app/base.py",
+    "core/__init__.py",
+    "core/util.py"
+  ]
+}

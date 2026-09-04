@@ -1,0 +1,19 @@
+{
+  "test_command": "true",
+  "policy": "allow_accepted_risk",
+  "truth_command": "python3 -c \"import sys; exec(sys.stdin.read())\"",
+  "runtime_proof": [
+    {
+      "name": "this one lands",
+      "trigger": "python3 -c \"open('s_{run_id}','w').write('ok')\"",
+      "truth": "print(open('s_{run_id}').read().strip() if __import__('os').path.exists('s_{run_id}') else '')",
+      "expect": "contains:ok"
+    },
+    {
+      "name": "this one does not",
+      "trigger": "true",
+      "truth": "print(open('s2_{run_id}').read().strip() if __import__('os').path.exists('s2_{run_id}') else '')",
+      "expect": "contains:ok"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+The demonstrated hole. A no-op trigger and a query that answers the same thing forever. Caught because the query carries no {run_id}, so it cannot be about this run.

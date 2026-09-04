@@ -1,0 +1,12 @@
+{
+  "committed": [
+    ".v4/config.json",
+    ".v4/fixture.json",
+    "m.go",
+    "m_test.go"
+  ],
+  "parent_content": {
+    "m_test.go": "package m\n\nimport \"testing\"\n\nfunc TestCompute(t *testing.T) {\n\tif got := Compute(); got != 3 {\n\t\tt.Errorf(\"Compute() = %d\", got)\n\t}\n}\n",
+    "m.go": "package m\n\nfunc Compute() int { return 3 }\n"
+  }
+}

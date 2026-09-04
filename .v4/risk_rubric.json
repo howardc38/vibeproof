@@ -1,0 +1,163 @@
+{
+  "source": "auto-dev-framework/OPERATIONAL_RISK_RUBRIC.md rubric_version 1.0 (2026-07)",
+  "why": "The denominator `v4 coverage` used to report against was the predecessor's obligation catalogue: 557 ids, and this repo's own reconciliation showed two thirds of them are PO-DL-nnn generated per phase and will never recur. Answering a coverage question against a denominator that is mostly one-off by construction is the same as not answering it.\n\nThese 17 are risk classes, not stack mechanics -- drawn from Google SRE PRR, AWS Well-Architected, 12-Factor and OWASP, plus the shapes that recurred across the predecessor's overlay corpus. They change on a multi-year cadence. Nine are marked `judgment`: only this project's own architecture answers them, and a web-only generator systematically misses them -- which is exactly the half a checker cannot reach either.\n\n`answered_by` is hand-written. Whether two questions have anything in common is a judgement and no string comparison recovers it.",
+  "rows": [
+    {
+      "n": 1,
+      "category": "Truth / authority ownership",
+      "trigger": "Per data type, does the arch doc say which store is authoritative truth vs derived/projection/cache?",
+      "fill": "judgment",
+      "answered_by": [],
+      "coverage": "none"
+    },
+    {
+      "n": 2,
+      "category": "Concurrency / idempotency / replay safety",
+      "trigger": "Does any handler get retried, delivered ≥once, or run concurrently with itself (webhooks, queues, retried calls, scheduled jobs across replicas)?",
+      "fill": "mixed",
+      "answered_by": [
+        "external-write"
+      ],
+      "coverage": "partial"
+    },
+    {
+      "n": 3,
+      "category": "State consistency / data integrity",
+      "trigger": "Does any operation write >1 record/store or do a multi-step mutation where partial failure or interleaving corrupts data (money/inventory/counters, write-then-publish, sagas)?",
+      "fill": "judgment",
+      "answered_by": [],
+      "coverage": "none"
+    },
+    {
+      "n": 4,
+      "category": "Failure recovery / retries / backoff",
+      "trigger": "Does the system call any dependency that can fail transiently (network, DB, queue, cache, third-party API)?",
+      "fill": "mixed",
+      "answered_by": [],
+      "coverage": "none"
+    },
+    {
+      "n": 5,
+      "category": "External-write / irreversible side-effect boundary",
+      "trigger": "Which external calls are irreversible, and who authorizes them?",
+      "fill": "judgment",
+      "answered_by": [
+        "external-write",
+        "fail-closed"
+      ],
+      "coverage": "answered"
+    },
+    {
+      "n": 6,
+      "category": "Tenant / scope isolation",
+      "trigger": "Is every read AND write filtered by a server-trusted scope, never a client-supplied one?",
+      "fill": "judgment",
+      "answered_by": [],
+      "coverage": "none"
+    },
+    {
+      "n": 7,
+      "category": "Authorization guard tiering",
+      "trigger": "Are there discrete, independently-verified guard tiers rather than one `isAuthenticated` check?",
+      "fill": "judgment",
+      "answered_by": [
+        "route-auth"
+      ],
+      "coverage": "partial"
+    },
+    {
+      "n": 8,
+      "category": "Secret & credential lifecycle / exposure",
+      "trigger": "Does the system use any credential, and does any code/config cross a server→client bundle/serialization boundary?",
+      "fill": "mixed",
+      "answered_by": [
+        "secret",
+        "secret-chain",
+        "bundle-secret",
+        "test-token-shape"
+      ],
+      "coverage": "answered"
+    },
+    {
+      "n": 9,
+      "category": "Centralized typed config, fail-fast at startup",
+      "trigger": "Does the project read env/config that, if missing/malformed, should crash at startup rather than deep in a request?",
+      "fill": "mixed",
+      "answered_by": [
+        "lint"
+      ],
+      "coverage": "partial"
+    },
+    {
+      "n": 10,
+      "category": "Adapter boundary — no raw external types in domain",
+      "trigger": "Does the project call external SDKs/HTTP/ORM/broker libs whose native types could leak into domain logic?",
+      "fill": "judgment",
+      "answered_by": [
+        "layer-boundary",
+        "dal-write"
+      ],
+      "coverage": "partial"
+    },
+    {
+      "n": 11,
+      "category": "Run / correlation identity & traceability",
+      "trigger": "Is there a stable run/correlation identity propagating across retries and into all logs/artifacts/stores?",
+      "fill": "mixed",
+      "answered_by": [],
+      "coverage": "none"
+    },
+    {
+      "n": 12,
+      "category": "Execution-unit / runtime-role decomposition",
+      "trigger": "Are there distinct runtime roles with each trigger source mapped, not one generic worker?",
+      "fill": "mixed",
+      "answered_by": [],
+      "coverage": "none"
+    },
+    {
+      "n": 13,
+      "category": "Observability / drift / liveness of decoupled flows",
+      "trigger": "Does the system have background/decoupled flows or failure modes whose health an operator must observe, including ones that silently fall behind?",
+      "fill": "mixed",
+      "answered_by": [],
+      "coverage": "none"
+    },
+    {
+      "n": 14,
+      "category": "Artifact / workspace / runtime-state lifecycle + destructive-op safety",
+      "trigger": "Is each directory/store given a role (workspace / runtime-temp / output) with lifecycle metadata, AND does any autonomous/scheduled operation delete / evict / truncate based on age/size/count (cleanup, GC, TTL, log-rotate, cache-evict, row-purge)?",
+      "fill": "judgment",
+      "answered_by": [],
+      "coverage": "none"
+    },
+    {
+      "n": 15,
+      "category": "Contract-surface drift",
+      "trigger": "Are there runtime-read descriptors (tool descriptions, prompt claims, schemas, pinned versions) where divergence from behavior is a correctness failure?",
+      "fill": "judgment",
+      "answered_by": [
+        "design-pins",
+        "dangling-ref",
+        "signature-change"
+      ],
+      "coverage": "partial"
+    },
+    {
+      "n": 16,
+      "category": "Compliance / platform-mandated capability & version obligations",
+      "trigger": "Does the platform mandate endpoints/webhooks/scopes/version pins that are architecture surfaces, not config trivia?",
+      "fill": "mixed",
+      "answered_by": [],
+      "coverage": "none"
+    },
+    {
+      "n": 17,
+      "category": "Local-OS / filesystem & process hardening",
+      "trigger": "Does the system write secret/config files to disk, run scheduled/daemon processes, or own local artifacts on a host?",
+      "fill": "judgment",
+      "answered_by": [],
+      "coverage": "none"
+    }
+  ]
+}

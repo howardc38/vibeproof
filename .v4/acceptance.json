@@ -1,0 +1,64 @@
+{
+  "frozen_at": "2026-08-06T08:50:14.291723+00:00",
+  "design_rev": 2,
+  "rule": "A deliverable that fails these criteria is fixed in the deliverable, never by relaxing the criteria. Changing this file to make a failing deliverable pass is the framework rewriting the exam because the student failed.",
+  "criteria": {
+    "red_fixtures_min": 5,
+    "green_fixtures_min": 5,
+    "red_must_exit": 1,
+    "green_must_exit": 0,
+    "determinism": "same subject twice -> byte-identical exit code and stdout",
+    "no_third_party_imports": true,
+    "false_positive_rate_measured": "hand-check every hit up to 25; if total hits < 25, hand-check all of them. Report the count checked alongside the rate. An estimate is not a report.",
+    "real_defect": "must flag the defect as it stands at a stable git target in the reference adopter (a pinned commit, not a moving HEAD). For fail-closed: at the two secret-store modules named in `mandatory_green_fixtures` the checker must NOT fire -- both are false positives (handler collects, enclosing code raises unconditionally). Ship them as green fixtures.",
+    "mandatory_green_fixtures": [
+      "reference adopter, secret store (rollback collector, raises outside handler)",
+      "reference adopter, second secret store (same shape)"
+    ]
+  },
+  "kernel_sha": {
+    "ledger.py": "a457cdf4e867f65e",
+    "hashing.py": "dce5990717f9e145",
+    "runner.py": "44308c9579b7de52",
+    "register.py": "96b39789f4f6ca8d",
+    "state.py": "5db9f69115182050",
+    "cli.py": "9d48fad34e0c6f98"
+  },
+  "amendment_rule": "A criterion may be amended only if its flaw can be stated without reference to any deliverable. If the argument needs 'because submission X failed', it is moving the goalposts wearing a correction's clothes. Amending invalidates every measurement taken under the old criterion -- they are re-run, never grandfathered. Reason is written before re-measuring, not after.",
+  "amendments": [
+    {
+      "at": "2026-08-06T08:54:17.128298+00:00",
+      "measurements_invalidated": 0,
+      "criterion": "false_positive_rate_measured",
+      "flaw": "Demands >=15 hand-checked hits. A detector whose correct output is 8 hits cannot satisfy it. A criterion that cannot be met is not strict, it is broken.",
+      "was": "agent must report a hand-checked rate over >=15 hits, not an estimate",
+      "now": "hand-check every hit up to 25; if total hits < 25, hand-check all of them. Report the count checked alongside the rate. An estimate is not a report."
+    },
+    {
+      "at": "2026-08-06T08:54:17.128429+00:00",
+      "measurements_invalidated": 0,
+      "criterion": "real_defect",
+      "flaw": "Names a defect at the reference adopter's HEAD. Verified: fixed there at 2026-08-06 13:46, before this criterion was written. An unsatisfiable criterion is broken, not strict. Stated without reference to any deliverable -- none has been measured.",
+      "was": "must flag the known HEAD defect, or state precisely why not",
+      "now": "must flag the defect as it stands at a stable git target in the reference adopter (a pinned commit, not a moving HEAD). For fail-closed: at the two secret-store modules the checker must NOT fire -- both are false positives (handler collects, enclosing code raises unconditionally). Ship them as green fixtures.",
+      "redacted": "The adopter's repo name, its fix commit and two file paths were removed from this entry before publication. What was amended and why is unchanged; only the addresses are gone."
+    },
+    {
+      "at": "2026-08-06T08:58:38.053490+00:00",
+      "measurements_invalidated": 0,
+      "criterion": "real_defect",
+      "flaw": "Names a defect at the reference adopter's HEAD. Verified: fixed there at 2026-08-06 13:46, before this criterion was written. An unsatisfiable criterion is broken, not strict. Stated without reference to any deliverable -- none has been measured.",
+      "was": "must flag the known HEAD defect ...",
+      "now": "must flag the defect as it stands at a stable git target in the reference adopter (a pinned commit, not a moving HEAD). For fail-closed: at the two secret-store modules the checker must NOT fire -- both are false positives (handler collects, enclosing code raises unconditionally). Ship them as green fixtures.",
+      "redacted": "The adopter's repo name, its fix commit and two file paths were removed from this entry before publication. What was amended and why is unchanged; only the addresses are gone."
+    },
+    {
+      "at": "2026-08-06T08:58:38.053490+00:00",
+      "measurements_invalidated": 0,
+      "criterion": "fail_closed_criterion",
+      "flaw": "Not a ruler change but a target correction: 'handler body contains no raise' is the wrong test. Measured on real code, it fires on two secret stores that do raise, one level out. The question is whether control can leave the try/except without raising, not whether the handler body holds a raise statement.",
+      "was": "(not previously stated)",
+      "now": "The detector must reason about escape paths, not handler contents. Both known false positives are mandatory green fixtures."
+    }
+  ]
+}

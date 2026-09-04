@@ -1,0 +1,144 @@
+{
+  "repo": "external_write-fixtures",
+  "generated_from_commit": "d38b2373162fc3ccb0c437e4a1311c75f61aa47e",
+  "outbound_write": [
+    {
+      "pattern": "fetch\\s*\\([^)]*method\\s*:\\s*['\"](?:POST|PUT|PATCH|DELETE)",
+      "kind": "http",
+      "seen_at": "tests/fixtures/external_write:1",
+      "match": "regex"
+    },
+    {
+      "pattern": ".post",
+      "seen_at": "tests/fixtures/external_write/red/response_bound_but_never_read.py:16",
+      "kind": "http"
+    },
+    {
+      "pattern": ".put",
+      "seen_at": "tests/fixtures/external_write/red/publish_result_dropped.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".send_message",
+      "seen_at": "tests/fixtures/external_write/red/send_handed_to_a_thread.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".publish",
+      "seen_at": "tests/fixtures/external_write/red/publish_result_dropped.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".generate_content",
+      "seen_at": "tests/fixtures/external_write/red/retry_loop_without_dedupe_key.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".upload",
+      "seen_at": "tests/fixtures/external_write/green/real_stage_to_gcs.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".upload_file",
+      "seen_at": "tests/fixtures/external_write/green/real_stage_to_gcs.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".set_password",
+      "seen_at": "tests/fixtures/external_write/green/real_write_secret_then_read_back.py:1",
+      "kind": "secret"
+    },
+    {
+      "pattern": ".Post",
+      "seen_at": "tests/fixtures/external_write/red/go_response_bound_but_never_read.go:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".Publish",
+      "seen_at": "tests/fixtures/external_write/red/go_publish_result_dropped.go:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".SendMessage",
+      "seen_at": "tests/fixtures/external_write/red/go_send_discarded_into_blanks.go:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".GenerateContent",
+      "seen_at": "tests/fixtures/external_write/red/go_retry_loop_without_dedupe_key.go:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".Upload",
+      "seen_at": "tests/fixtures/external_write/green/go_write_then_read_it_back.go:1",
+      "kind": "http"
+    }
+  ],
+  "outbound_read": [
+    {
+      "pattern": "fetch\\s*\\((?:(?!method\\s*:)[^)])*\\)",
+      "kind": "http",
+      "seen_at": "tests/fixtures/external_write:1",
+      "match": "regex"
+    },
+    {
+      "pattern": ".get",
+      "seen_at": "tests/fixtures/external_write/green/write_then_read_it_back.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".fetch",
+      "seen_at": "tests/fixtures/external_write/green/write_then_read_it_back.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".head",
+      "seen_at": "tests/fixtures/external_write/green/real_stage_to_gcs.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".verify_anonymously_readable",
+      "seen_at": "tests/fixtures/external_write/green/real_stage_to_gcs.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".get_password",
+      "seen_at": "tests/fixtures/external_write/green/real_write_secret_then_read_back.py:1",
+      "kind": "secret"
+    },
+    {
+      "pattern": ".Get",
+      "seen_at": "tests/fixtures/external_write/green/go_write_then_read_it_back.go:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".Fetch",
+      "seen_at": "tests/fixtures/external_write/red/go_readback_returns_empty_when_unreadable.go:1",
+      "kind": "http"
+    },
+    {
+      "pattern": "os.ReadFile",
+      "seen_at": "tests/fixtures/external_write/bypass/go_readback_of_a_local_kind.go:1",
+      "kind": "fs"
+    }
+  ],
+  "auth_decision": [
+    {
+      "pattern": ".has_permission",
+      "seen_at": "tests/fixtures/external_write/green/no_outbound_effect_at_all.py:1",
+      "kind": "authz"
+    }
+  ],
+  "entrypoint_globs": [
+    "tests/fixtures/external_write/**"
+  ],
+  "ui_globs": [
+    "web/**"
+  ],
+  "config_files": [
+    ".v4/config.json"
+  ],
+  "protected_paths": [
+    ".v4/**"
+  ]
+}

@@ -1,0 +1,369 @@
+{
+  "control-plane-budget": {
+    "applies_to": "framework",
+    "applies_to_why": "量緊呢個框架自己嘅重量。喺 adopter 度佢會量成個 codebase —— `measure()` 攞每一個有 tracked `.py` 嘅 top-level 目錄,淨係減 `tests`/`docs` —— 而個名唔係咁講。要一個 code-size ceiling 係另一條規則,另一個名。",
+    "checker": "control-plane-budget",
+    "detector": "always_budget.py",
+    "engagement": false,
+    "gate": "report",
+    "gate_why": "兩樣都冇。超咗 ceiling 係一個數字,擺喺度唔會走,亦唔會令任何嘢靜靜咁失敗。**但佢係最容易被推到死嗰個** —— 一個永遠唔落嘅 ceiling 就係咁嚟嘅,所以三條升級規則對佢特別緊要。",
+    "question_template": "Is the control plane still within the ceiling it declared?",
+    "staleness": "repo"
+  },
+  "dangling-ref": {
+    "checker": "dangling-ref",
+    "detector": "dangling_ref.py",
+    "engagement": false,
+    "gate": "report",
+    "gate_why": "兩樣都冇。一個指住冇嘢嘅名,遲一日一樣指住冇嘢。",
+    "question_template": "Does {file} import {symbol} from a module that defines it?",
+    "staleness": "subject"
+  },
+  "dead-wiring": {
+    "applies_to": "framework",
+    "applies_to_why": "佢讀 kernel/ledger.py 同 .v4/config.json 嘅 threshold,兩樣 adopter repo 都冇。實測 113 題:313 次執行、312 次 exit 4、90 次扣住 ship、93 個簽名、零判詞。install.py:567 個註釋一路都咁講,只係 registry 冇寫。",
+    "baseline": true,
+    "checker": "dead-wiring",
+    "detector": "always_wiring.py",
+    "engagement": false,
+    "gate": "report",
+    "gate_why": "兩樣都冇。一個冇 reader 嘅欄位,遲一日一樣冇 reader —— 佢係一個靜嘅缺陷,但佢唔會喺推遲期間做任何嘢。",
+    "question_template": "Is anything declared here with something on one end and nothing on the other?",
+    "staleness": "repo"
+  },
+  "design-pins": {
+    "checker": "design-pins",
+    "detector": "design_pins.py",
+    "engagement": false,
+    "gate": "report",
+    "gate_why": "兩樣都冇。一個 pin 指住冇咗嘅 symbol,個修法(改 pin 或者改返 code)唔會因為時間而變。",
+    "question_template": "Do the design document's pinned claims about the code still hold?",
+    "staleness": "repo"
+  },
+  "external-write": {
+    "baseline": true,
+    "checker": "external-write",
+    "detector": "external_write.py",
+    "engagement": true,
+    "gate": "ship",
+    "gate_why": "A —— 一次未經確立嘅對外寫入,charge 出咗就收唔返,重播做多次亦收唔返。推遲唔會令個判詞變壞,但會令嗰個副作用喺推遲期間真係發生。",
+    "question_template": "After the outbound write at {file}::{symbol}, does anything establish it landed, and does replaying it apply the effect twice? ({variant})",
+    "rule": [
+      {
+        "source": "PERFORMANCE_OPTIMIZATION_GUIDELINE.md §5.2 (MUST)",
+        "text": "處理前做 state check 防重複副作用;atomic claim/update(一個工作單位一個 owner);duplicate-suppression / replay-detection 要用 stable identifier 做 key —— 唔可以用每次 call 新生成嘅值。"
+      },
+      {
+        "from": "R-54eaa79e",
+        "source": "ARCHITECTURE_GUIDELINES.md L272-275 · claude_baseline.md L226",
+        "text": "Read-back 要嚟自 truth owner。UI render、cache、application log、console 輸出、個 write 自己個 response body —— 全部唔算。截圖同 operator 一句「睇落冇事」都唔算。"
+      },
+      {
+        "from": "R-266ad43f",
+        "source": "baseline/pipeline-policies.md L20",
+        "text": "一個關於外部系統點行嘅講法,由一次唯讀觀察逐字記低嚟定,唔係由 vendor 文件、code default 或者一個 config 檔嚟定。"
+      },
+      {
+        "from": "R-212acf4e",
+        "source": "STEP_7_AUDIT_LENS.md L218",
+        "text": "External dependency call 要記低 response time、status code、retry count。"
+      },
+      {
+        "from": "R-2848aaa5",
+        "source": "UNIT_TEST_GENERATION_GUIDELINE.md L48",
+        "text": "有冇一條 test 真係重跑一次個 write 然後斷言只有一筆記錄?dry-run 嗰條路有冇測?"
+      }
+    ],
+    "staleness": "subject"
+  },
+  "fail-closed": {
+    "baseline": true,
+    "checker": "fail-closed",
+    "detector": "fail_closed.py",
+    "engagement": true,
+    "gate": "ship",
+    "gate_why": "A —— 一個 fail-open handler 出咗貨,佢會喺 production 靜靜哋放行,而你唔會知佢幾時放行過。推遲期間佢唔係「一個未修嘅缺陷」,佢係一個「正在發生而且冇留低紀錄嘅缺陷」。",
+    "question_template": "Can control leave the try/except at {file}::{symbol} with no exception having propagated?",
+    "rule": [
+      {
+        "source": "SECURITY_AUDIT_GUIDELINE.md — Fail Closed 原則 (OWASP A10)",
+        "text": "異常條件下預設行為必須係「拒絕」而唔係「放行」。任何 catch block 都不應成為繞過安全校驗嘅管道。"
+      },
+      {
+        "from": "R-df6c3d5d",
+        "source": "SECURITY_AUDIT_GUIDELINE.md L86-91 · STEP_7_AUDIT_LENS.md L190-193",
+        "text": "四個經典 fail-open 形狀:auth error 被 catch 咗然後繼續行;timeout 跳過一個驗證步驟;parse 失敗 default 落一個業務操作;DB 失敗攞 stale cache 當真相。"
+      },
+      {
+        "from": "R-0f7f0ed7",
+        "source": "DEBUGGING_OBSERVABILITY_GUIDELINE.md L51",
+        "text": "呢條失敗分支留低嘅嘢,夠唔夠定位個邊界?定係只有一句通用 error log?"
+      },
+      {
+        "source": "claude_baseline.md L82",
+        "text": "一個冇 failure handler 嘅 entry surface 就係一個 bug。lint 睇嘅係結構,睇唔到一個 handler 到底處理咗啲乜。講出呢次改動之後,呢個 entry 出事嗰陣會點。"
+      }
+    ],
+    "staleness": "subject"
+  },
+  "layer-boundary": {
+    "applies_to": "declared",
+    "applies_to_why": "一個未宣告層嘅 repo，呢個 kind 每個 task 都回 exit 4，永遠冇人可以答",
+    "baseline": true,
+    "checker": "layer-boundary",
+    "detector": "always_layers.py",
+    "engagement": false,
+    "gate": "report",
+    "gate_why": "兩樣都冇。一條跨層 import 唔會因為遲修而變貴,而且佢係 declared —— 一個宣告咗要守呢條界嘅 repo,係自己揀嘅時候守。",
+    "needs": ".v4/layers.json",
+    "question_template": "Does any import cross a layer the declaration does not allow?",
+    "staleness": "repo"
+  },
+  "lint": {
+    "baseline": true,
+    "checker": "lint",
+    "detector": "always_lint.py",
+    "engagement": false,
+    "engagement_why": "checker 答得晒。三條判準（private import、private module access、import cycle）全部係 AST 判得到嘅結構事實，而佢係一個 delta —— 佢唔會叫你還人哋嘅債。留住 engagement 而冇規則，個 worker 見到嘅係一個攔住佢、然後乜都唔講嘅畫面：framework 自己印「this kind carries no rule; that is a gap, not a design」。呢個 kind 加入本身已經有 9 個成員嘅嗰組：checker 講完，冇嘢淨返畀人講。",
+    "gate": "report",
+    "gate_why": "兩樣都冇。佢係一個 delta,baseline 記住咗今日嘅樣,所以推遲唔會令佢由「你加嘅」變成「你要還人哋嘅」。",
+    "question_template": "Does this task add a structural violation that was not in the base commit?",
+    "rule": [],
+    "staleness": "repo"
+  },
+  "registry-consistency": {
+    "applies_to": "framework",
+    "applies_to_why": "佢問嘅係「呢個 V4 裝置同自己一唔一致」,唔係「呢次改動做咗咩」。喺 adopter repo 度 .v4/** 同 checkers/** 都係受保護路徑,一次普通改動根本掂唔到,所以每個 task 都收一次錢而近乎永遠 PASS。接手嘅機制唔係承諾,係已經喺度行緊嘅四行 doctor:checker hashes(sha 對唔對得住 disk)、kinds(每個 kind 指住嘅 checker 解唔解析得到)、raisable(每個 kind 有冇嘢提得出佢)、detectors(conditional detector 對唔對得上)。真正會改 checker 嘅係呢個 repo 自己,所以呢度照舊係一道擋 ship 嘅閘。",
+    "checker": "registry-consistency",
+    "detector": "always_registry.py",
+    "engagement": false,
+    "gate": "report",
+    "gate_why": "兩樣都冇。Registry 唔一致,重新 register 就得,而重新 register 係一個指令。",
+    "question_template": "Do the registries still describe the checkers, detectors and fixtures on disk?",
+    "staleness": "repo"
+  },
+  "review-finding": {
+    "checker": "review-finding",
+    "detector": null,
+    "engagement": true,
+    "gate": "ship",
+    "gate_why": "B —— 呢個係人手 raise 嘅,唔係一條規則自動出嘅。一條自動規則放行一個人特登提出嚟嘅嘢,係把判詞由人手上攞走。要推遲有現成路:`v4 review defer`,而佢要求指住一個 durable 目標。",
+    "question_template": "Is the finding at {file}::{symbol} closed by a test that fails without the fix and actually runs the code?",
+    "rule": [
+      {
+        "source": "baseline/step-1.md L206",
+        "text": "修一個 finding = 修嗰個事實喺所有出現嘅位,唔係嗰一行。red-green 只證到你嗰條 test 覆蓋嘅一處。講出同一個事實仲喺邊度出現過,同你點處理。"
+      },
+      {
+        "from": "R-5208ad04",
+        "source": "CODE_HEALTH_REVIEW_GUIDELINE.md L117-118 · claude_baseline.md L108",
+        "text": "呢個修係根因定係緩解?呢一類 finding 之前出現過未?**出現第二次代表第一次修錯咗位** —— 把規則寫落嚟,唔好再修一次個實例。"
+      },
+      {
+        "from": "R-414c7676",
+        "source": "FRAMEWORK_CLEANUP_GUIDELINE.md L142/L338",
+        "text": "「應該冇事」唔係一個判詞。閂一個 finding 要一個具體失敗、一個核過嘅 cross-reference、或者一個明確被打破嘅承諾;三樣都冇就當佢係真。"
+      },
+      {
+        "from": "R-ba802184",
+        "source": "baseline/step-7.md L41-45 · baseline/pipeline-policies.md L173",
+        "text": "你帶落去嘅嘢要同搵到嘅逐項對得上:冇漏、冇重排、冇加、冇轉手、冇降級。"
+      },
+      {
+        "from": "R-732eaed3",
+        "source": "baseline/step-7.md L77-78",
+        "text": "而家唔修嘅嘢,要有一個 durable 嘅目標指住。"
+      }
+    ],
+    "staleness": "subject"
+  },
+  "runtime-proof": {
+    "checker": "runtime-proof",
+    "detector": "runtime_proof.py",
+    "engagement": false,
+    "engagement_why": "checker 答得晒:trigger 行完,truth owner 有冇對應嗰行,係一個客觀答案。冇嘢淨返畀人講。",
+    "gate": "ship",
+    "gate_why": "A —— 一次執行冇留低證據,嗰次執行就過咗。事後補唔到:你補得到嘅係**下一次**執行嘅證據,而唔係已經跑咗嗰次。推遲等於放棄。",
+    "question_template": "Did triggering this leave a row in the table that owns the data?",
+    "staleness": "repo"
+  },
+  "scope": {
+    "checker": "scope",
+    "detector": "always_scope.py",
+    "engagement": true,
+    "gate": "ship",
+    "gate_why": "A —— 一個掂咗唔應該掂嘅檔,merge 咗先發現就要 revert,而 revert 一個已經有人 build 過嘅 commit,成本同今日改一個 glob 唔喺同一個量級。",
+    "question_template": "Does the diff stay inside the declared scope?",
+    "rule": [
+      {
+        "from": "R-ec0cc9be",
+        "source": "claude_baseline.md L145 · baseline/git-checkpoint.md L25",
+        "text": "每個掂到嘅檔都要係達成已批准結果嘅必要條件,而順手做嘅嘢要講出嚟,唔可以埋喺 summary 度。"
+      }
+    ],
+    "staleness": "repo"
+  },
+  "secret": {
+    "checker": "secret",
+    "detector": "always_secret.py",
+    "engagement": true,
+    "gate": "ship",
+    "gate_why": "A —— 一個 commit 咗嘅憑證入咗 git history。今日修係刪一行,遲一日修係 rotate 加改 history 加通知每個 clone 過嘅人。推遲成本跳一個量級,而且冇得返轉頭。",
+    "question_template": "Do the files this task changed contain a committed credential?",
+    "rule": [
+      {
+        "source": "CONFIG_BEST_PRACTICES.md L114",
+        "text": "`.gitignore` 唔可以代替 secret management。checker 只睇改動過嘅檔,睇唔到 working tree 入面已經 gitignore 咗嘅明文 —— 嗰啲檔一樣會被人 copy、被 build 打包、被 log 印。講出你今次掂到嘅 secret 實際住喺邊。"
+      },
+      {
+        "from": "R-2714a03a",
+        "source": "SECURITY_AUDIT_GUIDELINE.md L110",
+        "text": "一個洩漏咗嘅憑證,唔係刪走嗰行就修好 —— 要 rotate,要清 history。"
+      },
+      {
+        "from": "R-691978c9",
+        "source": "SECURITY_AUDIT_GUIDELINE.md L112",
+        "text": "環境變數注入係平台要求,定係方便?"
+      },
+      {
+        "from": "R-12044462",
+        "source": "SECURITY_AUDIT_GUIDELINE.md L136 · UNIT_TEST_GENERATION_GUIDELINE.md L246",
+        "text": "呢個 suppression 係因為真係要定義一個 pattern,定係喺度冚住一個真憑證?"
+      }
+    ],
+    "staleness": "repo"
+  },
+  "signature-change": {
+    "checker": "signature-change",
+    "detector": "signature_change.py",
+    "engagement": true,
+    "gate": "report",
+    "gate_why": "兩樣都冇。一個冇跟住改嘅 caller,編譯器或者 test 會講;而個判詞問嘅「點解嗰個 default 係啱」,遲啲答同今日答一樣。",
+    "question_template": "Did every caller follow the parameter this change made required?",
+    "rule": [
+      {
+        "from": "R-4aff6523",
+        "source": "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L75-76",
+        "text": "對每一個冇跟住傳嗰個新必填參數嘅 caller,講出點解個 default 係啱。一個解釋唔到嘅 caller,代表呢個改動未做完。"
+      }
+    ],
+    "staleness": "repo"
+  },
+  "spec-coverage": {
+    "applies_to": "framework",
+    "applies_to_why": "resolves docs/SPEC.md against kernel/cli.py: this framework's own spec",
+    "checker": "spec-coverage",
+    "detector": "always_spec.py",
+    "engagement": false,
+    "gate": "report",
+    "gate_why": "兩樣都冇。文件同 code 唔對數,改文件今日同下星期一樣平。",
+    "question_template": "Does every command, path, kind and mechanism the spec names actually exist?",
+    "staleness": "repo"
+  },
+  "surface-proof": {
+    "checker": "surface-proof",
+    "detector": "surface_proof.py",
+    "engagement": false,
+    "engagement_why": "checker 答得晒。個問題係「你個 surface suite 跑唔跑得過」,而 exit code 就係全部答案 —— 冇嘢淨返畀人講。",
+    "gate": "ship",
+    "gate_why": "A —— 同 runtime-proof 一樣,一個 surface 冇喺當時證過,之後證嘅係另一次。",
+    "question_template": "Does the surface suite this repo already maintains still pass?",
+    "staleness": "repo"
+  },
+  "test": {
+    "checker": "test",
+    "detector": "always_test.py",
+    "engagement": true,
+    "gate": "ship",
+    "gate_why": "B —— 佢係呢個 repo 唯一嘅 test oracle。佢紅嘅時候,**其他每一條 claim 嘅綠都冇意思** —— 佢哋全部係喺一棵冇人證過行得通嘅樹上面答嘅。推遲佢即係推遲埋所有嘢嘅意義。",
+    "question_template": "Does the repo's declared test command pass?",
+    "rule": [
+      {
+        "source": "UNIT_TEST_GENERATION_GUIDELINE.md §marker",
+        "text": "`test_command` 係 `test` claim 唯一嘅 oracle,而佢帶住 marker filter。一個冇 marker 嘅 network test 會靜靜咁入咗嗰個 oracle,令一條要真環境先驗到嘅嘢喺冇環境嘅時候變綠。講出你加嘅 test 屬邊一類,同埋 CI 會唔會真係跑佢。"
+      },
+      {
+        "from": "R-c169d3aa",
+        "source": "STEP_7_AUDIT_LENS.md L264/L271/L311",
+        "text": "今次掂到嘅高風險路徑(auth/permission、錢、idempotency)同佢哋嘅失敗同邊界路徑有冇覆蓋 —— 包括 worker claim/lock、cleanup、checkpoint recovery、concurrency guard?"
+      },
+      {
+        "from": "R-7bdfb638",
+        "source": "STEP_7_AUDIT_LENS.md L312 · UNIT_TEST_GENERATION_GUIDELINE.md L126-130",
+        "text": "Test setup 係咪對得住 production 個 caller?定係加咗一層 production 從來冇提供嘅 context manager / fixture stack / DI scope?"
+      },
+      {
+        "from": "R-eb6b0930",
+        "source": "claude_baseline.md L125",
+        "text": "一個檢查要算數要三樣:自動觸發、喺一個唔繼承任何本地嘢嘅環境跑過、而且至少 fire 過一次。**寫喺文件入面嘅一句指令唔係接線,本地綠唔係證據。**"
+      }
+    ],
+    "staleness": "repo"
+  },
+  "test-expectation": {
+    "checker": "test-expectation",
+    "detector": "test_expectation.py",
+    "engagement": true,
+    "gate": "report",
+    "gate_why": "兩樣都冇。一個預期值移咗,嗰個事實永遠讀得返 —— 個 diff 唔會走。",
+    "question_template": "Did {file}::{symbol} change what it expects while the code it judges did not?",
+    "rule": [
+      {
+        "from": "R-doctrine-expectation",
+        "source": "CLAUDE.md 層 ① Verification —— Never edit the expectation to match the result",
+        "text": "一個預期值移動咗而佢判緊嗰段 code 冇動,唯一嘅問題係:舊嗰個預期錯咗喺邊?答唔到就係個 test 讓咗步。"
+      }
+    ],
+    "staleness": "repo"
+  },
+  "test-shape": {
+    "baseline": true,
+    "checker": "test-shape",
+    "detector": "test_shape.py",
+    "engagement": true,
+    "gate": "report",
+    "gate_why": "兩樣都冇。一條形狀差嘅 test 唔會令其他嘢變綠,佢只係自己證唔到嘢。",
+    "question_template": "Does {file} prove behaviour ({variant}), or only that some text is present?",
+    "rule": [
+      {
+        "source": "UNIT_TEST_GENERATION_GUIDELINE · 本 repo redgreen.py 已經為 review claim 拒收呢個形狀",
+        "text": "一個斷言源碼文字嘅 test,喺你刪走嗰行嗰陣會紅,所以佢滿足 red-green —— 而佢從來冇 call 過嗰個 function。講出呢個 test 如果改成真係跑一次,會斷言啲乜。"
+      },
+      {
+        "source": "PERFORMANCE_OPTIMIZATION_GUIDELINE",
+        "text": "一個冇上限嘅 fan-out,失敗模式唔係答錯,係第一次個輸入夠大嗰陣一百個並發連線。講出呢度個集合最大有幾大,同埋邊個決定。"
+      }
+    ],
+    "staleness": "subject"
+  },
+  "test-token-shape": {
+    "baseline": true,
+    "checker": "test-token-shape",
+    "detector": "test_token_shape.py",
+    "engagement": false,
+    "gate": "report",
+    "gate_why": "兩樣都冇。同 test-shape 一樣:一條斷言 rendered 文字嘅 test 冇隱藏任何嘢,佢只係證得少過佢睇落證嘅。",
+    "question_template": "tests/ 入面有冇一個似真憑證但冇講自己係假嘅 literal？",
+    "staleness": "repo"
+  },
+  "test-weakened": {
+    "checker": "test-weakened",
+    "detector": "test_weakened.py",
+    "engagement": true,
+    "gate": "report",
+    "gate_why": "兩樣都冇。覆蓋面已經冇咗,而個判詞係關於一件已經發生咗嘅事 —— 今日簽同訓覺前簽,**內容一個字都唔會變**。實測:呢個 repo 42 條 claim,42 條判詞全部啱,冇一條係誤報 —— 佢唔係雜音,佢係一個問啱咗嘅問題,問嘅時機可以移。",
+    "question_template": "Does {file} still hold at least the test functions it held at the base?",
+    "rule": [
+      {
+        "source": "V3 c3scrutiny · UNIT_TEST_GENERATION_GUIDELINE",
+        "text": "刪走一條 test 之後 suite 會綠,而嗰個綠冇意思。test_command 係 test claim 唯一嘅 oracle,而 tests/** 唔受保護 —— 即係「令佢收聲」比「修佢釘住嘅嘢」平。講出你移走咗咩覆蓋面,同埋點解嗰個覆蓋面唔再需要。"
+      },
+      {
+        "from": "R-a8348bb2",
+        "source": "FRAMEWORK_CLEANUP_GUIDELINE.md L62-77/L422 —— 原文係 guard-removal,刪 test 係同一個動作",
+        "text": "你喺度刪一個裁判。講出邊個機制接手佢守嗰條路,同埋「佢從來冇 fire 過」係證據定係假設。"
+      }
+    ],
+    "staleness": "repo"
+  }
+}

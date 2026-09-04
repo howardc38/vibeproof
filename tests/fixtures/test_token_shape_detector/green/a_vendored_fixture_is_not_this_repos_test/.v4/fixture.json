@@ -1,0 +1,8 @@
+{
+ "subject_refs": [
+  {
+   "kind": "file",
+   "path": "tests/fixtures/other/red/test_a.py"
+  }
+ ]
+}

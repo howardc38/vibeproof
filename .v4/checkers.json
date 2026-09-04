@@ -1,0 +1,313 @@
+{
+  "control-plane-budget": {
+    "fixtures": "tests/fixtures/control_plane_budget",
+    "kinds": [
+      "control-plane-budget"
+    ],
+    "path": "checkers/control_plane_budget.py",
+    "reads": [
+      "**/*.py"
+    ],
+    "sha256": "559ea3e1b47dfc1f04d358441b7d56b5476c033de7849a2a8ea75c87c3d741db",
+    "timeout_sec": 300
+  },
+  "dangling-ref": {
+    "fixtures": "tests/fixtures/dangling_ref",
+    "kinds": [
+      "dangling-ref"
+    ],
+    "path": "checkers/dangling_ref.py",
+    "reads": [
+      "**/*.py",
+      "**/*.go",
+      "go.mod",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.cjs"
+    ],
+    "sha256": "bcaf291ad25b1ba941c11b496922a5626cf981072ea76a600e3513552660c81c",
+    "timeout_sec": 300
+  },
+  "dead-wiring": {
+    "fixtures": "tests/fixtures/dead_wiring",
+    "kinds": [
+      "dead-wiring"
+    ],
+    "path": "checkers/dead_wiring.py",
+    "reads": [
+      "**/*"
+    ],
+    "sha256": "eaa08ce3cd972c52a344ada0a52b9eeaed94b12fb5e24b6ca8aa4f7a955b3b58",
+    "timeout_sec": 300
+  },
+  "design-pins": {
+    "fixtures": "tests/fixtures/design_pins",
+    "kinds": [
+      "design-pins"
+    ],
+    "path": "checkers/design_pins.py",
+    "reads": [
+      "**/*.md",
+      ".v4/config.json"
+    ],
+    "sha256": "8c05792d847e6b1b7c9232772cc49a159ee0dbc63ed8a3e4825a2c7cc6c0b0c4",
+    "timeout_sec": 300
+  },
+  "external-write": {
+    "fixtures": "tests/fixtures/external_write",
+    "kinds": [
+      "external-write"
+    ],
+    "path": "checkers/external_write.py",
+    "reads": [
+      "**/*"
+    ],
+    "sha256": "ca75639595597f4c3f57b730e2a3f56b01b3e0a86b1f7a036a04aa00703ffee6",
+    "timeout_sec": 300
+  },
+  "fail-closed": {
+    "fixtures": "tests/fixtures/fail_closed",
+    "kinds": [
+      "fail-closed"
+    ],
+    "path": "checkers/fail_closed.py",
+    "reads": [
+      "**/*.py",
+      "**/*.go",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.cjs"
+    ],
+    "sha256": "a43a45f5cb842482a3dcf868443b0dc7b391900de86b9d3a2e8c378f51c9fd70",
+    "timeout_sec": 300
+  },
+  "layer-boundary": {
+    "fixtures": "tests/fixtures/layer_boundary",
+    "kinds": [
+      "layer-boundary"
+    ],
+    "path": "checkers/layer_boundary.py",
+    "reads": [
+      "**/*.py",
+      "**/*.go",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.cjs"
+    ],
+    "sha256": "ac0cc1df773d071790633204cfba0743baf01a995325b386f10faff1b7f87831",
+    "timeout_sec": 300
+  },
+  "lint": {
+    "fixtures": "tests/fixtures/lint",
+    "kinds": [
+      "lint"
+    ],
+    "path": "checkers/structural_lint.py",
+    "reads": [
+      "**/*.py"
+    ],
+    "sha256": "cb277944b17730234186c7ced552c3c7a88e463eb2fe8f470d66fdac3f241926",
+    "timeout_sec": 300
+  },
+  "registry-consistency": {
+    "fixtures": "tests/fixtures/registry_consistency",
+    "kinds": [
+      "registry-consistency"
+    ],
+    "path": "checkers/registry_consistency.py",
+    "reads": [
+      "**"
+    ],
+    "sha256": "e13c4832ca86ecfa28c3f50d775e77e997a41cb3975fc6c7e94f467cd0fa790d",
+    "timeout_sec": 300
+  },
+  "review-finding": {
+    "fixtures": "tests/fixtures/review_finding",
+    "kinds": [
+      "review-finding"
+    ],
+    "path": "checkers/review_finding.py",
+    "reads": [
+      "**"
+    ],
+    "sha256": "ecf4e80fda94f9b78885f812eacbc68220f3a9dcce007f2bc363efdd3f527f75",
+    "timeout_sec": 300
+  },
+  "runtime-proof": {
+    "fixtures": "tests/fixtures/runtime_proof",
+    "kinds": [
+      "runtime-proof"
+    ],
+    "path": "checkers/runtime_proof.py",
+    "reads": [
+      "**/*"
+    ],
+    "sha256": "add6ad9d5303dd6321dc39104b81fed1cf91f7b20bba8811fbc3ed188a56a3b4",
+    "timeout_sec": 300
+  },
+  "scope": {
+    "fixtures": "tests/fixtures/scope",
+    "kinds": [
+      "scope"
+    ],
+    "path": "checkers/scope.py",
+    "reads": [
+      "**/*"
+    ],
+    "sha256": "aa0daab41f6461b9af14b232b073550ed0df316cbe18caa12480d743540c7211",
+    "timeout_sec": 300
+  },
+  "secret": {
+    "fixtures": "tests/fixtures/secret",
+    "kinds": [
+      "secret"
+    ],
+    "path": "checkers/secret_scan.py",
+    "reads": [
+      "**/*"
+    ],
+    "sha256": "38a1309cee1617277004fb51711742060374128b666b8bc611ae3d121141e8df",
+    "timeout_sec": 300
+  },
+  "signature-change": {
+    "fixtures": "tests/fixtures/signature_change",
+    "kinds": [
+      "signature-change"
+    ],
+    "path": "checkers/signature_change.py",
+    "reads": [
+      "**/*.py",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.cjs"
+    ],
+    "sha256": "d5b323e997e9e0e780883e0ddf349ef54764fd95fed819ce3df81e1ba0e9e65a",
+    "timeout_sec": 300
+  },
+  "spec-coverage": {
+    "fixtures": "tests/fixtures/spec_coverage",
+    "kinds": [
+      "spec-coverage"
+    ],
+    "path": "checkers/spec_coverage.py",
+    "reads": [
+      "**/*"
+    ],
+    "sha256": "f382ac54243863a3d0602cfd8f3efd410970c2e4a6bf64b940cbce37908cf63e",
+    "timeout_sec": 300
+  },
+  "surface-proof": {
+    "fixtures": "tests/fixtures/surface_proof",
+    "kinds": [
+      "surface-proof"
+    ],
+    "path": "checkers/surface_proof.py",
+    "reads": [
+      "**"
+    ],
+    "sha256": "3768a96db5e4561a3073159c73b11f6ba2af8a8945841f55c03f8ea4c1889d16",
+    "timeout_sec": 300
+  },
+  "test": {
+    "fixtures": "tests/fixtures/test_checker",
+    "kinds": [
+      "test"
+    ],
+    "path": "checkers/test.py",
+    "reads": [
+      "**"
+    ],
+    "sha256": "651cbbe3d7dffb15db2d7cd8ecbcfe9372a23c1402ab4d39cd66648f66a7717b",
+    "timeout_sec": 900
+  },
+  "test-expectation": {
+    "fixtures": "tests/fixtures/test_expectation",
+    "kinds": [
+      "test-expectation"
+    ],
+    "path": "checkers/test_expectation.py",
+    "reads": [
+      "**/*.py",
+      "**/*.go",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.cjs",
+      "**/*.rs"
+    ],
+    "sha256": "49ce983796648d673fd354532fd386a3f5dac1bbfc3d1a90ff6b05b7c6ac3ecc",
+    "timeout_sec": 300
+  },
+  "test-shape": {
+    "fixtures": "tests/fixtures/test_shape",
+    "kinds": [
+      "test-shape"
+    ],
+    "path": "checkers/test_shape.py",
+    "reads": [
+      "**/*.py",
+      "**/*.go",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.cjs"
+    ],
+    "sha256": "7057abbeefa5a1087b7211c7f2341ebb954a29376f0097b01106c364bc58cdcd",
+    "timeout_sec": 300
+  },
+  "test-token-shape": {
+    "fixtures": "tests/fixtures/test_token_shape",
+    "kinds": [
+      "test-token-shape"
+    ],
+    "path": "checkers/test_token_shape.py",
+    "reads": [
+      "**/*.py",
+      "**/*.go",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.cjs"
+    ],
+    "sha256": "20aa0556223db091bfe1231fb5928ecd1135660456db9301f8c5cf33cdf856ca",
+    "timeout_sec": 300
+  },
+  "test-weakened": {
+    "fixtures": "tests/fixtures/test_weakened",
+    "kinds": [
+      "test-weakened"
+    ],
+    "path": "checkers/test_weakened.py",
+    "reads": [
+      "**/*.py",
+      "**/*.go",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.mjs",
+      "**/*.cjs",
+      "**/*.rs"
+    ],
+    "sha256": "e84ed01f2b5cc802b649b5bf3fd7625b6048328c673befc2e25b078f18226837",
+    "timeout_sec": 300
+  }
+}

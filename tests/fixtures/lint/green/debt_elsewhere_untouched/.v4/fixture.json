@@ -1,0 +1,18 @@
+{
+  "params": {
+    "scope_globs": [
+      "**"
+    ]
+  },
+  "committed": [
+    ".v4/config.json",
+    ".v4/fixture.json",
+    ".v4/lint_baseline.json",
+    "app/__init__.py",
+    "app/legacy_a.py",
+    "app/legacy_b.py",
+    "app/legacy_c.py",
+    "core/__init__.py",
+    "core/util.py"
+  ]
+}

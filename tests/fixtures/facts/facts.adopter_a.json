@@ -1,0 +1,103 @@
+{
+  "repo": "adopter_a",
+  "generated_from_commit": "0000000000000000000000000000000000000000",
+  "outbound_write": [
+    {
+      "pattern": "requests.post",
+      "seen_at": "app/publisher/client.py:1",
+      "kind": "http",
+      "note": "The single transport every publish method goes through."
+    },
+    {
+      "pattern": ".publish",
+      "seen_at": "app/workers/dispatch.py:1",
+      "kind": "http",
+      "note": "The publish call whose outcome the caller records."
+    },
+    {
+      "pattern": ".upload_file",
+      "seen_at": "app/storage/blobs.py:1",
+      "kind": "http",
+      "note": "Staging, retained in a caller-provided list."
+    },
+    {
+      "pattern": "INSERT INTO",
+      "seen_at": "app/store/records.py:1",
+      "kind": "db",
+      "match": "regex"
+    },
+    {
+      "pattern": "\\w*repo\\.record\\w*\\(",
+      "seen_at": "app/store/records.py:1",
+      "kind": "db",
+      "match": "regex",
+      "note": "The caller-layer receipt. It is a write, which is why answering a readback claim by persisting proof does not mint a fresh claim: the scope reads the world back."
+    }
+  ],
+  "outbound_read": [
+    {
+      "pattern": "requests.get",
+      "seen_at": "app/publisher/client.py:1",
+      "kind": "http",
+      "note": "The read-back that answers whether a publish landed."
+    },
+    {
+      "pattern": ".verify_readable",
+      "seen_at": "app/storage/blobs.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": "requests.head",
+      "seen_at": "app/storage/blobs.py:1",
+      "kind": "http",
+      "note": "The staged-object read-back."
+    },
+    {
+      "pattern": ".job.retrieve",
+      "seen_at": "app/inference/jobs.py:1",
+      "kind": "http",
+      "note": "Polling a background inference job."
+    },
+    {
+      "pattern": ".files.get",
+      "seen_at": "app/inference/jobs.py:1",
+      "kind": "http"
+    },
+    {
+      "pattern": ".reconcile_record",
+      "seen_at": "app/workers/dispatch.py:1",
+      "kind": "http",
+      "note": "The read-back that answers \"did the publish land?\" after an unknown-outcome write."
+    },
+    {
+      "pattern": "SELECT",
+      "seen_at": "app/store/records.py:1",
+      "kind": "db",
+      "match": "regex"
+    }
+  ],
+  "auth_decision": [
+    {
+      "pattern": ".require_role",
+      "seen_at": "app/api/guards.py:1",
+      "kind": "authz",
+      "note": "The one place a request is refused for want of a role."
+    },
+    {
+      "pattern": ".has_permission",
+      "seen_at": "app/api/guards.py:1",
+      "kind": "authz"
+    }
+  ],
+  "entrypoint_globs": [
+    "app/api/**",
+    "app/workers/**"
+  ],
+  "ui_globs": [],
+  "config_files": [
+    ".v4/config.json"
+  ],
+  "protected_paths": [
+    ".v4/**"
+  ]
+}

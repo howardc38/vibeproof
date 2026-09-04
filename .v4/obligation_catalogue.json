@@ -1,0 +1,462 @@
+{
+  "source": "adopter_a event store, kind=proof_obligation_covered",
+  "unique_obligation_ids": 557,
+  "families": {
+    "PO-DL": {
+      "events": 738,
+      "distinct_ids": 366,
+      "examples": [
+        "PO-DL-001",
+        "PO-DL-002",
+        "PO-DL-003",
+        "PO-DL-004"
+      ]
+    },
+    "PO-5": {
+      "events": 453,
+      "distinct_ids": 17,
+      "examples": [
+        "PO-5-001",
+        "PO-5-002",
+        "PO-5-003",
+        "PO-5-004"
+      ]
+    },
+    "PO-4": {
+      "events": 303,
+      "distinct_ids": 6,
+      "examples": [
+        "PO-4-001",
+        "PO-4-002",
+        "PO-4-003",
+        "PO-4-004"
+      ]
+    },
+    "PO-6": {
+      "events": 124,
+      "distinct_ids": 5,
+      "examples": [
+        "PO-6-001",
+        "PO-6-002",
+        "PO-6-003",
+        "PO-6-004"
+      ]
+    },
+    "PO-F188": {
+      "events": 24,
+      "distinct_ids": 17,
+      "examples": [
+        "PO-F188-001",
+        "PO-F188-002",
+        "PO-F188-003",
+        "PO-F188-004"
+      ]
+    },
+    "PO-F195": {
+      "events": 9,
+      "distinct_ids": 6,
+      "examples": [
+        "PO-F195-001",
+        "PO-F195-002",
+        "PO-F195-003",
+        "PO-F195-004"
+      ]
+    },
+    "F166": {
+      "events": 8,
+      "distinct_ids": 8,
+      "examples": [
+        "F166-001",
+        "F166-002",
+        "F166-003",
+        "F166-004"
+      ]
+    },
+    "F170R1": {
+      "events": 7,
+      "distinct_ids": 4,
+      "examples": [
+        "F170R1-001",
+        "F170R1-002",
+        "F170R1-003",
+        "F170R1-004"
+      ]
+    },
+    "PO-208001": {
+      "events": 7,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-208001-001"
+      ]
+    },
+    "PO-208003": {
+      "events": 7,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-208003-001"
+      ]
+    },
+    "F168": {
+      "events": 6,
+      "distinct_ids": 6,
+      "examples": [
+        "F168-001",
+        "F168-002",
+        "F168-003",
+        "F168-004"
+      ]
+    },
+    "F170": {
+      "events": 6,
+      "distinct_ids": 6,
+      "examples": [
+        "F170-001",
+        "F170-002",
+        "F170-003",
+        "F170-004"
+      ]
+    },
+    "F170R4": {
+      "events": 6,
+      "distinct_ids": 5,
+      "examples": [
+        "F170R4-001",
+        "F170R4-002",
+        "F170R4-003",
+        "F170R4-004"
+      ]
+    },
+    "PO-F186": {
+      "events": 6,
+      "distinct_ids": 5,
+      "examples": [
+        "PO-F186-001",
+        "PO-F186-002",
+        "PO-F186-003",
+        "PO-F186-004"
+      ]
+    },
+    "PO-208004": {
+      "events": 6,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-208004-001"
+      ]
+    },
+    "PO-208005": {
+      "events": 6,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-208005-001"
+      ]
+    },
+    "F167": {
+      "events": 5,
+      "distinct_ids": 5,
+      "examples": [
+        "F167-001",
+        "F167-002",
+        "F167-003",
+        "F167-004"
+      ]
+    },
+    "F169": {
+      "events": 5,
+      "distinct_ids": 5,
+      "examples": [
+        "F169-001",
+        "F169-002",
+        "F169-003",
+        "F169-004"
+      ]
+    },
+    "F170R5": {
+      "events": 5,
+      "distinct_ids": 4,
+      "examples": [
+        "F170R5-001",
+        "F170R5-002",
+        "F170R5-003",
+        "F170R5-004"
+      ]
+    },
+    "F172R2": {
+      "events": 5,
+      "distinct_ids": 5,
+      "examples": [
+        "F172R2-001",
+        "F172R2-002",
+        "F172R2-003",
+        "F172R2-004"
+      ]
+    },
+    "PO-F187": {
+      "events": 5,
+      "distinct_ids": 5,
+      "examples": [
+        "PO-F187-001",
+        "PO-F187-002",
+        "PO-F187-003",
+        "PO-F187-004"
+      ]
+    },
+    "PO-208006": {
+      "events": 5,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-208006-001"
+      ]
+    },
+    "F169R2": {
+      "events": 4,
+      "distinct_ids": 4,
+      "examples": [
+        "F169R2-001",
+        "F169R2-002",
+        "F169R2-003",
+        "F169R2-004"
+      ]
+    },
+    "F170R2": {
+      "events": 4,
+      "distinct_ids": 4,
+      "examples": [
+        "F170R2-001",
+        "F170R2-002",
+        "F170R2-003",
+        "F170R2-004"
+      ]
+    },
+    "F170R3": {
+      "events": 4,
+      "distinct_ids": 4,
+      "examples": [
+        "F170R3-001",
+        "F170R3-002",
+        "F170R3-003",
+        "F170R3-004"
+      ]
+    },
+    "F170R8": {
+      "events": 4,
+      "distinct_ids": 4,
+      "examples": [
+        "F170R8-001",
+        "F170R8-002",
+        "F170R8-003",
+        "F170R8-004"
+      ]
+    },
+    "F171": {
+      "events": 4,
+      "distinct_ids": 4,
+      "examples": [
+        "F171-001",
+        "F171-002",
+        "F171-003",
+        "F171-004"
+      ]
+    },
+    "F173": {
+      "events": 4,
+      "distinct_ids": 3,
+      "examples": [
+        "F173-001",
+        "F173-002",
+        "F173-003"
+      ]
+    },
+    "PO-C2": {
+      "events": 4,
+      "distinct_ids": 3,
+      "examples": [
+        "PO-C2-001",
+        "PO-C2-002",
+        "PO-C2-003"
+      ]
+    },
+    "PO-F190": {
+      "events": 4,
+      "distinct_ids": 4,
+      "examples": [
+        "PO-F190-001",
+        "PO-F190-002",
+        "PO-F190-003",
+        "PO-F190-004"
+      ]
+    },
+    "PO-208002": {
+      "events": 4,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-208002-001"
+      ]
+    },
+    "PO-208007": {
+      "events": 4,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-208007-001"
+      ]
+    },
+    "PO-208008": {
+      "events": 4,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-208008-001"
+      ]
+    },
+    "PO-208009": {
+      "events": 4,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-208009-001"
+      ]
+    },
+    "PO-F209": {
+      "events": 4,
+      "distinct_ids": 4,
+      "examples": [
+        "PO-F209-001",
+        "PO-F209-002",
+        "PO-F209-003",
+        "PO-F209-004"
+      ]
+    },
+    "F169R1": {
+      "events": 3,
+      "distinct_ids": 3,
+      "examples": [
+        "F169R1-001",
+        "F169R1-002",
+        "F169R1-003"
+      ]
+    },
+    "F170R6": {
+      "events": 3,
+      "distinct_ids": 3,
+      "examples": [
+        "F170R6-001",
+        "F170R6-002",
+        "F170R6-003"
+      ]
+    },
+    "F170R9": {
+      "events": 3,
+      "distinct_ids": 3,
+      "examples": [
+        "F170R9-001",
+        "F170R9-002",
+        "F170R9-003"
+      ]
+    },
+    "F170R10": {
+      "events": 3,
+      "distinct_ids": 3,
+      "examples": [
+        "F170R10-001",
+        "F170R10-002",
+        "F170R10-003"
+      ]
+    },
+    "F171R1": {
+      "events": 3,
+      "distinct_ids": 3,
+      "examples": [
+        "F171R1-001",
+        "F171R1-002",
+        "F171R1-003"
+      ]
+    },
+    "F172R3": {
+      "events": 3,
+      "distinct_ids": 3,
+      "examples": [
+        "F172R3-001",
+        "F172R3-002",
+        "F172R3-003"
+      ]
+    },
+    "F173R3": {
+      "events": 3,
+      "distinct_ids": 3,
+      "examples": [
+        "F173R3-001",
+        "F173R3-002",
+        "F173R3-003"
+      ]
+    },
+    "PO-C5": {
+      "events": 3,
+      "distinct_ids": 3,
+      "examples": [
+        "PO-C5-001",
+        "PO-C5-002",
+        "PO-C5-003"
+      ]
+    },
+    "PO-C1": {
+      "events": 3,
+      "distinct_ids": 3,
+      "examples": [
+        "PO-C1-001",
+        "PO-C1-002",
+        "PO-C1-003"
+      ]
+    },
+    "PO-F202": {
+      "events": 3,
+      "distinct_ids": 3,
+      "examples": [
+        "PO-F202-001",
+        "PO-F202-002",
+        "PO-F202-003"
+      ]
+    },
+    "F170R7": {
+      "events": 2,
+      "distinct_ids": 2,
+      "examples": [
+        "F170R7-001",
+        "F170R7-002"
+      ]
+    },
+    "F173R2": {
+      "events": 2,
+      "distinct_ids": 2,
+      "examples": [
+        "F173R2-001",
+        "F173R2-002"
+      ]
+    },
+    "PO-182R": {
+      "events": 2,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-182R-001"
+      ]
+    },
+    "PO-C3": {
+      "events": 2,
+      "distinct_ids": 2,
+      "examples": [
+        "PO-C3-001",
+        "PO-C3-002"
+      ]
+    },
+    "PO-C4": {
+      "events": 1,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-C4-001"
+      ]
+    },
+    "PO-208010": {
+      "events": 1,
+      "distinct_ids": 1,
+      "examples": [
+        "PO-208010-001"
+      ]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "parent_content": {
+    "src/mail.ts": "export function send(to: string) {\n  return to\n}\n",
+    "src/app.ts": "import * as mail from './mail.ts'\n\nexport const go = () => mail.send('a')\n"
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "src/mail.ts"
+    }
+  ],
+  "committed": [
+    "src/app.ts",
+    "src/mail.ts"
+  ]
+}

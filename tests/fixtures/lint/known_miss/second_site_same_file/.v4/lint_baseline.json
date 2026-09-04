@@ -1,0 +1,12 @@
+{
+  "findings": [
+    {
+      "detail": "core.util._first",
+      "id": "2372aff933323b3d",
+      "note": "one entry; the file has two call sites and only this one id",
+      "path": "app/reader.py",
+      "rule": "LINT-PRIVATE-IMPORT"
+    }
+  ],
+  "version": 1
+}

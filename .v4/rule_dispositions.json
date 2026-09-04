@@ -1,0 +1,2695 @@
+{
+  "source": "前身 33 份守則 16,266 行,1,934 條 obligation,去重後 254 條",
+  "rules": [
+    {
+      "rule": "A verification claim must run the real mechanism; a stub, mock, re-run test suite, health check or signature inspection standing in for it is a workaround — and the motive (stuck vs merely easier) does not change that.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L96",
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L108",
+        "baseline/pipeline-policies.md L163",
+        "claude_baseline.md L123"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-0dc4d9b9"
+    },
+    {
+      "rule": "Any implementation that routes around the real problem — case-by-case special cases, an extra wrapper to avoid a root cause — is the same failure as a fake verification: stop, disclose, fix.",
+      "sources": [
+        "claude_baseline.md L124",
+        "baseline/pipeline-policies.md L177"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-f1eda1f3"
+    },
+    {
+      "rule": "Read-back must come from the truth owner. A UI render, a cache, an application log, console output, or the response body of the write itself is not authoritative proof; neither is a screenshot or an operator's prose. The proof environment must be the real provider or a pre-registered equivalent, never self-declared at proof time.",
+      "sources": [
+        "ARCHITECTURE_GUIDELINES.md L272-275",
+        "claude_baseline.md L226",
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L144",
+        "baseline/step-5.md L24-26",
+        "baseline/step-5.md L26-29",
+        "baseline/step-6.md L38"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "external-write",
+      "id": "R-54eaa79e",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "A claim about how an external system behaves is settled by one read-only observation of that system recorded verbatim — not by vendor docs, a code default, or a config file.",
+      "sources": [
+        "baseline/pipeline-policies.md L20"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "external-write",
+      "id": "R-266ad43f",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "External writes leave an audit trail: actor, timestamp, trace id.",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L166"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/observability-debuggability.json",
+      "claim_kind": null,
+      "id": "R-d1f420b9",
+      "why_moved": "X/Y 實驗 2026-08-09：呢條喺前閘曝光 25 次，只有 2 句 engagement 提過佢，而兩臂最終都冇 trace id。同一條規則喺後閘被提出 6 次，兩臂都明確拒絕連理由（'needs a correlation id this layer is not given'）。佢喺前閘度收緊每條 external-write claim 嘅費而冇產出；喺後閘度佢一直有效。"
+    },
+    {
+      "rule": "External dependency calls record response time, status code and retry count.",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L218"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "external-write",
+      "id": "R-212acf4e",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "Does a test actually re-run the write and assert one record, and is the dry-run path tested?",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L48"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "external-write",
+      "id": "R-2848aaa5",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "Was this fix the root cause or a mitigation, and has this class of finding appeared before? A second occurrence means the first fix was in the wrong place — codify the rule, do not repair the instance again.",
+      "sources": [
+        "CODE_HEALTH_REVIEW_GUIDELINE.md L117-118",
+        "claude_baseline.md L108",
+        "AUTHORITY_DOC_CLEANUP_GUIDELINE.md L530-535",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L616"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "review-finding",
+      "id": "R-5208ad04",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "\"Probably fine\" is not a disposition. Closing a finding needs a concrete failure, a verified cross-reference, or an explicit broken promise; without one, treat it as real.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L142",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L338",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L484-487"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "review-finding",
+      "id": "R-414c7676",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "What you carry forward must reconcile item for item with what was found: nothing missing, reordered, added, re-owned or downgraded.",
+      "sources": [
+        "baseline/step-7.md L41-45",
+        "baseline/pipeline-policies.md L173"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "review-finding",
+      "id": "R-ba802184",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "Anything you are not fixing now needs a durable target to point at.",
+      "sources": [
+        "baseline/step-7.md L77-78"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "review-finding",
+      "id": "R-732eaed3",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "For each caller that does not thread the newly required argument, say why the default is correct. An unexplained caller means the change is not finished.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L75-76"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "signature-change (new kind)",
+      "id": "R-4aff6523",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "You are deleting an adjudicator. Name the mechanism that takes over the path it guarded, and say whether \"it never fired\" is evidence or assumption.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L62-77",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L422",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L425",
+        "baseline/pipeline-policies.md L190-192"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "guard-removal (new kind)",
+      "id": "R-a8348bb2",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "This entrypoint has no auth call. Is that a decision or an omission?",
+      "sources": [
+        "SECURITY_AUDIT_GUIDELINE.md L56"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "auth-coverage (new kind)",
+      "id": "R-39042f97",
+      "landed_note": "原本落喺 CLAUDE.md。嗰個 kind / checker 喺 113 題實測示範唔到代碼價值而拆走,條 rule 嘅文字搬入層 ①(kernel/doctrine.py 生成 CLAUDE.md 第一節)—— 問題照樣每個 session 問一次,冇咗嘅係跟住佢嗰部 claim 機器。",
+      "landed": "CLAUDE.md"
+    },
+    {
+      "rule": "Where did this identity value come from — the client, or the server-side decision?",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L158",
+        "SECURITY_AUDIT_GUIDELINE.md L55"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "auth-decision (new kind)",
+      "id": "R-02dc38bf",
+      "landed_note": "原本落喺 CLAUDE.md。嗰個 kind / checker 喺 113 題實測示範唔到代碼價值而拆走,條 rule 嘅文字搬入層 ①(kernel/doctrine.py 生成 CLAUDE.md 第一節)—— 問題照樣每個 session 問一次,冇咗嘅係跟住佢嗰部 claim 機器。",
+      "landed": "CLAUDE.md"
+    },
+    {
+      "rule": "The signature verifies. Can a captured request be replayed? Timestamp window and nonce store.",
+      "sources": [
+        "SECURITY_AUDIT_GUIDELINE.md L80"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "webhook-signature (new kind)",
+      "id": "R-15cba033",
+      "landed_note": "原本落喺 CLAUDE.md。嗰個 kind / checker 喺 113 題實測示範唔到代碼價值而拆走,條 rule 嘅文字搬入層 ①(kernel/doctrine.py 生成 CLAUDE.md 第一節)—— 問題照樣每個 session 問一次,冇咗嘅係跟住佢嗰部 claim 機器。",
+      "landed": "CLAUDE.md"
+    },
+    {
+      "rule": "The four canonical fail-open shapes: auth error caught and execution continues; timeout skipping a verification step; parse failure defaulting into a business operation; DB failure serving stale cache as truth.",
+      "sources": [
+        "SECURITY_AUDIT_GUIDELINE.md L86-91",
+        "STEP_7_AUDIT_LENS.md L190-193"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "fail-closed",
+      "id": "R-df6c3d5d",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "Does this failure branch leave enough context to locate the boundary, or only a generic error log?",
+      "sources": [
+        "DEBUGGING_OBSERVABILITY_GUIDELINE.md L51"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "fail-closed",
+      "id": "R-0f7f0ed7",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "Every touched file must be necessary to the approved outcome, and anything you did in passing must be stated rather than buried in the summary.",
+      "sources": [
+        "claude_baseline.md L145",
+        "baseline/git-checkpoint.md L25"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "scope",
+      "id": "R-ec0cc9be",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "A leaked credential is not repaired by deleting the line — rotate it and clean history.",
+      "sources": [
+        "SECURITY_AUDIT_GUIDELINE.md L110"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "secret",
+      "id": "R-2714a03a",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "Was environment-variable injection required by the platform, or just convenient?",
+      "sources": [
+        "SECURITY_AUDIT_GUIDELINE.md L112"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "secret",
+      "id": "R-691978c9",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "Is this suppression justified by an actual pattern-definition need, or is it hiding a real credential?",
+      "sources": [
+        "SECURITY_AUDIT_GUIDELINE.md L136",
+        "UNIT_TEST_GENERATION_GUIDELINE.md L246"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "secret",
+      "id": "R-12044462",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "Tests touching a secret boundary use fake tokens with a test prefix, even when the test expects rejection.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L221"
+      ],
+      "assigned": "2-checker",
+      "landed": "checkers/test_token_shape.py",
+      "claim_kind": "test-token-shape",
+      "id": "R-6ababf30",
+      "why_moved": "X/Y 實驗 2026-08-09：base 兩臂都收到 bot_token=\"123:SECRET\"。一臂喺寫 engagement 句嗰陣改咗，另一臂帶足八個 task，而 secret checker 每次都 exit 0（正確——嗰個唔係真憑證）。兩個閘都攞唔到佢，因為呢個唔係時機問題亦唔係視角問題，係記憶問題。新 checker 一次喺 armX 度捉到 21 處。"
+    },
+    {
+      "rule": "Where did this value live before it reached the browser bundle, and who decided it was allowed to?",
+      "sources": [
+        "CONFIG_BEST_PRACTICES.md L164"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "bundle-secret",
+      "id": "R-9f00aa7e",
+      "landed_note": "原本落喺 CLAUDE.md。嗰個 kind / checker 喺 113 題實測示範唔到代碼價值而拆走,條 rule 嘅文字搬入層 ①(kernel/doctrine.py 生成 CLAUDE.md 第一節)—— 問題照樣每個 session 問一次,冇咗嘅係跟住佢嗰部 claim 機器。",
+      "landed": "CLAUDE.md"
+    },
+    {
+      "rule": "Did the high-risk paths touched this time (auth/permission, money, idempotency) and their failure/edge paths get covered — including worker claim/lock, cleanup, checkpoint recovery and concurrency guard?",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L264",
+        "STEP_7_AUDIT_LENS.md L271",
+        "STEP_7_AUDIT_LENS.md L311"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "test",
+      "id": "R-c169d3aa",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "Does the test setup mirror the production caller, or does it add a context manager / fixture stack / DI scope that production never provides?",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L312",
+        "UNIT_TEST_GENERATION_GUIDELINE.md L126-130",
+        "baseline/pipeline-policies.md L169"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "test",
+      "id": "R-7bdfb638",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "Three conditions for a check to count: an automatic trigger, a run in an environment that inherits nothing local, and having fired at least once. A command written in a document is not wiring, and local green is not proof.",
+      "sources": [
+        "claude_baseline.md L125"
+      ],
+      "assigned": "4-engagement",
+      "claim_kind": "test",
+      "id": "R-eb6b0930",
+      "landed": ".v4/claim_kinds.json"
+    },
+    {
+      "rule": "Every repo-relative path and every cross-document section anchor mentioned in an active document must resolve.",
+      "sources": [
+        "AUTHORITY_DOC_CLEANUP_GUIDELINE.md L167-170",
+        "AUTHORITY_DOC_CLEANUP_GUIDELINE.md L244",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L50",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L554-563",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L618"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Fails green catastrophically and the 'v4_has_it: no' claim is factually wrong. MEASURED on adopter_a (620 docs): 6673 resolving vs 8222 flagged path tokens = 55.2% flag rate; the checker exits 1 forever and can never be adopted. Hand-triaging my best candidates in ACTIVE docs yielded zero true posi",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-007bd7f5"
+    },
+    {
+      "rule": "Documentation references code by symbol, not by line number: the `path.py:142` form is itself the violation, and the named symbol must exist.",
+      "sources": [
+        "AUTHORITY_DOC_CLEANUP_GUIDELINE.md L120-124"
+      ],
+      "assigned": "2-checker",
+      "landed": "owed",
+      "id": "R-5f7ef994",
+      "why": "documentation references code by symbol, not by line number. No checker exists. The high-value half is already mechanical: `design-pins` verifies every `<!-- pinned: file::symbol -->` resolves. What is left is loose `path.py:123` in prose, and the four in this repo all cite the reference repo at a past commit -- historical citations, not pointers to maintain. Worth a checker only if that stops being true."
+    },
+    {
+      "rule": "A count or enum literal stated in prose must point at one canonical source: the same literal-plus-noun must not appear unpinned in more than two documents, and a stated count must match the length of the array it describes.",
+      "sources": [
+        "ARCHITECTURE_GUIDELINES.md L101-103",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L86"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "No red exists on either half. Cross-document-duplicate half: V4 has ZERO (number, noun) pairs appearing in >2 of its 32 docs — not a single instance. The framework repo produces 146, but the entire top-25 is noise from ordinals, not counts: '1 contract' (51 docs), '5 runtime' (27), '7 review' (21), ",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-2018a6e9"
+    },
+    {
+      "rule": "The same count invariant must not be hardcoded in more than one test file.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L118",
+        "STEP_7_AUDIT_LENS.md L310"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Zero instances in either repo — the repos already follow the prescribed practice. V4 has ZERO `assert len(...) == N` in tests; its 8 unittest-style count assertions are all local per-scenario checks. adopter_a yields 35 (expr,value) pairs appearing in >1 test file, but every one is a false positive",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-e7af16d6"
+    },
+    {
+      "rule": "Blocks marked as a declared sync pair must stay verbatim identical after whitespace normalisation.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L79-80"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Refuted three ways. (1) The marker infrastructure the rule presumes does not exist: I found ZERO `<!-- sync: ... -->` markers in any of the three repos. (2) The only real declared sync pairs are deliberately NOT verbatim, so the checker reds every one of them on day one. Compare FRAMEWORK_CLEANUP_GU",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-aff2caae"
+    },
+    {
+      "rule": "Authority documents describe the system's current form: no `Phase N`, 7-hex commit hash, before/after narrative or \"currently a stub\" outside a traceability appendix.",
+      "sources": [
+        "ARCHITECTURE_GUIDELINES.md L111",
+        "ARCHITECTURE_GUIDELINES.md L113"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "No red is constructible. Scanning all four active authority docs (TARGET_ARCHITECTURE.md 1429 lines, MANIFEST_SCHEMA.md 644, CLAUDE.md 381, ARCHITECTURE_GUIDELINES.md 435) for the rule's four named patterns returns ZERO hits for `Phase N`, ZERO for 7-hex commit hash, ZERO for before/after narrative,",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-d2cb6640"
+    },
+    {
+      "rule": "No low-signal metadata in stable docs: inline dates in headings, generation/version footers, leftover TODO/FIXME, author attribution.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L56"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "too-broad-as-stated",
+      "refutation": "Criterion 2 fails catastrophically; criterion 1 fails under the rule's own 'stable docs' scope. I ran all four mechanical patterns over 1,113 .md files in adopter_a + auto-dev-v4 + adopter_b. AUTHOR ATTRIBUTION: 0 hits, all three repos. GENERATION/VERSION FOOTERS: 1 hit in the framework an",
+      "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "id": "R-7c5ba74e"
+    },
+    {
+      "rule": "No `##` section over 300 lines with zero sub-headings.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L53"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Criterion 1 fails outright — there is no instance anywhere. I measured every `##` span that contains no `###` across all 1,113 markdown files in the three repos. The single longest is 193 lines. The threshold is 300; nothing in the corpus comes within 100 lines of it. Top five: 193 (10-build-from-ze",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-1ed472a3"
+    },
+    {
+      "rule": "Markdown code fences and diagram blocks must balance: even fence-marker count, every subgraph closed.",
+      "sources": [
+        "AUTHORITY_DOC_CLEANUP_GUIDELINE.md L246"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Both criteria fail. FENCE HALF — criterion 1: zero files with an odd ``` count and zero with an odd ~~~ count across all 1,113 .md files in the three repos. The red_fixture ('seven ``` markers in one file') does not exist anywhere. SUBGRAPH HALF — criterion 2: the check misfires. My probe found 6 'i",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-ee376555"
+    },
+    {
+      "rule": "Structure entropy: `new_`/`temp_`/`legacy_`/`_v2` module names persisting, empty packages, directories nothing imports, duplicated adapters left in the real path.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L581-591"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "All four sub-checks fail. (a) The stated red fixture is fiction: there is no `kernel/ledger_v2.py`; `ls auto-dev-v4/kernel/` shows one `ledger.py`, and the only `*_v2.py` in either repo is a test named after a feature version. (b) NAME PATTERNS: every `new_`/`legacy_` hit in auto-dev-v4 is auto-dev-",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-cf16bf3d"
+    },
+    {
+      "rule": "Every route handler in an entrypoint file must reach an auth-decision symbol in its decorator list or body.",
+      "sources": [
+        "claude_baseline.md L54",
+        "SECURITY_AUDIT_GUIDELINE.md L53",
+        "STEP_7_AUDIT_LENS.md L155",
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L51",
+        "baseline/pipeline-policies.md L77-78"
+      ],
+      "assigned": "2-checker",
+      "id": "R-3baed334",
+      "landed_note": "原本落喺 CLAUDE.md。嗰個 kind / checker 喺 113 題實測示範唔到代碼價值而拆走,條 rule 嘅文字搬入層 ①(kernel/doctrine.py 生成 CLAUDE.md 第一節)—— 問題照樣每個 session 問一次,冇咗嘅係跟住佢嗰部 claim 機器。",
+      "landed": "CLAUDE.md"
+    },
+    {
+      "rule": "A client-supplied identity value must not reach a query or write unless the same function also makes an auth decision.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L51",
+        "SECURITY_AUDIT_GUIDELINE.md L55",
+        "STEP_7_AUDIT_LENS.md L158"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "Criterion 1 fails — the pattern is structurally absent from both repos. I ran an AST taint probe over all 61 route handlers (client sources: payload/body/data/request.json/request.query_params plus untyped identity-shaped params; sinks: filter_by/execute/fetch*/repo./query/select/insert/update/delet",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-6bffe12c"
+    },
+    {
+      "rule": "Webhook and callback handlers must verify a signature before processing the body.",
+      "sources": [
+        "claude_baseline.md L59",
+        "SECURITY_AUDIT_GUIDELINE.md L73",
+        "STEP_7_AUDIT_LENS.md L159"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起 + 綠唔起。① 兩個 repo 都冇 webhook/callback HTTP handler:`rg '@router\\.(post|get|put|patch)\\(\"[^\"]*(webhook|callback|hook)'` 喺 adopter_a 全 repo exit 1(零 hit);auto-dev-v4 連 HTTP server 都冇(FastAPI/Flask/http.server 零 hit)。adopter_a production code 入面唯一嘅 'webhook' 係 client.py:187 `delete_webhook()` —— 一個",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-e94b7848"
+    },
+    {
+      "rule": "Route registry, handler and auth contract must stay in three-way parity.",
+      "sources": [
+        "baseline/pipeline-policies.md L77-78"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起 + 綠唔起,而且 v4_has_it 描述本身錯。① AST 掃過 web/api/routes/*.py 61 條 route:33 條 registry mutation 全部都有 auth decision(require_metadata_preauth / require_sensitive_preauth / Depends(resolve_brand_*))。零 auth 嘅只有 3 條 —— brands.py:37 `GET /brands`、dashboard.py:43 `GET /dashboard/registry`、dashboard.py:82 `POST",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-72a1d264"
+    },
+    {
+      "rule": "Environment access is centralised: `os.environ` / `process.env` must appear only in declared config files.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L31",
+        "baseline/reference.md L245",
+        "CONFIG_BEST_PRACTICES.md L183",
+        "STEP_7_AUDIT_LENS.md L79"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "too-broad-as-stated",
+      "refutation": "紅唔起 + 綠唔起。① red_fixture 指定「a worker module outside the config-file set reading os.environ」:`rg 'os\\.environ|os\\.getenv' core/workers/ core/flow_engine/ core/orchestration/ app/chat/` → exit 1,零 hit。adopter_a 已經 100% 走 pydantic BaseSettings + KeychainSettingsSource(settings.py:32-62),config_file",
+      "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "id": "R-c9f48fc8"
+    },
+    {
+      "rule": "Critical infrastructure config (DB URL, bucket, project id, endpoint, DSN) must have no default fallback in code.",
+      "sources": [
+        "CONFIG_BEST_PRACTICES.md L129",
+        "CONFIG_BEST_PRACTICES.md L258-259",
+        "STEP_7_AUDIT_LENS.md L129"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起 + discriminator 係 name heuristic。① `rg 'getenv\\([^)]*,|environ\\.get\\([^)]*,' --type py` 掃全 adopter_a production code,two-arg env default 得 **一個**:ops/launchd/runner.py:57 `os.environ.get(\"PATH\", \"/usr/bin:/bin:/usr/sbin:/sbin\")` —— PATH 唔係 infra config,而且個 default 係正確嘅。其餘 3 個喺 tests/(tests/post",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-93b692d8"
+    },
+    {
+      "rule": "A missing required secret crashes at import: no optional-read form for a SECRET/KEY/TOKEN/PASSWORD-named value in a config module without a module-level failure.",
+      "sources": [
+        "CONFIG_BEST_PRACTICES.md L103"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "too-broad-as-stated",
+      "refutation": "紅唔起 + 綠唔起,而且係最差嘅一種:pattern 存在但 100% 係綠。① 照字面搵 `environ.get(\"*SECRET|KEY|TOKEN|PASSWORD*\")`:全 repo 三個 hit,兩個係 auto-dev/CONFIG_BEST_PRACTICES.md:118/:389(守則自己嘅例子),一個係 docs/FLOWCHARTS.md:992(明文禁止)。source instance = 0。② 語意等價嘅形式喺 config module 入面存在 —— 而且係 3/3 全中:settings.py:94/159/167 三個 secret-named fie",
+      "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "id": "R-f9d6d8f3"
+    },
+    {
+      "rule": "Each config value has exactly one truth location — not one in an env file and another in code.",
+      "sources": [
+        "CONFIG_BEST_PRACTICES.md L130",
+        "STEP_7_AUDIT_LENS.md L130"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "too-broad-as-stated",
+      "refutation": "綠唔起。red_fixture 寫嘅係「carrying a value in .env.example and also assigned a literal in a constants module」,即係 presence-in-both。實測:.env.example 17 個 key,**17/17** 喺 settings.py 都有 code default。命中率 100% —— 一條把整份 corpus 判紅嘅規則係 lens,唔係 checker。改成比較「值」嘅版本,真分叉只有一個:.env.example:18 `MAX_FANOUT_ITEMS=25` vs set",
+      "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "id": "R-65782d89"
+    },
+    {
+      "rule": "Environment definitions keep key-set parity across dev, staging and production.",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L132"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "Criterion 1 fails outright: neither repo has a dev/staging/prod trio to compare. adopter_a has ONE env definition (.env.example) plus a gitignored .env.local; there is no staging tier anywhere — every 'staging' string in the repo is git-staging in artifacts/phases/*.json. auto-dev-v4 has none at al",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-c2cba667"
+    },
+    {
+      "rule": "No `.env*` file (other than an example with placeholder values) may be tracked in git — checked against the whole index, not the diff.",
+      "sources": [
+        "CONFIG_BEST_PRACTICES.md L179",
+        "CONFIG_BEST_PRACTICES.md L349"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "Criterion 1 fails: adopter_a's entire index contains exactly one .env* path — .env.example, all-placeholder. brands/ ships only brand.toml.example. No live key is tracked anywhere. Criterion 2 then fails harder: the ONLY tracked env-suffixed file carrying a live-shaped key in either repo is auto-de",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-1ff78392"
+    },
+    {
+      "rule": "Threshold / score / tunable numeric literals come from settings, and appear exactly once — not privately in logic, and not written twice as a settings default plus an inline constant.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L211",
+        "claude_baseline.md L115"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "Criterion 1 passes — there is a real red instance: settings.py:363 `grouping_threshold: float = 0.75` is dual-written as grouper.py:396 `threshold: float = 0.75`, and the production caller at core/flow_engine/handlers/image_group.py:174-184 always passes settings explicitly, so those signature defau",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-34053965"
+    },
+    {
+      "rule": "No secrets or PII in logs or debug output: a credential- or PII-named value must not flow into a logging call, and log extras must be redacted before emission.",
+      "sources": [
+        "claude_baseline.md L55",
+        "CONFIG_BEST_PRACTICES.md L105",
+        "CONFIG_BEST_PRACTICES.md L112",
+        "DEBUGGING_OBSERVABILITY_GUIDELINE.md L121",
+        "SECURITY_AUDIT_GUIDELINE.md L273",
+        "STEP_7_AUDIT_LENS.md L123"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Criterion 1 fails on both halves. Secrets: zero log calls in app/core/web/runtime pass a credential-named value — `logger.*(...settings.*)` returns nothing, and f-string logs interpolating a key/token/secret variable return nothing. The one hit, loader.py:535, logs field names not values. PII: socia",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-ae7a0067"
+    },
+    {
+      "rule": "API responses must not carry exception text, stack traces or internal paths.",
+      "sources": [
+        "SECURITY_AUDIT_GUIDELINE.md L75",
+        "STEP_7_AUDIT_LENS.md L161"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Criterion 1 fails: the stated red fixture has no instance. `traceback.format_exc()` is never called anywhere in adopter_a's runtime code, and auto-dev-v4 has no HTTP surface at all. The rule is not merely unviolated — it is already implemented correctly and deliberately: web/api/main.py:203-228 exi",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-f9d14a70"
+    },
+    {
+      "rule": "Production build configuration must not emit source maps.",
+      "sources": [
+        "SECURITY_GATE/templates/question-bank.json L16"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "Criterion 1 fails cleanly: `sourcemap: true` does not appear in any build config in either repo, and cannot — auto-dev-v4 ships no frontend and adopter_a's two vite configs both leave build.sourcemap at Vite's default of false. A checker keyed on the literal `sourcemap: true` would never fire on an",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-f7f9f586"
+    },
+    {
+      "rule": "Domain / core logic performs no direct external I/O.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L32"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "The rule needs a path→layer map that V4's fact schema cannot express and that no doctrine file supplies. Where the layer IS unambiguous (core/domain/, 11 files) the violation count is 0; where the count is nonzero (core/integrations/, 49 files) the code is correct by the same document. A checker wit",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-86770309"
+    },
+    {
+      "rule": "State-changing code in an entry, handler or human-facing surface file must not mutate the store directly — no raw DML, no ORM write plus commit; it goes through the canonical orchestration path.",
+      "sources": [
+        "ARCHITECTURE_GUIDELINES.md L262-266",
+        "STEP_7_AUDIT_LENS.md L64",
+        "claude_baseline.md L92"
+      ],
+      "assigned": "2-checker",
+      "id": "R-ae1de86c",
+      "landed_note": "原本落喺 CLAUDE.md。嗰個 kind / checker 喺 113 題實測示範唔到代碼價值而拆走,條 rule 嘅文字搬入層 ①(kernel/doctrine.py 生成 CLAUDE.md 第一節)—— 問題照樣每個 session 問一次,冇咗嘅係跟住佢嗰部 claim 機器。",
+      "landed": "CLAUDE.md"
+    },
+    {
+      "rule": "No DML statement without a WHERE clause.",
+      "sources": [
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L218"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Zero instances in 148 real statements, and the 'mechanical floor' was invented in the extraction rather than read out of IMPLEMENTATION_CONFORMANCE_GUIDELINE.md:218. It would also miss the real form of the defect the source bullet is about — targeting the wrong rows with a WHERE that is present but ",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-6491a845"
+    },
+    {
+      "rule": "No self-HTTP hop: an HTTP call whose host and port are the application's own bind address.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L52",
+        "STEP_7_AUDIT_LENS.md L102"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Zero instances in both named repos, and no fact key supplies a bind address to compare against (kernel/facts.py:37 has no port/bind field). IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md:181 itself frames self-HTTP as a legacy-migration inventory item ('既有 self-HTTP...列入 migration inventory'), i.e. a thin",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-1489dc04"
+    },
+    {
+      "rule": "Handlers stay thin — roughly 50 lines maximum per handler in an entry file.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L44",
+        "STEP_7_AUDIT_LENS.md L76"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "too-broad-as-stated",
+      "refutation": "A threshold the authoring document calls a heuristic, over a subject the fact table cannot identify, firing on 21% of existing entry-file functions. kernel/analysis/structural_lint.py:8-12 records the exact precedent: the tool this replaced reported 200 criticals on adopter_a, 'so on that repo *eve",
+      "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "id": "R-c8173f02"
+    },
+    {
+      "rule": "Entry surfaces validate input before any downstream processing: a schema or typed parse must precede the first service call.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L128",
+        "claude_baseline.md L70"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "The evidence for compliance lives in the function signature and the framework's dependency-injection layer, not in a statement inside the body, so an in-body ordering check reads the wrong location. Zero true positives, 66 false positives, and the rule's own source text (claude_baseline.md:70) decla",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-a7b27bcc"
+    },
+    {
+      "rule": "Invalid input must not be silently coerced into a business operation: an except branch assigning a literal default and falling through into a mutation.",
+      "sources": [
+        "claude_baseline.md L72"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "CRITERION 1 FAILS — no red instance exists. I ran the rule as an AST checker over both repos. Loosest form (except handler with no raise/return, assigns a literal to a name, name later passed to any call in the same function): 886 handlers scanned in adopter_a, 13 hits, 1 in auto-dev-v4. I read the",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-de234a10"
+    },
+    {
+      "rule": "Typed response contracts: every union branch carries all discriminant fields.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L127",
+        "claude_baseline.md L73"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "premise-absent",
+      "refutation": "CRITERION 1 FAILS — the red shape does not exist. adopter_a has 110 real .ts/.tsx files (excluding node_modules), so the substrate is there, but `grep -rn -E '\\|\\s*\\{'` over all of them returns exactly ONE hit, PostDraftReview.test.tsx:28, and that union is complete in both branches (isLoading/erro",
+      "note": "佢假設咗一個唔存在嘅機制。",
+      "id": "R-a2e8168d"
+    },
+    {
+      "rule": "A signature change adding a required parameter must leave no call site at the old arity.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L71-73",
+        "STEP_7_AUDIT_LENS.md L105"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "CRITERIA 1 AND 2 BOTH FAIL. I built the checker and ran it. Loose form (any repo-unique name): 248 'mismatches' on adopter_a — every one a name collision with a stdlib/builtin/nested symbol (`now`, `sha256`, `connect`, `walk`, `add`, `validate`, `retrieve`); on auto-dev-v4 itself the single nested ",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-4dec9cbd"
+    },
+    {
+      "rule": "Cross-layer signatures carry no type escape hatch — no bare dict, `Any` or `unknown` on a boundary.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L11",
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L206"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "too-broad-as-stated",
+      "refutation": "CRITERION 2 FAILS DECISIVELY, and CRITERION 3 fails too. Red instances are trivially findable — that is the problem: 33.4% of every function in core/app/web trips it, 910 sites, against a debt registry whose 7 R-TYPE-ESCAPE entries are all already graduated. A gate that reds a third of the codebase ",
+      "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "id": "R-c883d892"
+    },
+    {
+      "rule": "File and function size thresholds — a file or function over the calibrated threshold with no sub-structure is a god module.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L204",
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L205"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "CRITERION 2 FAILS. Criterion 1 passes (registry.py at 3,805 lines is an unambiguous red) and criterion 3 passes (structural_lint.py:63 RULES = PRIVATE_IMPORT, PRIVATE_MODULE_ACCESS, IMPORT_CYCLE — no size rule anywhere in checkers/ or kernel/). But the absolute form as filed produces 197 findings on",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-c8c23ca3"
+    },
+    {
+      "rule": "Net improvement on touch: a grandfathered file you edit must not grow, and you must not add a new over-threshold function to it.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L219"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "CRITERION 2 FAILS. This is the strongest of the six — criterion 1 passes outright (92 real growth events in 120 commits) and criterion 3 passes (the note is correct: structural_lint's baseline is a sha256(rule‖path‖detail) id set at :95-120, so a 1,240→1,290 growth keeps the same id, is carried by `",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-5ea8f257"
+    },
+    {
+      "rule": "No parallel copy of an algorithm: extending behaviour means parameterising the existing function, not duplicating its body.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L210",
+        "claude_baseline.md L114"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "RED passes, GREEN fails, and the framework already settled the severity against it. Red exists: core/integrations/feed_graph.py:617 _publish_story_image vs :627 _publish_story_video differ only in \"image_url\" vs \"video_url\" — exactly the fixture. But the framework's OWN reference implementation of t",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-fd4558c0"
+    },
+    {
+      "rule": "Resources acquired must be released on every path: an acquire with no context manager and no try/finally.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L139",
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L142"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "No red fixture exists, and the stated red_fixture shape is correct code in this repo. AST-scanned all 968 first-party .py in adopter_a plus all of auto-dev-v4; I then READ every acquire site rather than trusting the scan. Every one is correctly released: core/integrations/postgres/coordination.py:9",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-8a87e24e"
+    },
+    {
+      "rule": "Shared mutable state written from more than one execution unit must be synchronised.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L140",
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L207"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Zero red fixtures in either repo, and the question is already empirically closed. AST-scanned both repos for a module-level mutable written from >=2 functions in a file that also spawns threads/tasks/executors: 0 hits in adopter_a, 0 in auto-dev-v4. Dropping the concurrency-evidence requirement (th",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-192afd2c"
+    },
+    {
+      "rule": "No machine-specific paths and no environment-specific identifiers hardcoded outside config — absolute home paths, drive letters, tenant/account ids.",
+      "sources": [
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L125",
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L200"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Refuted as specified — it is a merged checker and half of it has no instances at all. The identifier family (TENANT_ID/account-id literals) returns ZERO hits in adopter_a and ZERO in auto-dev-v4; there is no such literal anywhere to red on. The path family: an AST scan of string constants matching ",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-f08922bf"
+    },
+    {
+      "rule": "Every temporary marker carries a decidable removal trigger — a version, an issue reference, a date or an event.",
+      "sources": [
+        "baseline/reference.md L246"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "The hardest refutation of the six: the subject the checker would scan does not exist, and the cited source does not say what the rule claims. Empirically: the string 'TODO' appears ZERO times in all 968 first-party .py files in adopter_a. Zero matches for #.*(TODO|FIXME|HACK|XXX) in adopter_a .py,",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-0015f04c"
+    },
+    {
+      "rule": "Critical UI controls expose a stable test selector rather than relying on CSS classes or DOM structure.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L193",
+        "STEP_7_AUDIT_LENS.md L87",
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L273-275"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "Fails criterion 3 outright and criterion 1 on volume. V4 ALREADY HAS IT, verbatim: .v4/lenses/implementation-layer-boundaries.json check index 14 reads 'UI/Surface testability: stable selector strategy — UI components expose stable test selectors (data-testid or equivalent), not relying on CSS class",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-52c66720"
+    },
+    {
+      "rule": "UI tests must not select by CSS class or XPath when a stable selector is available.",
+      "sources": [
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L261-264"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "Criterion 1 fails outright: no real file in either repo makes this checker exit 1. Criterion 2 also fails independently — the cited source /path/to/adopter_b/PLAYWRIGHT_UI_TESTING_GUIDELINE.md:261-264 is a priority list, not a prohibition, and L264 reads \"CSS/XPath fallback on",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-c928e22a"
+    },
+    {
+      "rule": "Tests must not assert on source text or SQL file text — behaviour is verified at runtime, schema through introspection.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L116",
+        "UNIT_TEST_GENERATION_GUIDELINE.md L117",
+        "STEP_7_AUDIT_LENS.md L308",
+        "STEP_7_AUDIT_LENS.md L309"
+      ],
+      "assigned": "2-checker",
+      "landed": "checkers/test_shape.py",
+      "id": "R-2354b225"
+    },
+    {
+      "rule": "A thread-through invariant must be asserted by downstream end state, not by signature or reflection inspection.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L55",
+        "STEP_7_AUDIT_LENS.md L276"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "Criterion 1 fails on volume: 1 instance in 4,418 tests is noise, not a rule worth a gate. Criterion 2 fails on the antecedent. The rule fires only on \"a thread-through invariant\", and V4 has no contracts, no invariants, no Plan — /path/to/repo/.v4/ holds claim_kinds.json, lenses",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-25eff9aa"
+    },
+    {
+      "rule": "Mocks of typed objects must be spec-aware — no bare patch or plain-object stand-in for a strongly typed dependency.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L119"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "Criterion 2 fails as hard as it can. Bare patch is not a violation in this repo, it is the universal convention — a checker firing here reds essentially every test file that mocks anything, which is the definition of a lens rather than a gate. It also misjudges real greens: at tests/test_f138_direct",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-e3af0261"
+    },
+    {
+      "rule": "No non-deterministic test sources: sleep-then-assert, a live clock inside an assertion, or module-level mutable state written with no restore fixture.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L120"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "One red across 4,418 tests, and a 2-of-3 false-positive rate on the raw pattern. Disjunct B has no instance at all. Disjunct C is not mechanically decidable: deciding \"module-level mutable state with no restore fixture\" means proving no autouse fixture anywhere in the conftest chain restores it — cr",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-536cbde8"
+    },
+    {
+      "rule": "Test file names reflect the module or contract under test, carry no phase/cycle/version marker, and no low-cohesion catch-all names.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L186",
+        "UNIT_TEST_GENERATION_GUIDELINE.md L190",
+        "STEP_7_AUDIT_LENS.md L281",
+        "STEP_7_AUDIT_LENS.md L282"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "The rule's three clauses contradict each other on real files, and resolving the contradiction requires knowing whether a token is a domain name or a phase artifact — undecidable from the filename. Every measured catch-all hit (2/2) is a false positive, and the marker half misfires on contract-versio",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-12792701"
+    },
+    {
+      "rule": "Test names state behaviour and condition.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L167"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "too-broad-as-stated",
+      "refutation": "綠得起 fails outright — there is no green instance anywhere. A literal checker reds 100% of adopter_a and 100% of V4's own suite, including names the framework author wrote deliberately. Any relaxed predicate is undecidable: `test_old_rows_still_verify_under_their_own_scheme` states behaviour+conditio",
+      "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "id": "R-d7736bae"
+    },
+    {
+      "rule": "A shared fixture must live at the nearest common parent scope, never be copied into sibling scopes.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L198"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "紅得起 fails: zero instances in either repo. The closest near-hit is `mock_pool_factory` defined in /path/to/adopter_a/tests/web/api/conftest.py:27 and re-defined in three test files in the *same* directory (test_health.py:20, test_brands_routes.py:31, test_posts_error_paths.py:21) — not",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-75f091b4"
+    },
+    {
+      "rule": "Tests touching a real database, network or filesystem carry a test-type marker so CI can layer them.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L209"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Both sides fail. 紅得起: zero real reds — the repo is at 100% marker compliance for collected tests; the 3 apparent violations are uncollected support modules that a checker must special-case or false-positive on. 綠得起: the mechanical half is not mechanical — telling a live `requests.post` from a patche",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-ac8e9f95"
+    },
+    {
+      "rule": "Every changed non-test file has a changed test file (advisory).",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L175"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "too-broad-as-stated",
+      "refutation": "This is the only rule with genuine red and green instances, and it still dies — on the contract, not the data. V4 has no warning exit code and names an unconsumed severity column as V3's fake move by name. Forced to exit 1 it fires on 28% of V4's own commits, including 0fd2e5f and 430cce6 which are ",
+      "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "id": "R-2dbfbe10"
+    },
+    {
+      "rule": "A test must not bypass the production entrypoint by importing a private helper directly when the only production caller is an entrypoint.",
+      "sources": [
+        "baseline/pipeline-policies.md L170"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "「V4 has it: no」 is factually wrong — the registered `lint` checker reports the cited fixture today, and I ran it to confirm. The proposed rule is a strict subset of existing output plus a qualifier that (a) needs a whole-repo call graph structural_lint.py:242-251 refuses on record (\"guessing is how ",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-9f298681"
+    },
+    {
+      "rule": "A validation-shaped function whose return value does not depend on its parameters is hollow.",
+      "sources": [
+        "baseline/pipeline-policies.md L172"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "紅得起 fails: zero production instances across 968 + V4 files. 綠得起 fails worse: the predicate is structurally wrong for the dominant Python validator idiom — raise on the bad path, return a constant on the good path — which is 8 of the 9 near-hits. Its single production hit is the repo's METADATA-tier ",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-381df981"
+    },
+    {
+      "rule": "A registered check that inspects nothing and produces no subject-derived output must not report completion. Exit status alone proves no requested behaviour.",
+      "sources": [
+        "baseline/pipeline-policies.md L103-106",
+        "SECURITY_GATE/tooling/scanners/static-pattern-scan.js L3-6"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起:紅 fixture 由定義上唔可能存在。個 fixture 講明係「a REGISTERED check whose body is sys.exit(0)」,但 register.py:171-200 要求 5 紅 + 5 綠 fixture 全中先入 registry,:297-298 一失敗即拒。DOGFOOD_LOG.md:52-60 已經真跑過呢個實驗,結論就係 NOT registrable。checkers/_selftest_hollow.py(2 行,sys.exit(0))存在但唔喺 .v4/checkers.json 入面 —— proposal 自己都咁講。要造",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-4f2b5ba5"
+    },
+    {
+      "rule": "Log event names are stable literals — no f-string, concatenation or format call in the event-name position, and no free-prose event names.",
+      "sources": [
+        "DEBUGGING_OBSERVABILITY_GUIDELINE.md L60",
+        "STEP_7_AUDIT_LENS.md L220"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "too-broad-as-stated",
+      "refutation": "紅唔起:adopter_a 788 個 log call 入面,event-name position 嘅 f-string / concat / .format / %-format 全部係 0。proposal 個紅 fixture `logger.warning(f\"{self.domain}_sync_failed\", ...)` 喺真 repo 零實例。767/788 係 literal,只有 4 個帶空格,而嗰 4 個入面 3 個係 `%s` format string(core/orchestration/workflow_runtime.py:947、core/integra",
+      "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "id": "R-336223dc"
+    },
+    {
+      "rule": "Log extras must not collide with standard log-record field names.",
+      "sources": [
+        "DEBUGGING_OBSERVABILITY_GUIDELINE.md L72-75"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起:779 個 `extra=` dict,reserved-name 碰撞 0 個;auto-dev-v4 同 adopter_b 都係 0。呢個唔係巧合 —— stdlib Logger.makeRecord 一撞就即刻 raise KeyError,所以佢喺第一次執行就死,冇可能活到入 commit tree。「the failure is a crash, not a style preference」係支持佢自我執行,唔係支持起 checker:一個永遠捉唔到嘢嘅 gate 唔係 gate。而且 checker 喺最高風險位置係盲嘅:779 個入面有 67 個係",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-6910bc54"
+    },
+    {
+      "rule": "A declared event or metric literal must be greppable in its target source; an empty result means the plan item is unimplemented.",
+      "sources": [
+        "DEBUGGING_OBSERVABILITY_GUIDELINE.md L57",
+        "DEBUGGING_OBSERVABILITY_GUIDELINE.md L59"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "too-broad-as-stated",
+      "refutation": "紅得起但綠唔起。真係搵到 5 個 declared event literal 喺 source 度零命中 —— 但全部 5 個出自 f270 / f271,而呢兩份 phase doc 係兩日前(git 62d12f11)由 code health review 開出嚟、由未執行過嘅。即係話 100% 嘅紅都係「計劃咗未做」,唔係「聲稱做咗但冇」。要分開呢兩種,checker 要有 phase status 概念;而 V4 明確冇 phase doc、冇 contract、冇 status 欄(state 係每次由 ledger 重算嘅 query)。喺 V4 model 之下,每一份未收工",
+      "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "id": "R-21da107a"
+    },
+    {
+      "rule": "Core paths emit structured success and failure logs carrying a trace or correlation id.",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L211",
+        "STEP_7_AUDIT_LENS.md L212"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "綠唔起,兩邊都唔起。第一半(outbound write 冇 log):adopter_a 全 repo 963 個 function 帶 outbound_write pattern 而冇 log call,對 72 個有;淨計 production core/ 都係 54 對 42。判紅過半 production function 就係 lens 嘅定義。而且大量係設計上正確:core/config/secure_store.py:44 write_provider_secret 刻意唔 log(docstring:「without exposing its value」)、改為 rai",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-ca562c2a"
+    },
+    {
+      "rule": "Error logs carry an exception object and request context, not a stringified exception.",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L213"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起。adopter_a 有 265 個 log call 喺 except handler 入面,message position 係 exception 嘅 —— 即 proposal 個紅 fixture `except Exception as e: logger.error(str(e))` —— 0 個。265/265 全部係 named event + extra= 或者 exc_info。零實例。要令佢紅得起就要把門檻抬到「唔准用 str(exc),要 exception object」,而咁做即刻誤報 56 個位,嗰 56 個係呢個 codebase 明確嘅 house ",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-e1e214fe"
+    },
+    {
+      "rule": "No bare print or console output in production files.",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L216"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起。red_fixture 講嘅『print(\"posted\", post_id) in a worker module』喺 adopter_a 完全唔存在 —— 每個 non-script entrypoint 目錄 print 數都係 0,而 core/ 91 個檔用 logger。17 個真係有 print 嘅檔全部係 CLI / migration / proof runner,print 就係佢哋嘅 output contract(db_migrations/apply.py 4 個 print,scripts/migrate_*.py),其中 6 個仲要喺 entrypoin",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-0c590532"
+    },
+    {
+      "rule": "A deployed service exposes a health endpoint.",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L235"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起,而且綠得太貴。全 repo 只有一個 FastAPI app(web/api/main.py:105),佢已經有 /api/health(main.py:232-238);auto-dev-v4 係純 CLI,連 server 都冇。兩個 repo 加埋零個 red fixture。反方向就爆:web/api/routes/ 17 個檔入面 16 個零 health 提及,但佢哋全部正確 —— 佢哋係 APIRouter module,mount 入嗰個已經有 health 嘅 app。file-scoped checker = 16/17 false positive;app-sco",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-ed99c8c9"
+    },
+    {
+      "rule": "No synchronous blocking I/O inside an async hot path.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L23"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起,一個實例都冇。AST 掃全部 non-test .py,requests.* / time.sleep 出現喺 async def 入面 = 0。放寬到 open/input/*.sleep/*.run/*.read_text/urlopen 得 11 hits,全部係 asyncio.sleep(正確)或者 proof script 嘅 read_text。原因係 repo 已經解決咗佢唯一嗰次,仲寫低咗:一個 API utils 模組入面二十行註釋講明一次 vendor client import 凍死 health route 嗰單,修法係將 route 宣告成 sync `def` 掉入 Fa",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-fa70ac69"
+    },
+    {
+      "rule": "Fan-out must be bounded: no gather/all over a runtime-sized collection without a semaphore, chunking or limit in scope.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L27"
+      ],
+      "assigned": "2-checker",
+      "landed": "checkers/test_shape.py",
+      "id": "R-1a1abd8c"
+    },
+    {
+      "rule": "Every outbound call sets a timeout.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L35"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅得起但全部係 false positive,true positive 零。AST 掃晒 adopter_a 每個 HTTP call site:6 個 call-site 帶 timeout=,唯一冇嗰個 providers.py:228 嘅 client 喺六行之上 :222-223 就係 httpx.Client(timeout=self._timeout_s) 起嘅。repo 四個 HTTP 機制入面有三個係同一形狀 —— timeout 落喺 client/connection construction,唔喺 call site:store_client.py:685→687、d",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-65e92a9b"
+    },
+    {
+      "rule": "Retries have a budget and a backoff — no unbounded loop whose except branch continues without an attempt limit or a sleep.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L35"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起。掃晒 non-test 嘅 while True: 共 10 個,零個嘅 except body 係 bare continue —— red_fixture 唔存在。最似 retry 嗰個已經有齊 budget 同 backoff:shared.py:1042-1060 有 deadline = time.time() + max_wait_sec、time.sleep(poll_interval_sec)、超時 raise,入面仲要 call retry_gemini_transient(..., attempts=attempts)。呢個 repo 做 retry 係經三個具名 ",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-07ca0832"
+    },
+    {
+      "rule": "Heavy clients are not constructed inside a request handler.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L43"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起。AST 掃 adopter_a 全部 61 個 @router handler body(web/api/routes/ 底下 8 個 module)+ facts.adopter_a.json entrypoint_globs 列嘅 107 個檔:heavy-client construction 命中 0。全 repo 只有兩處 construct heavy cl",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-9d274718"
+    },
+    {
+      "rule": "No query call inside a loop body.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L53"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起、綠又爆誤報,兩樣都輸。Body-only AST 掃 968 個 py 檔,得 10 個 hit,冇一個係 N+1:db_migrations/apply.py:204-212 係 per-migration commit,apply.py:196-200 有註釋寫明點解一定要逐個 commit;media_assets.py:114 係一個 transaction 內 bounded positional UPDATE(update_positions,media_assets.py:104);content_drafts.py:118 係 DELETE 後同一 cursor 嘅 b",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-38ee9305"
+    },
+    {
+      "rule": "Dev-mode database clients are singletons guarded against hot-reload connection storms.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L54"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅得起嘅前提唔存在。`grep -rniE 'prisma|drizzle|typeorm|mongoose|sequelize'` 掃 adopter_a 全部 *.ts/*.tsx/*.js/*.json(除 node_modules)= 0 命中。web/ui/package.json 係 Vite+React SPA(react-router-dom / tanstack-query / zod),web/landing/package.json 淨係 react + vite,兩個都冇 server runtime、冇任何 DB dependency,所以根本冇一個 module ",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-d8693d80"
+    },
+    {
+      "rule": "Dependency integrity is verified by hash or checksum, not by version pin alone.",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L164"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "V4 已經有咗,而且係經過裁決後刻意唔答。kernel/analysis/dependency_audit.py:20-25 白紙黑字:『verify integrity hash **not answered.** \"可行時\" is not a decidable predicate, and a checker that reports on a clause it cannot decide is the severity field nobody branches on. Integrity coverage is recorded on the report and touches ",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-30ee4c11"
+    },
+    {
+      "rule": "Commits are signed.",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L168"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "too-broad-as-stated",
+      "refutation": "綠唔起。三個 repo(adopter_a、auto-dev-v4、adopter_b)最近 5 個 commit 嘅 %G? 全部係 N,三個 repo 嘅 commit.gpgsign 同 user.signingkey 都係空。即係第一次跑就 100% 紅,永遠紅,包括出呢個 checker 嗰個 repo 自己。docs/SPEC.md:217-218 要求註冊時 green/ ≥5 個每個 exit 0 —— 只能靠合成 fixture 過關,而 SPEC.md:243 自己講明『呢個閘唔係邊界』。提案自己畀嘅出路(『must be per-repo opt-in",
+      "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "id": "R-fb77910f"
+    },
+    {
+      "rule": "Work does not happen on a protected branch, and the branch name communicates scope.",
+      "sources": [
+        "baseline/git-checkpoint.md L28"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "綠唔起,而且喺出佢嗰個 repo 度連 referent 都冇。auto-dev-v4 只有 main 一條 branch、過去 30 日 37 個 commit 全落 main、完全冇 remote(git symbolic-ref refs/remotes/origin/HEAD 返唔到嘢),所以『protected branch』喺嗰度指唔到任何嘢 —— 冇 branch protection 可言,checker 只能對住『HEAD 係 default branch』出紅,每個 task 都紅。adopter_a 一樣:HEAD=main,過去 30 日 319 個 commit 落",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-4c6108d6"
+    },
+    {
+      "rule": "Removing a public symbol, route path or string contract must leave no dangling reference.",
+      "sources": [
+        "baseline/step-1.md L54-59"
+      ],
+      "assigned": "2-checker",
+      "landed": "checkers/dangling_ref.py",
+      "id": "R-59ea1448"
+    },
+    {
+      "rule": "Requirements and deliverables map bidirectionally: no orphan requirement and no dangling reference.",
+      "sources": [
+        "baseline/step-1.md L106-110"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "The rule is already implemented, in both directions, in the framework's own code — it is a description of shipped behaviour, not an extraction candidate. scripts/lib/deliverable-classification.js:247-250 raises `deliverable_classification[i].requirement_id does not reference requirements[]` (the dan",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-1acd1149"
+    },
+    {
+      "rule": "A diff that introduces a risk class (outbound write, auth decision, surface change) must have a declared claim of that class.",
+      "sources": [
+        "baseline/step-3.md L23"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Unfalsifiable in V4 — the check is X == X, so no red fixture can exist. Two independent reasons. (1) No input: the complete subject payload a checker receives is enumerated at kernel/register.py:161-169 and kernel/derive.py:76-83 — claim_id, claim_kind, task_id, repo_root, diff_base, subject_refs, s",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-82b51da4"
+    },
+    {
+      "rule": "A changed executable surface must have a same-cycle observation.",
+      "sources": [
+        "baseline/step-6.md L31"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "No true red exists, and the observation half has no substrate. MEASURED RED: across the last 200 adopter_a commits, 12 touched web/ui/src/** or web/landing/src/**, and 11 of those touched a test/spec/e2e file or a docs/ui-testing artifact in the same commit. The single exception is a84fb175, whose ",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-8bbb632e"
+    },
+    {
+      "rule": "Evidence paths must resolve inside the declared directory (by realpath, so symlink escapes are caught), point at a real non-empty file, and extension fields get the same treatment rather than becoming a bypass.",
+      "sources": [
+        "KIT_WEB_UI_PLAYWRIGHT/tooling/validate-result-semantics.js L97-117",
+        "KIT_WEB_UI_PLAYWRIGHT/tooling/validate-result-semantics.js L75-95",
+        "KIT_WEB_UI_PLAYWRIGHT/README.md L88-93"
+      ],
+      "assigned": "2-checker",
+      "landed": "not-applicable",
+      "id": "R-3e010813",
+      "why": "evidence path containment. V4 has no evidence artifact -- the ledger's six tables and an exit code replaced that whole model -- so there is no directory for a path to escape from. Structurally inapplicable, not owed."
+    },
+    {
+      "rule": "A result claiming success must not contradict its own evidence — no failure object, no error string, no failing derived assertion alongside a pass.",
+      "sources": [
+        "KIT_WEB_UI_PLAYWRIGHT/README.md L88-93"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "no-instance-today",
+      "refutation": "Zero red instances in the entire real corpus. I ran both the kit's own validator and an independent scan over all 38 result.json under /path/to/adopter_a/docs/ui-testing/. All 38 carry an `error` key, all 38 carry a `derivedAssertions` array, 31 are pass=true — and not one contradicts",
+      "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "id": "R-94d49c19"
+    },
+    {
+      "rule": "A result claiming failure must carry a non-empty reason and the step it failed at.",
+      "sources": [
+        "KIT_WEB_UI_PLAYWRIGHT/templates/result.schema.json L140-153"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起：全個 adopter_a 冇一個檔 conform 呢個 schema —— `runType` 只喺 schema 自己出現,零 consumer。auto-dev-v4 343 個 JSON 冇一個有 `pass` key。掃 artifacts/ + runtime/ 全部 JSON:得 1 個檔有 top-level `pass`。綠唔起:嗰個唯一檔 artifacts/merge-integration/F209+F211.json 係 auto-dev/scripts/gates/merge-integration-gate.js 寫嘅,唔係 Playwright run",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-49fb3917"
+    },
+    {
+      "rule": "Each attempt writes to a uniquely named artifact path; a retry must not overwrite the previous attempt's output.",
+      "sources": [
+        "baseline/reference.md L213"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起:掃 adopter_a 全部 audit-bundle events.jsonl 共 48,262 個 event,artifact_refs 重用次數 = 0。auto-dev-v4 完全冇 artifact/evidence 目錄(find 零結果)—— checker output 寫入 tempfile.TemporaryDirectory() 之後即刻消失(kernel/runner.py:86,101),per-attempt 檔案根本唔存在,overwrite 呢個 class 喺 V4 冇得發生。綠唔起:checker 契約只有 --subject/--facts 同",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-12232374"
+    },
+    {
+      "rule": "Existing violations are a backlog, not a licence: every mechanised rule runs against a recorded baseline so new violations fail while old ones are visible.",
+      "sources": [
+        "ARCHITECTURE_GUIDELINES.md L129"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "V4 已經有,而且係完整版(--emit-baseline、rename tracking、missing-baseline 唔給 amnesty、baseline 檔本身係 protected path 要簽名先落到 —— structural_lint.py:299)。紅唔起:實跑 `python3 checkers/structural_lint.py --subject … --emit-baseline` 對住成個 auto-dev-v4,出 `{\"findings\": [], \"version\": 1}` —— 零 violation。`.v4/lint_baseline.json",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-a850c4dc"
+    },
+    {
+      "rule": "Tool parameter schemas match handler parsing (name, type, enum).",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L325"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起,實測過:adopter_a 49 個 spec / 49 個 typed handler / 0 個 spec 冇 handler / 0 個 hand-schema property 唔喺 model 入面。advertise 畀 LLM 嘅 schema 係由 execute_tool 真正 validate 嗰個 Pydantic model 生成,唔存在第二份 name/type/enum 宣告可以分叉。個 red_fixture(`{\"name\":\"days\"}` 而 handler 讀 `args[\"day_count\"]`)喺呢度構造唔到:handler signatu",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-d8bece09"
+    },
+    {
+      "rule": "Every registered tool name appears in the system prompt.",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L338"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "紅唔起 —— 由構造上唔可能紅。system prompt 嗰行 tool registry 本身就係由 TOOL_SPECS join 出嚟(context.py:109),一個新註冊嘅 tool 註冊嗰刻已經喺 prompt 度。adopter_a 仲已經有一條雙向 equality test 釘住(test_f217_contract_surface.py:205)。auto-dev-v4 冇 tool registry 亦冇 system prompt,零實例。連 `v4_has_it: \"no\"` 都錯:llm-agent lens 已經有 check #4「System prom",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-64ae3807"
+    },
+    {
+      "rule": "Declared scope lists exact repo-relative paths, never globs or prefixes.",
+      "sources": [
+        "baseline/step-1.md L139-142"
+      ],
+      "assigned": "2-checker",
+      "landed": ".v4/lenses/prevention.json",
+      "refuted_because": "other",
+      "refutation": "綠唔起,而且係災難級:V4 每個 task 嘅 default scope 就係 `[\"**\"]`(checkers/scope.py:21),protected_paths 四條全部係 glob(.v4/config.json:12-17)。呢條規則會把 repo 入面每一個 task 判紅,包括冇改過任何嘢嗰啲 —— 定義上係 lens 唔係 checker。而且佢直接同 V4 設計相撞:kernel/scope.py:7-9 明寫「V3's shape: a contract declared the files a phase would touch, a gate enforced ",
+      "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "id": "R-a4f341a6"
+    },
+    {
+      "rule": "Reference versus clone: what may be consulted, what may be copied, and what may only be learned from.",
+      "sources": [
+        "ARCHITECTURE_GUIDELINES.md L173"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-e30917e1"
+    },
+    {
+      "rule": "Complex core logic is extractable from framework surfaces.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L11"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-2f60f637"
+    },
+    {
+      "rule": "Config and runtime settings own no business rules, orchestration or hidden application logic.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L31"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-91af2efb"
+    },
+    {
+      "rule": "Domain vocabulary is not polluted by transport or adapter naming, and the domain renders no transport output.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L32"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-ed6d1b41"
+    },
+    {
+      "rule": "Projection failure must not alter truth-owning state, and a sync failure must not contaminate the truth workflow.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L36",
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L29",
+        "baseline/pipeline-policies.md L63-64"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-0bb42bd2"
+    },
+    {
+      "rule": "Ops and runtime assets are replaceable without touching core, and must not have become workflow truth.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L38"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-bb146ed3"
+    },
+    {
+      "rule": "Parsing that only shapes transport stays at the entry surface; parsing whose result drives a workflow or approval decision belongs to orchestration.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L43"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-13a56077"
+    },
+    {
+      "rule": "Multi-step operations stay atomic, or document the compensating action.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L141"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-b102b72e"
+    },
+    {
+      "rule": "Objects returned to a pool or cache are clean; reset or invalidation happens at the right boundary.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L143"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-dd07ef9c"
+    },
+    {
+      "rule": "Substitute detection by eye: self-defined schema fields replacing framework templates, and a harness that runs the orchestration shell while swapping out the mechanism actually at risk.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L100-106",
+        "baseline/pipeline-policies.md L167"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-51aac64b"
+    },
+    {
+      "rule": "A cited mechanism must actually execute — an import, a comment, a string, a dead helper or an unexecuted branch is not proof.",
+      "sources": [
+        "baseline/pipeline-policies.md L101"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-9715fb46"
+    },
+    {
+      "rule": "The effective value comes from the resolver that runs, not from a config file plus a code default.",
+      "sources": [
+        "baseline/pipeline-policies.md L22"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-2d960d9c"
+    },
+    {
+      "rule": "Artifact lifecycle: stable identity, collision prevention, cleanup, rollback, orphan handling.",
+      "sources": [
+        "baseline/pipeline-policies.md L61-62"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-9a45b89a"
+    },
+    {
+      "rule": "Generated assets handle all five paths: persist, regenerate, blocked, moderation, failure.",
+      "sources": [
+        "baseline/pipeline-policies.md L65-68"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-845a501f"
+    },
+    {
+      "rule": "Fan-out and batch work: bounded, per-item identity, partial failure, retry exhaustion.",
+      "sources": [
+        "baseline/pipeline-policies.md L69-70"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-d68c4bb7"
+    },
+    {
+      "rule": "Approval and manual-review flows: durable approval states, blocked and regenerate paths, operator proof.",
+      "sources": [
+        "baseline/pipeline-policies.md L71-72"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-96033a2b"
+    },
+    {
+      "rule": "Mock-only proof cannot cover persistence, integration or read-back obligations; mock evidence covers typed failure paths, not success or read-back.",
+      "sources": [
+        "baseline/step-4.md L23",
+        "baseline/step-5.md L29-31"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-381a50a1"
+    },
+    {
+      "rule": "Request fit: did the change actually deliver what was asked, without quietly narrowing scope or substituting a different requirement — and can request, implementation, proof and doc updates each be traced to each other?",
+      "sources": [
+        "baseline/step-1.md L112-114",
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L40",
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L102-106",
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L155-159"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/near-miss.json",
+      "id": "R-eacb12dc"
+    },
+    {
+      "rule": "A workflow, decision-flow or routing change produces a diagram, and the diagram marks truth owner, external write boundaries, forbidden paths, and at least one error path.",
+      "sources": [
+        "baseline/step-1.md L183",
+        "baseline/step-1.md L194"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-4b100ce0"
+    },
+    {
+      "rule": "Shotgun surgery: the same rule or logic spread across three or more files needing lockstep edits.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L54"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-1b5767ce"
+    },
+    {
+      "rule": "Artifact entropy: runtime outputs, evidence, review logs and snapshots accumulating with no retention, archive or active-window rule, and staging artifacts left in the active reasoning path.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L567-577"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-a0109b9d"
+    },
+    {
+      "rule": "Semantic entropy: one concept carrying several names, one name covering several concepts, or retired terminology reappearing in new code.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L605-608"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-9473bd6e"
+    },
+    {
+      "rule": "The same code may be reported by two review axes only when the impacts differ and each impact is independently concrete.",
+      "sources": [
+        "CODE_HEALTH_REVIEW_GUIDELINE.md L75-89"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-cbcfe262"
+    },
+    {
+      "rule": "Human-authored free-text values (form fields, config edits, spreadsheet cells) are untrusted regardless of source and are parsed before use.",
+      "sources": [
+        "claude_baseline.md L71"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-e74a6251"
+    },
+    {
+      "rule": "A hardcoded list that must track reality will go stale; judge by property, or read from verified config. One missing entry means the rule silently stops applying.",
+      "sources": [
+        "claude_baseline.md L116"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-971c1c69"
+    },
+    {
+      "rule": "Hunk-level scope: is this hunk necessary to complete the approved outcome?",
+      "sources": [
+        "claude_baseline.md L140"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-055fc959"
+    },
+    {
+      "rule": "Opportunistic rewriting disguised as feature delivery, or an unrelated rewrite carried in under a clean-replacement banner.",
+      "sources": [
+        "claude_baseline.md L141",
+        "claude_baseline.md L142"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-484c58ad"
+    },
+    {
+      "rule": "Legacy design patterns, abstractions or control-plane conventions imported into new code for convenience.",
+      "sources": [
+        "claude_baseline.md L144"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-8fe76a44"
+    },
+    {
+      "rule": "An approval gate present in the approved design must be enforced in the implementation.",
+      "sources": [
+        "claude_baseline.md L58"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-88b661ee"
+    },
+    {
+      "rule": "Seven ownership slots are explicit: workflow truth, approval truth, file/media truth, which surfaces are projections, which are transport, which runtime metadata must never become product truth, and which derived surfaces must never write back to authority state.",
+      "sources": [
+        "REQUEST_DOC_GUIDELINE.md L138"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-bf69b6a0"
+    },
+    {
+      "rule": "Is the model a semantic selector or a tool caller, and who owns final validation, sequencing and side effects?",
+      "sources": [
+        "REQUEST_DOC_GUIDELINE.md L118"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-591511ee"
+    },
+    {
+      "rule": "Each selectable action carries a usable purpose, when-to-use, when-not-to-use, schema, side-effect level, approval semantics and scope assumptions — and the negative guidance is actually informative.",
+      "sources": [
+        "REQUEST_DOC_GUIDELINE.md L119"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-5a9f7c5e"
+    },
+    {
+      "rule": "Agent guardrails: transport never owns truth, advisory paths never mutate truth, the active action subset is mandatory, and a canonical preview precedes schedule mutation.",
+      "sources": [
+        "REQUEST_DOC_GUIDELINE.md L123"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-2082744d"
+    },
+    {
+      "rule": "A newly required setting must reach the deployment command or manifest.",
+      "sources": [
+        "CONFIG_BEST_PRACTICES.md L128"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-a958b6b0"
+    },
+    {
+      "rule": "Where a fallback is provided for an unavailable config service, is the fallback value itself safe — does losing the value open or close?",
+      "sources": [
+        "CONFIG_BEST_PRACTICES.md L139"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-f34283dc"
+    },
+    {
+      "rule": "Can you say, from the diff, which entry a secret arrived through?",
+      "sources": [
+        "CONFIG_BEST_PRACTICES.md L221"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-41a8acc3"
+    },
+    {
+      "rule": "Was runtime-fetched or platform-managed secret retrieval available, or was environment injection genuinely required here?",
+      "sources": [
+        "CONFIG_BEST_PRACTICES.md L110-113"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-b012c18b"
+    },
+    {
+      "rule": "Background and worker paths can answer: did it start, did it run twice, which step failed, and did checkpoint, retry and cleanup behave as intended.",
+      "sources": [
+        "DEBUGGING_OBSERVABILITY_GUIDELINE.md L16"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-cdcd86db"
+    },
+    {
+      "rule": "Logs distinguish provider failure from local failure.",
+      "sources": [
+        "DEBUGGING_OBSERVABILITY_GUIDELINE.md L18"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-db5d131a"
+    },
+    {
+      "rule": "Trace context is injected by middleware, not added by hand in each handler.",
+      "sources": [
+        "DEBUGGING_OBSERVABILITY_GUIDELINE.md L37"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-9e7717b2"
+    },
+    {
+      "rule": "Hot paths use exact queries with a workable index strategy and do not over-fetch.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L23",
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L53"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-1eb338a5"
+    },
+    {
+      "rule": "Lock contention and retry amplification are bounded — nothing slow inside a critical section.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L25"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-b04a8dde"
+    },
+    {
+      "rule": "Batch paths define memory caps, control disk pressure, and clean up temporary output.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L27"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-6386a0e6"
+    },
+    {
+      "rule": "Projection paths define a staleness tolerance and monitor reconciliation lag and quota pressure.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L29"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-116980d0"
+    },
+    {
+      "rule": "Scheduled and unattended work prevents overlap and duplicate execution.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L31",
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L255"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-302fa020"
+    },
+    {
+      "rule": "Unattended workers bound artifact and log retention and monitor cadence drift.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L31"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-20de5756"
+    },
+    {
+      "rule": "Cold start cost is controlled and connection management prevents a connection storm.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L43"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-841915c7"
+    },
+    {
+      "rule": "Core paths are measured (at least p50), and the metric set matches the workload class — tail latency for interactive, throughput under bounded concurrency for batch, lag for async, quota for external, before/after for material changes.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L63",
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L64"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-1383e53a"
+    },
+    {
+      "rule": "Event-level sync loops: does A writing trigger B, which triggers A?",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L93"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-9efd581f"
+    },
+    {
+      "rule": "Auth is applied through unified wrappers rather than re-implemented per route.",
+      "sources": [
+        "SECURITY_AUDIT_GUIDELINE.md L60"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-730adf1b"
+    },
+    {
+      "rule": "Each service has its own identity with fine-grained permissions rather than sharing a broad credential.",
+      "sources": [
+        "SECURITY_AUDIT_GUIDELINE.md L145"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-9d67c6e1"
+    },
+    {
+      "rule": "Every reachable decision branch introduced by the change has a test, and loop boundaries cover zero, one and many.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L17"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-ca90245d"
+    },
+    {
+      "rule": "Test generation considers all eight scenario classes: happy path, validation failure, authorization failure, dependency failure, retry/duplicate/replay, state transition, cleanup/rollback, and empty/boundary/malformed input.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L23"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-6a43fdcd"
+    },
+    {
+      "rule": "Per-layer test focus and mock rule for each of the seven layers (config, domain, orchestration, execution units, adapters, projections, entry surfaces).",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L33-38",
+        "STEP_7_AUDIT_LENS.md L290-296"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-9c450f44"
+    },
+    {
+      "rule": "Long-lived processes are tested beyond the happy path: claim/lock, cleanup and artifact lifecycle, state transitions asserted on real state, checkpoint recovery, concurrency guard, failure handling.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L42-47,L49"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-ead47b5c"
+    },
+    {
+      "rule": "Adapter tests cover request payload shape, response mapping, and error interpretation with retry.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L36"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-4bbba711"
+    },
+    {
+      "rule": "Config tests cover missing required config crashing at startup, invalid format producing a clear error, and coercion.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L37"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-b072b144"
+    },
+    {
+      "rule": "UI components are tested across props, loading, empty and error states.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L89"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-9dd2a65a"
+    },
+    {
+      "rule": "When a new test is genuinely stronger and covers the same invariant, the old one is deleted in the same commit.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L194"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-c8b916ed"
+    },
+    {
+      "rule": "Integration tests are few and aimed at the high-risk seams; external systems get contract tests or stubs.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L142"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-8fbde430"
+    },
+    {
+      "rule": "A thread-through that changes a signature also enumerates callers and justifies the ones not threaded, so no dead caller path goes untested.",
+      "sources": [
+        "UNIT_TEST_GENERATION_GUIDELINE.md L83"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-0845506a"
+    },
+    {
+      "rule": "Where partial loading is expected, the expected endpoint is called, a full route reload is absent or within threshold, and status codes are as expected.",
+      "sources": [
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L279-282"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-16f3cf2f"
+    },
+    {
+      "rule": "When a surface signal and the server response disagree, the server response is the root-cause truth — assertions must bind to it, not to the surface.",
+      "sources": [
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L206"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-736b7a1e"
+    },
+    {
+      "rule": "Console noise: a small allowlist for known non-blocking errors, new uncategorised errors surfaced, and no automatic failure on noise alone unless acceptance criteria are violated.",
+      "sources": [
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L300-302"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-36bb34f9"
+    },
+    {
+      "rule": "Runtime coverage questions per path type: request/response (did it arrive, where did it fail, why slow), background (did it start, did it duplicate, which step), stateful (which truth owner changed, where is the evidence), external (provider or local failure).",
+      "sources": [
+        "STEP_7_AUDIT_LENS.md L241-244"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/",
+      "id": "R-22df1862"
+    },
+    {
+      "rule": "State invariants are implemented and transitions have explicit boundaries.",
+      "sources": [
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L216",
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L217"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-eeced45b"
+    },
+    {
+      "rule": "Heavy paths have isolation or batching guardrails, and connection, retry and lock behaviour is reasonable.",
+      "sources": [
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L252",
+        "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L254"
+      ],
+      "assigned": "3-lens",
+      "landed": ".v4/lenses/prevention.json",
+      "id": "R-02226b12"
+    },
+    {
+      "rule": "\"Ran without error\" is not proof: a zero-output command, an empty scanner stdout, or an unsupported check reporting completion all prove nothing.",
+      "sources": [
+        "baseline/pipeline-policies.md L103-106",
+        "SECURITY_GATE/tooling/scanners/external-scanner.js L77-81",
+        "SECURITY_GATE/tooling/scanners/static-pattern-scan.js L3-6"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-fb764ecf"
+    },
+    {
+      "rule": "Naming an obligation id does not cover it — restate the target, expected result, truth owner and read-back target, give an observed result, and point at a concrete observation.",
+      "sources": [
+        "baseline/pipeline-policies.md L80-86"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-67b72d3e"
+    },
+    {
+      "rule": "Vague obligations such as \"run the relevant tests\" are invalid.",
+      "sources": [
+        "baseline/pipeline-policies.md L51"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-66e6d09c"
+    },
+    {
+      "rule": "Declare the expected result before the run, never after seeing the output.",
+      "sources": [
+        "KIT_WEB_UI_PLAYWRIGHT/README.md L83-87"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-552d5a4c"
+    },
+    {
+      "rule": "A one-off runtime or surface observation does not substitute for a committed test.",
+      "sources": [
+        "baseline/step-4.md L25-28"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-19b70a9f"
+    },
+    {
+      "rule": "Two independently green branches do not make a green merge; the merged head is unproven until proved again.",
+      "sources": [
+        "baseline/pipeline-overview.md L81"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-fee743d3"
+    },
+    {
+      "rule": "Never edit the expectation to match the result.",
+      "sources": [
+        "KIT_WEB_UI_PLAYWRIGHT/templates/prompt-regression.template.md L34"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-f9eb2256"
+    },
+    {
+      "rule": "A run blocked before its first real step, or that failed its own validation, is neither a pass nor a baseline candidate — and a baseline is never promoted automatically or overwritten without review.",
+      "sources": [
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L116",
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L213",
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L220",
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L347-348",
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L349-355",
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L389"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-bd4d0b3a"
+    },
+    {
+      "rule": "Inapplicable items and no-change outcomes are written down with a reason; omission and inapplicability are indistinguishable on disk.",
+      "sources": [
+        "ARCHITECTURE_GUIDELINES.md L310",
+        "REQUEST_DOC_GUIDELINE.md L100",
+        "baseline/step-1.md L194",
+        "PHASE_RETRO_GUIDELINE.md L37"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-6608cd65"
+    },
+    {
+      "rule": "A quantified claim obliges enumeration: list the set, classify every member as covered or exempt, and mark exemptions inline. One grep is not an enumeration of a multi-hop chain.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L83-88",
+        "baseline/pipeline-policies.md L168"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-0e8d582f"
+    },
+    {
+      "rule": "A check whose scope was incomplete for any reason that could hide a finding is not green; report the range actually covered rather than reading partial as clean.",
+      "sources": [
+        "CODE_HEALTH_REVIEW_GUIDELINE.md L141",
+        "SECURITY_GATE/README.md L54-56"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-18a654fc"
+    },
+    {
+      "rule": "\"Nothing to report\" is a legitimate result; do not manufacture findings to show work.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L159-164"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-4703d28a"
+    },
+    {
+      "rule": "A missing governance document does not remove the obligation: perform the step with built-in rules and state what was missing.",
+      "sources": [
+        "baseline/reference.md L163"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-c0c6e007"
+    },
+    {
+      "rule": "Read specs and contracts line by line and read a whole section before judging a fragment; do not skim or summarise.",
+      "sources": [
+        "baseline/reference.md L192",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L471-474"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-e4f05675"
+    },
+    {
+      "rule": "Every document read must be used; never read one and then proceed on the original plan.",
+      "sources": [
+        "baseline/reference.md L193",
+        "claude_baseline.md L281"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-35e2f5ec"
+    },
+    {
+      "rule": "Scope is judged by the approved outcome, not by the number of files touched.",
+      "sources": [
+        "claude_baseline.md L145"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-867f1a82"
+    },
+    {
+      "rule": "No unrelated cleanup, opportunistic redesign, speculative hardening, or rewrite carried in under a clean-replacement banner without explicit approval.",
+      "sources": [
+        "claude_baseline.md L140",
+        "claude_baseline.md L141",
+        "claude_baseline.md L142"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-0debef47"
+    },
+    {
+      "rule": "A problem found outside approved scope is reported and left alone until directed.",
+      "sources": [
+        "claude_baseline.md L143"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-a09103f7"
+    },
+    {
+      "rule": "Being small is not a reason to skip source-of-truth, scope, proof or review.",
+      "sources": [
+        "claude_baseline.md L165"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-57d4acc1"
+    },
+    {
+      "rule": "Do not hide scope in commit messages or summaries.",
+      "sources": [
+        "baseline/git-checkpoint.md L25"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-e20225a6"
+    },
+    {
+      "rule": "The documentation a change requires belongs to that change, not to later cleanup — and a change labelled cleanup must not alter behaviour.",
+      "sources": [
+        "ARCHITECTURE_GUIDELINES.md L204",
+        "AUTHORITY_DOC_CLEANUP_GUIDELINE.md L56"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-eafe8de5"
+    },
+    {
+      "rule": "Grep returning nothing, and you not understanding something, are facts about your search and your reading — not about the thing. Neither is a reason to remove.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L337",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L339"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-4de79ced"
+    },
+    {
+      "rule": "A guard that has never fired may have been internalised rather than made obsolete, and a young file has too short an observation window to judge. Neither is evidence of uselessness.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L49",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L423"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-f48614aa"
+    },
+    {
+      "rule": "Before deleting anything unregenerable, confirm a copy exists in version control or elsewhere.",
+      "sources": [
+        "claude_baseline.md L110"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-06217b07"
+    },
+    {
+      "rule": "Archiving is deleting and relying on version control; do not create a directory to hold what you were afraid to delete.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L613"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-0d4973c3"
+    },
+    {
+      "rule": "Identical wording, identical structure, or the same topic does not make two things the same contract. A contract has one owner; a second copy is the next drift.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L450-453",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L457-460",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L464-467",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L51"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-c3aba4dc"
+    },
+    {
+      "rule": "A rule violated long-term with nobody enforcing it must be either enforced or changed; leaving both undone is not an option.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L595-604"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-64b7585b"
+    },
+    {
+      "rule": "Treating the symptom is not fixing, and the same class of failure appearing a second time means the first fix was in the wrong place.",
+      "sources": [
+        "claude_baseline.md L108"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-492068aa"
+    },
+    {
+      "rule": "Fixing an instance of a fault with another instance of the same fault class is not a fix.",
+      "sources": [
+        "AUTHORITY_DOC_CLEANUP_GUIDELINE.md L471-473"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-2dc28fc4"
+    },
+    {
+      "rule": "Repair a finding everywhere the fact appears, not only where it was reported.",
+      "sources": [
+        "baseline/step-1.md (committed rule)"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-a944a7ab"
+    },
+    {
+      "rule": "After a repair has failed twice, do not replay it: state the repeated root cause and a concrete difference before trying again.",
+      "sources": [
+        "baseline/pipeline-overview.md L46-55"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-0da4204c"
+    },
+    {
+      "rule": "Every retry records what was changed, the root cause, and what was learned. \"Retried N times\" is not a record.",
+      "sources": [
+        "claude_baseline.md L256-259"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-828b24d1"
+    },
+    {
+      "rule": "When verification is structurally unreachable: revise the claim first, then narrow scope and record the carry-forward, and escalate only third.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L114-118"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-4eba008a"
+    },
+    {
+      "rule": "Retry a transient failure once; never continue silently past a critical failure.",
+      "sources": [
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L286-292"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-f311e2ec"
+    },
+    {
+      "rule": "Do not report a failure mode you cannot point to as having actually happened, with evidence; scale risks the project's context does not support need a concrete failure mode first.",
+      "sources": [
+        "CODE_HEALTH_REVIEW_GUIDELINE.md L52-73",
+        "claude_baseline.md L109"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-dd746822"
+    },
+    {
+      "rule": "Do not require abstraction because a rule, acronym or preference says so; direct code is acceptable when the behaviour is simple, local and unlikely to diverge.",
+      "sources": [
+        "CODE_HEALTH_REVIEW_GUIDELINE.md L91-110"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-52561471"
+    },
+    {
+      "rule": "One finding per issue; do not merge unrelated issues because they share a theme.",
+      "sources": [
+        "CODE_HEALTH_REVIEW_GUIDELINE.md L119-120"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-db1d6b5e"
+    },
+    {
+      "rule": "Another agent's conclusion is not a fact — verify at least one of its claims yourself before acting on it.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L141"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-01931aac"
+    },
+    {
+      "rule": "Verify what was marked clean as well as what was flagged; the unflagged range is the blind spot.",
+      "sources": [
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L153"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-e793aef7"
+    },
+    {
+      "rule": "Document precedence: architecture and current-state documents, then stack authority docs, then project instructions, then support guidelines, then references and cookbooks.",
+      "sources": [
+        "baseline/reference.md L54-61",
+        "REQUEST_DOC_GUIDELINE.md L9"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-5f27d78c"
+    },
+    {
+      "rule": "References, comparisons and cookbooks are informational input, not protected contracts or implementation templates.",
+      "sources": [
+        "baseline/reference.md L62"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-955468a4"
+    },
+    {
+      "rule": "An old system's or a donor repo's document is not evidence of current state; resolve against the current authority first.",
+      "sources": [
+        "baseline/reference.md L64",
+        "claude_baseline.md L144"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-460043f0"
+    },
+    {
+      "rule": "Update the existing document by default; never add a parallel authority document for convenience or tidiness.",
+      "sources": [
+        "REQUEST_DOC_GUIDELINE.md L21",
+        "REQUEST_DOC_GUIDELINE.md L23"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-5e053c1e"
+    },
+    {
+      "rule": "Never keep a second prose copy of an executable schema.",
+      "sources": [
+        "PHASE_RETRO_GUIDELINE.md L5"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-d8a3db25"
+    },
+    {
+      "rule": "Start from the truth owner, not from the request surface: identify truth-owning layers, then orchestration and policy ownership, then read/write separation, then execution units, projections, entry surfaces and adapters.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L167"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-6fa68351"
+    },
+    {
+      "rule": "Build order: contracts first, then pure logic, then adapters, then entry surfaces last.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L173"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-ee4057cb"
+    },
+    {
+      "rule": "When responsibility and name disagree, follow responsibility.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L11"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-412f2958"
+    },
+    {
+      "rule": "When principles collide: type safety, then separation, then extractability, then naming.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L13"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-d710c0f8"
+    },
+    {
+      "rule": "Converge legacy at the high-risk areas first — auth and permission, billing and credits, webhooks and external side effects, truth-owning state transitions. Do not rewrite everything you touch.",
+      "sources": [
+        "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L179"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-9cdf6790"
+    },
+    {
+      "rule": "Optimising must not break correctness, truth, safety or idempotency; and choose the focus by workload class, not by deployment platform.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L5",
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L53"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-571564dc"
+    },
+    {
+      "rule": "Declare \"good enough\" before optimising, and treat a performance claim without measurement as incomplete.",
+      "sources": [
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L13",
+        "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L74"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-6fc5974d"
+    },
+    {
+      "rule": "What must hold is the property, not the product: no vendor, cloud or tool becomes the requirement.",
+      "sources": [
+        "SECURITY_AUDIT_GUIDELINE.md L204",
+        "DEBUGGING_OBSERVABILITY_GUIDELINE.md L81"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-c3384d86"
+    },
+    {
+      "rule": "If changing a value requires changing behaviour or passing a new test, it is code, not config.",
+      "sources": [
+        "CONFIG_BEST_PRACTICES.md L147"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-fbe8e2c3"
+    },
+    {
+      "rule": "A targeted obligation must not become blanket; blanket is the failure it exists to prevent.",
+      "sources": [
+        "baseline/pipeline-policies.md L26"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-4cd99bbb"
+    },
+    {
+      "rule": "Stricter custom obligations are allowed; replacing or shadowing a standing obligation is not.",
+      "sources": [
+        "baseline/pipeline-policies.md L58-59"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-61d6f305"
+    },
+    {
+      "rule": "Deciding not to take a risk does not delete its proof obligation; the decision itself needs durable evidence.",
+      "sources": [
+        "baseline/step-1.md L67-68"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-19739bad"
+    },
+    {
+      "rule": "Prose cannot cancel a derived obligation: name replacement lanes of equal strength, or record a typed reason with a real explanation.",
+      "sources": [
+        "baseline/pipeline-policies.md L145-151"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-f973c09e"
+    },
+    {
+      "rule": "Proof requirements are on by default; turning one off is a written, one-time project decision, not a per-task re-evaluation.",
+      "sources": [
+        "baseline/reference.md L199-209"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-a2ffa852"
+    },
+    {
+      "rule": "\"The tool ran\" and \"the gate passed\" are separate namespaces and must never be merged — the same applies to a review job completing versus a review passing.",
+      "sources": [
+        "baseline/step-1.md L176-179",
+        "baseline/step-7.md L22-26"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-09fa68f3"
+    },
+    {
+      "rule": "Advisory scanner output is not a gate result, and a behaviour test is not a security scan.",
+      "sources": [
+        "baseline/step-1.md L169-175",
+        "baseline/pipeline-policies.md L126-127"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-510c386e"
+    },
+    {
+      "rule": "A gate that cannot run in this repo is worse than no gate — it makes people believe they are protected. Do not install one.",
+      "sources": [
+        "KIT_WEB_UI_PLAYWRIGHT/README.md L152-163"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-3000ffbd"
+    },
+    {
+      "rule": "When an upstream gate fails, skip the dependent gate and record that it was skipped and why; a skip is neither a pass nor an independent second failure.",
+      "sources": [
+        "KIT_WEB_UI_PLAYWRIGHT/tooling/validate-run-artifacts.sh L99-113"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-f396edc3"
+    },
+    {
+      "rule": "A standard is a floor, not a template: complete headings over unclear content is still incomplete.",
+      "sources": [
+        "REQUEST_DOC_GUIDELINE.md L229"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-b546093b"
+    },
+    {
+      "rule": "Removing a mechanism requires naming the defect class that would lose its owner, and the mechanism that takes over the path.",
+      "sources": [
+        "baseline/pipeline-policies.md L190-192",
+        "FRAMEWORK_CLEANUP_GUIDELINE.md L62-77"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-fa12adb8"
+    },
+    {
+      "rule": "Confirm the available inputs cover the work before starting; if a critical input is missing, stop and say what is missing rather than filling the gap by assumption.",
+      "sources": [
+        "REQUEST_DOC_GUIDELINE.md L15",
+        "REQUEST_DOC_GUIDELINE.md L155",
+        "KIT_WEB_UI_PLAYWRIGHT/templates/prompt-regression.template.md L31-33"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-cb7f3cf8"
+    },
+    {
+      "rule": "Unresolved items get classified: judgement calls go to the owner, factual questions get answered before the plan is executable. A plan that looks complete while carrying unverified assumptions is worse than no plan.",
+      "sources": [
+        "REQUEST_TO_PHASE_GUIDELINE.md L85"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-260dafa6"
+    },
+    {
+      "rule": "State inferred values before acting on them.",
+      "sources": [
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L151"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-692b9fff"
+    },
+    {
+      "rule": "Acceptance thresholds come from the requester; only what the code already determines may be inferred.",
+      "sources": [
+        "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L127-130"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-4c455ff2"
+    },
+    {
+      "rule": "Default to fewer, larger units of work. Split only at a context boundary, a human decision point, a failure-isolation boundary, or a deployment boundary; merge consecutive units that touch the same files with the same risk shape; and a two-or-three-file change is rarely its own unit.",
+      "sources": [
+        "REQUEST_TO_PHASE_GUIDELINE.md L7",
+        "REQUEST_TO_PHASE_GUIDELINE.md L13-16",
+        "REQUEST_TO_PHASE_GUIDELINE.md L22",
+        "REQUEST_TO_PHASE_GUIDELINE.md L30"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-af6f1996"
+    },
+    {
+      "rule": "Do not work directly on a protected branch, and do not run destructive git commands without explicit permission.",
+      "sources": [
+        "baseline/git-checkpoint.md L23",
+        "baseline/git-checkpoint.md L28"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-0c07358d"
+    },
+    {
+      "rule": "Commit messages must be scope-accurate against their diff and say why, not only what.",
+      "sources": [
+        "baseline/git-checkpoint.md L22"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-044dcdb0"
+    },
+    {
+      "rule": "AI-generated changes reach a protected branch through human review.",
+      "sources": [
+        "baseline/git-checkpoint.md L27"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-b118c76e"
+    },
+    {
+      "rule": "Do not invent a parallel log or record path when one already exists.",
+      "sources": [
+        "CODE_HEALTH_REVIEW_GUIDELINE.md L132"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-95a4e878"
+    },
+    {
+      "rule": "A framework, tooling or infrastructure failure encountered during the work gets recorded with its root cause and durable evidence, not worked around in silence.",
+      "sources": [
+        "PHASE_RETRO_GUIDELINE.md L41-45",
+        "baseline/step-7.md L68-74"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-506d5d3c"
+    },
+    {
+      "rule": "Reviewer invocations are all written before any completion is accepted, so results cannot be cherry-picked after the fact.",
+      "sources": [
+        "baseline/step-7.md L19-21"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-c59d9652"
+    },
+    {
+      "rule": "A set derived from several sources is an additive union; an incomplete caller list cannot subtract what another branch declared.",
+      "sources": [
+        "baseline/step-2.md L71-76"
+      ],
+      "assigned": "1-doctrine",
+      "landed": "CLAUDE.md",
+      "id": "R-31782c97"
+    }
+  ],
+  "how_to_verify": "每條規則有一個 id。落地嗰邊帶住個 id,唔係帶住個文字 —— 因為規則落地嗰陣會被改寫、翻譯、拆開,而用文字比對就等於禁止改寫。`registry-consistency` 驗 id。\n層 ① 係例外:嗰 78 條經過一次 synthesis 壓成 79 條,唔係 1:1,所以只驗數目同來源,唔驗逐條。呢個係一個較弱嘅保證,而佢應該寫出嚟而唔係扮強。"
+}

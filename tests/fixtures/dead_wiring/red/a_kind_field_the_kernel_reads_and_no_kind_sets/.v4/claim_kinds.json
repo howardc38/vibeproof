@@ -1,0 +1,8 @@
+{
+  "probe": {
+    "checker": "probe",
+    "question_template": "q",
+    "staleness": "repo",
+    "engagement": false
+  }
+}

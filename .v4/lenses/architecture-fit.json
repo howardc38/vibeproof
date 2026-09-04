@@ -1,0 +1,49 @@
+{
+  "name": "Architecture Fit",
+  "source": "ARCHITECTURE_GUIDELINES.md",
+  "checks": [
+    "Every new/changed data table is documented in architecture docs (table, purpose, fields, constraints, indexes, sensitive tag)",
+    "Every new/changed workflow has a Workflow ID and covers: trigger, input validation, auth check, external calls, state changes, success response, failure response, idempotency strategy",
+    "Truth boundaries are explicit — which store is authority vs derived/projection",
+    "Storage areas define: access mode (public/private/signed), lifecycle (temp/permanent), authority vs derived",
+    "New components map to the role taxonomy (entrypoint/orchestrator/worker/adapter/scheduler/handler/DAL) with clear responsibility",
+    "Traceability matrix updated: Workflow ID -> file path -> DB table -> storage path -> external service",
+    "Non-goals have not been violated (features explicitly excluded have not been sneaked in)",
+    "ADR table reflects any new design decisions made during implementation",
+    "Document role & authority labels are correct (authority/companion/reference)",
+    "Repo/code structure mapping reflects any new directories or moved files",
+    "Human surfaces vs truth clarity check — UI/surface layers are clearly distinguished from truth-owning layers; no surface is silently treated as authority",
+    "Current vs Target topology clarity check — current-state architecture and target-state architecture are clearly separated; no target topology masquerading as current",
+    "Documentation maintenance is mandatory — architecture docs MUST be updated when schema, workflow, truth-boundary, integration, or deployment topology changes; stale docs are a conformance failure",
+    "Change Trigger Rules defined and followed — doc must be updated when: schema changes, workflow changes, truth-boundary changes, integration changes, deployment topology changes",
+    {
+      "check": "Reference versus clone: what may be consulted, what may be copied, and what may only be learned from.",
+      "from": "R-e30917e1"
+    },
+    {
+      "check": "Take every row in `.v4/facts.<repo>.json` under `auth_decision`, open the code at its `seen_at`, and say whether that symbol can refuse. Report the ones that carry an auth word and decide nothing.",
+      "why_not_a_checker": "A symbol named `has_brand_context` that reads a dict key and never raises is syntactically indistinguishable from one that gates. The table is the vocabulary 7 of 28 detectors read, so a row that decides nothing turns `route-auth` green for every handler that reaches it. Deciding whether a name is a decision is domain knowledge, not syntax."
+    },
+    {
+      "check": "Read the facts table against how this repo actually decides who may do what. Name one way permission is granted or refused here that has no row.",
+      "why_not_a_checker": "`v4 install` proposes rows by matching a dotted call against 30 verbs. Measured on the reference adopter: it proposed 2 of 16 `auth_decision` rows; the other 14 are enum members (`Permission.DENY`), module constants (`TOOL_PERMISSIONS`) and regexes. Re-running the scan today produces 540 candidates of which almost all are dict lookups. There is no scan that finds what is missing -- only a reader."
+    }
+  ],
+  "anti_patterns": [
+    "Target doc pretending to be current-state doc",
+    "No truth boundaries defined (who is authority, who is projection)",
+    "Donor/legacy repo implicitly treated as authority for new system",
+    "Runtime helpers silently becoming truth by convenience",
+    "Architecture doc updated without traceability (workflows cannot be traced to code)",
+    "Unresolved alternatives presented as active choices (evaluating tech listed as decided)",
+    "No non-goals defined — architecture doc lacks explicit exclusions, making scope creep undetectable",
+    "No phaseability — architecture treats everything as one monolithic delivery with no incremental path",
+    "No companion topology — architecture doc exists alone without companion docs (flowcharts, runtime profile) to triangulate correctness",
+    "Giant action-capability inventory without consolidation — doc lists every possible action/capability without grouping or prioritizing, obscuring actual architecture",
+    "No change trigger rules — doc has no explicit rules for when it must be updated, leading to silent drift",
+    "Template-filled but weak reasoning — architecture doc has all required sections filled in but reasoning is shallow/copy-pasted, not reflecting actual design decisions",
+    "Platform handbook style (tool-centric, not boundary-centric) — doc organized around tools/frameworks instead of responsibility boundaries and truth ownership",
+    "Direct DB mutation in feature delivery code — state-changing feature code bypasses canonical orchestration path (e.g. `db.execute(\"UPDATE ...\")` in handler/entry layer instead of `service.update_state()`); violates ARCHITECTURE_GUIDELINES §7.5A; skips audit log / approval / cache invalidation / notification",
+    "Read-back from projection in Step 5 runtime proof — runtime proof `read-back` queries cache / UI / app log / response body instead of truth owner (DB truth table / audit log / external sandbox API); violates ARCHITECTURE_GUIDELINES §7.5B; projection may be stale or agent-controlled"
+  ]
+}

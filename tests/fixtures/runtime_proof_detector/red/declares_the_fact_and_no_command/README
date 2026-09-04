@@ -1,0 +1,1 @@
+The forcing function. This repo says it has a outbound_write and never says how to check it; before this the detector raised nothing and `ship` passed.
