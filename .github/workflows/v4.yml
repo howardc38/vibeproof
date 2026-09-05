@@ -45,14 +45,9 @@ jobs:
       # release the commit was, because a bare sha says nothing to a reader.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
-          # A clone carries the history; `fetch-depth: 1` does not, and the
-          # difference is not cosmetic here. `.v4/lenses/near-miss.json` cites
-          # two commits as its evidence and
-          # `tests/test_a_lens_reaches_the_reviewer.py` resolves them with
-          # `git cat-file` -- so from `f608135`, the commit that added that
-          # lens, the `Tests` step failed on all nine pushes, and the three
-          # steps below it never ran once. `kernel/accept._history` is the same
-          # repair on the other tree that runs these tests.
+          # The public near-miss lens cites the commit containing the demo
+          # and its measured implementation hashes. Its tests resolve that
+          # snapshot; a depth-one checkout would omit it after later commits.
           fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:

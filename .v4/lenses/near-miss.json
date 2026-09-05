@@ -1,7 +1,7 @@
 {
   "name": "過到,而唔係嗰樣",
-  "source": "`prevention` 嗰條 `Request fit`(R-eacb12dc)退咗過嚟 —— 佢原本帶住 `why_here: 出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊`。加上八個由呢個 repo 度量出嚟嘅實例,見 `why`。",
-  "why": "`request-fidelity` 問「你要嗰樣嘢有冇到」。呢個問**到咗嗰樣係咪嗰樣**。\n\n兩個唔同嘅失敗。冇到嗰個,查嘅時候係一個空位。呢個唔係空位 —— 有嘢喺度,佢跑得起,佢過到閘,而佢唔係你要嗰樣。**佢過到閘正正因為佢似。**\n\n八個實例,全部由呢個 repo 度量出嚟,冇一個係假設 ——\n\n  代理頂替咗個問題\n    `_nothing_seen` 數 `.py` 去答「呢個 detector 讀唔讀得到個 subject」。喺一個 Go\n    repo 上面:23 個 detector 列做「冇問過」,其中一個係 `fail_closed.py`,而佢條\n    claim 就印喺同一份報告下面八行。(commit dadac9e)\n    `request-coverage` 數字元去答「個 request 交代咗未」。125 條入面 59 條捉到嘢,\n    78 次修正**全部係引用格式**,而佢從來冇打開過一個源碼檔。(commit a9ae5fb)\n\n  宣告大過行為\n    `checkers/spec_coverage.py` docstring 第 16 行:「every checker and detector it\n    names / is registered, or is on disk」。個 code 淨係由 registry 行去 spec,唔行\n    返轉頭 —— 所以 SPEC 點名一個唔存在嘅 checker,佢由頭到尾睇唔到。\n    `kernel/analysis/test_expectation.py` 一句註解話 409 條 insta 斷言由一個\n    `known_miss/` fixture 蓋住。嗰個目錄唔存在。(finding e2d3d5d544dc)\n\n  過到閘,而唔係個閘想量嗰樣\n    2026-08-25:control plane 超 ceiling 兩個單位,而修法係剷四行註解。\n    `control_plane_budget` 數 `ast.stmt` —— 註解一條都唔數。\n\n  紅係紅,而唔係嗰個紅\n    同一日:一條新 test 用 SQL 文字認住要令佢失敗嗰句 query。`kernel/derive.py` 同\n    `kernel/scope.py` 用緊逐字一樣嗰句,所以佢喺 `lifecycle.derive` 入面就拋咗 ——\n    parent 同 HEAD 兩邊都綠,對住佢自己要證嗰個缺陷。\n\n  做到咗,而隔籬嗰個假設變咗假\n    gate tier 出貨之後,`report_max_repeat` 數 attempt 行數而唔係唔同狀態:\n    test-weakened 257 次 FAIL 得 50 個狀態,52% 會升級。(task fw-repeat)\n    `checkers/test.py` 攞改動檔用 `git diff --name-only`,而佢包埋刪走咗嘅檔 ——\n    「套件綠咗但一個改動過嘅檔都冇執行過」對每一次刪除永遠成立。(task fw-testdel)\n\n**點解係一個 lens 而唔係一個 checker。** 同 `request-fidelity` 一樣:SPEC §4.7 禁嘅係一個讀住個 request 判你做咗未嘅 checker。而呢一層仲差多一步 —— 上面八個實例入面**冇一個喺結構上分得開**:一個代理同一個真答案都係一個 function 讀一個輸入回一個值;一句大過行為嘅 docstring 同一句啱嘅 docstring 都係文字;一個綠咗嘅閘就係綠咗。分別喺個 request 問緊邊樣,而嗰個要人讀。\n\n**點解唔摺埋落 `request-fidelity`。** 嗰個 lens 明文單向 —— 佢寫住「唔好報做多咗」,亦寫住唔好報「可以做得更通用」。一條問「到咗嗰樣啱唔啱」嘅 check 喺嗰度會同佢自己個合約打交。\n\n**點解唔摺埋落 `prevention`。佢已經喺嗰度,而嗰度就係問題。** 嗰條 `Request fit` check 帶住一句 `why_here: 出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊`。而 `prevention` 有 115 條 check,佔全部 299 條嘅 38%,第二大嗰個得 28 條。逐條 check 嘅產出:`general-rule-one-false-instance` 5 條出 1.4 個/條,`prevention` 115 條出 0.07 個/條 —— **差 20 倍**。而 reviewer 個合約寫住「唔准抽樣」。**115 條就係抽樣真正發生嘅地方。** 嗰條 check 已經退咗,佢兩半由呢度接:「substituting a different requirement」由下面問代理、問宣告大過行為、問過到閘嗰三條接;「request / implementation / proof / doc 對得返上」由問宣告大過行為同問個紅由邊度嚟嗰兩條,加 `request-fidelity` 問驗收門檻嗰條接。\n\n**你要嘅嘢喺邊。** 同 `request-fidelity` 一樣:\n\n    v4 --repo . cover --task $V4_TASK --show\n\n而第一件事同 `request-fidelity` 問「你手上係要求者嘅字定 worker 摘要」嗰條一樣。**喺一段摘要度搵「做錯咗對象」係搵緊個 worker 自己嘅對象,而佢梗係對得住。** 攞到嘅係摘要就講出嚟,然後照樣行落去。",
+  "source": "`prevention` 的 `Request fit`（R-eacb12dc）移到這個 lens。Public 版以已公開的 first-proof demo 作可重現例子；先前開發歷史未隨 public 匯出，不把那些缺失的歷史 commit 當作此 repo 可查驗的證據。",
+  "why": "`request-fidelity` 問「要求的東西有沒有做到」。這個 lens 問「做出的東西是否真的回答了那個要求」，尤其是檢查已經綠燈時。\n\nPublic 可重現證據：commit 4e1a63f2fd4dbfa9590f6c84181a1a0d94e28a7e，`examples/first-proof/run.py`；實際輸出與實作 hash 在 `docs/launch/evidence/demo.json`，完整紀錄在 `docs/launch/evidence/demo.txt`。這是刻意建立的例子，不是聲稱某個 AI 或外部使用者曾發生的事件。\n\n同一個例子分開三個答案：\n\n1. 無關測試全過，但折扣函式把 100 減 20 算成 120。綠燈回答的是 suite 是否通過，沒有回答折扣是否正確。普通 test checker 指出沒有任何符合條件的改動 Python 檔案被執行。\n2. 加入真正呼叫函式的回歸測試後，修正前失敗、修正後通過；review-finding checker 亦驗證執行過目標函式。這些是針對這次修正的證據，不是全部需求已正確的證明。\n3. 反例再次把程式寫錯，但測試只 import 該檔案並做無關斷言，普通 test checker 仍可通過。若把這個結果宣稱成「功能已測對」，宣稱就大過實際量到的東西。另一個無關 closing test 亦被 review checker 拒絕。\n\n上述輸出支持「代理答案、過到閘、宣稱正確」需要分開判讀。它們沒有量出歷史誤報率、生產力收益，亦沒有證明下面每一條 review 判斷都能自動化。五條 checks 保留為審查方法，reviewer 仍須讀當前要求、diff、實際失敗訊息及共享假設的讀者。\n\n這是一個 lens 而非新的語義 checker：機械檢查能驗證它宣告的條件，無法從所有綠燈推出使用者每項意圖都已滿足。`request-fidelity` 處理沒做到；這裡處理做了某個近似答案而誤當成原本那件事。`Request fit` 的來源標記保留，避免遷移時靜默丟失審查責任。\n\n先取得要求者原文：\n\n    v4 --repo . cover --task $V4_TASK --show\n\n若只有 worker 的摘要，明確說明，不能把摘要當成獨立的要求來源。",
   "checks": [
     {
       "check": "個改動有冇用一個代理去答個 request 問嗰樣嘢。逐個新加或者改咗嘅判斷,講出三樣:佢實際讀乜、個 request 問乜、同埋喺邊一個輸入上面兩者會分家。**講得出嗰個分家嘅輸入而冇人講過,就係一條 finding**,開喺個代理度 —— 唔係開喺用佢嗰度。分唔開嘅就唔係代理,唔使報。",
@@ -38,5 +38,11 @@
     "唔好報一個你指得出但講唔出邊個位讀緊佢嘅『壞咗嘅假設』。一個冇讀者嘅事實變咗,係一個改動,唔係一個缺陷。",
     "唔好報命名、格式、可讀性、抽象程度。呢六樣同「到咗嗰樣係咪嗰樣」無關。",
     "唔好用 `--task` 去指你審緊嗰個 task,除非有人明確叫你咁做。`review add` 嘅預設係掛喺常設 review task 度。"
-  ]
+  ],
+  "public_evidence": {
+    "commit": "4e1a63f2fd4dbfa9590f6c84181a1a0d94e28a7e",
+    "manifest": "docs/launch/evidence/demo.json",
+    "source": "examples/first-proof/run.py",
+    "transcript": "docs/launch/evidence/demo.txt"
+  }
 }

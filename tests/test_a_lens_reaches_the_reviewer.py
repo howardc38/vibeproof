@@ -14,6 +14,7 @@ assert what came back.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
@@ -153,20 +154,15 @@ class NoCheckIsNamedByItsPosition(unittest.TestCase):
 
 
 class TheEvidenceALensCitesIsReal(unittest.TestCase):
-    """`near-miss` is eight instances and five checks derived from them.
+    """The public lens cites a reproducible demo, not unpublished history.
 
-    Every other lens in this repo carries a guideline document as its source,
-    so its checks stand on somebody else's authority. This one stands on things
-    that happened here, which is stronger and also cheaper to fake -- a commit
-    hash reads as evidence whether or not it resolves, and nothing else in the
-    pipeline opens it.
+    A commit hash alone is insufficient: the cited snapshot must also contain
+    the measured source and evidence files, with matching implementation hashes.
     """
 
     LENS = "near-miss"
 
-    #: `commit dadac9e` and `(commit a9ae5fb)`. Bounded to the word `commit`
-    #: on purpose: claim ids are the same alphabet and are not git objects,
-    #: and `e2d3d5d544dc` is a claim.
+    #: Bounded to `commit`: claim IDs use the same alphabet but are not objects.
     CITED = re.compile(r"commit\s+([0-9a-f]{7,40})")
 
     def setUp(self):
@@ -179,30 +175,32 @@ class TheEvidenceALensCitesIsReal(unittest.TestCase):
         cited = sorted(set(self.CITED.findall(blob)))
         self.assertTrue(cited, "the evidence cites no commit at all")
 
-        # A repository published with fresh history has none of the commits its
-        # own lenses cite, and cannot: the citations point into a history that
-        # was deliberately not published. Asserting here would assert about a
-        # world that is not present, and the check would be permanently red for
-        # a reason that is not a defect -- `v4 accept` sat at 6/7 on exactly
-        # this. The skip is narrow on purpose: one commit is the only shape
-        # that cannot answer. Any deeper history is expected to carry them, and
-        # a missing one there is still an error.
-        depth = subprocess.run(["git", "rev-list", "--count", "HEAD"],
-                               cwd=ROOT, capture_output=True, text=True)
-        if depth.returncode == 0 and depth.stdout.strip() == "1":
-            raise unittest.SkipTest(
-                f"this checkout has a single commit, so the {len(cited)} "
-                f"commit(s) {self.LENS} cites as the provenance of its "
-                f"instances -- {', '.join(cited)} -- resolve against nothing "
-                f"here. Whether that evidence is real goes unchecked in this "
-                f"tree; it is checked in one carrying the history it cites.")
-
         for sha in cited:
             r = subprocess.run(["git", "cat-file", "-e", sha + "^{commit}"],
                                cwd=ROOT, capture_output=True)
             self.assertEqual(r.returncode, 0,
                              f"{self.LENS} cites commit {sha}, which this repo "
                              f"does not have")
+
+    def test_public_evidence_matches_the_cited_implementation(self):
+        evidence = self.lens["public_evidence"]
+        revision = evidence["commit"]
+
+        def at_revision(path):
+            result = subprocess.run(["git", "show", f"{revision}:{path}"],
+                                    cwd=ROOT, capture_output=True)
+            self.assertEqual(result.returncode, 0,
+                             f"the cited snapshot does not contain {path}")
+            return result.stdout
+
+        self.assertTrue(at_revision(evidence["source"]))
+        self.assertTrue(at_revision(evidence["transcript"]))
+        measured = json.loads(at_revision(evidence["manifest"]))
+        self.assertIs(measured["verified"], True)
+        self.assertIn(evidence["source"], measured["implementation_sha256"])
+        for path, expected in measured["implementation_sha256"].items():
+            self.assertEqual(hashlib.sha256(at_revision(path)).hexdigest(), expected,
+                             f"recorded evidence does not match {path}")
 
     def test_each_check_says_why_it_is_not_a_checker(self):
         """Same bar as request-fidelity: SPEC §4.7 forbids the checker, so a
