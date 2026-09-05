@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-05T06:28:26.195711+00:00",
+  "scenario": "A 20-unit discount on a 100-unit cart should leave 80.",
+  "disclosure": "An intentionally constructed example, not a recording of an AI session. Every command result below comes from an actual subprocess. This runs two checkers directly, not a full task/ship lifecycle.",
+  "source_files": {
+    "before": "def total(subtotal, discount):\n    return subtotal\n",
+    "wrong": "def total(subtotal, discount):\n    return subtotal + discount\n",
+    "fixed": "def total(subtotal, discount):\n    return subtotal - discount\n",
+    "unrelated_test": "import unittest\n\nclass TestCheckout(unittest.TestCase):\n    def test_arithmetic(self):\n        self.assertEqual(2 + 2, 4)\n\nif __name__ == \"__main__\":\n    unittest.main(verbosity=2)\n",
+    "regression_test": "import sys\nimport unittest\nfrom pathlib import Path\n\nsys.path.insert(0, str(Path(__file__).resolve().parents[1]))\nfrom checkout import total\n\nclass TestCheckout(unittest.TestCase):\n    def test_discount_reduces_total(self):\n        self.assertEqual(total(100, 20), 80)\n\nif __name__ == \"__main__\":\n    unittest.main(verbosity=2)\n"
+  },
+  "steps": [
+    {
+      "id": "green_suite",
+      "title": "The unrelated test is green",
+      "command": "python3 -m unittest discover -s tests -v",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "output": "test_arithmetic (test_checkout.TestCheckout.test_arithmetic) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK"
+    },
+    {
+      "id": "wrong_result",
+      "title": "The feature still returns the wrong total",
+      "command": "python3 -c \"from checkout import total; print(total(100, 20))\"",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "output": "120"
+    },
+    {
+      "id": "unexecuted",
+      "title": "vibeproof finds that the suite never reached the changed file",
+      "command": "python3 <vibeproof>/checkers/test.py --subject subject.json",
+      "expected_exit": 1,
+      "exit_code": 1,
+      "output": "the suite passed and executed none of the 1 changed file(s):\n  checkout.py\n\nA green suite that never reached the change proves the suite works. It says nothing about this change."
+    },
+    {
+      "id": "regression_red",
+      "title": "A real regression test exposes the wrong total",
+      "command": "python3 -m unittest discover -s tests -v",
+      "expected_exit": 1,
+      "exit_code": 1,
+      "output": "test_discount_reduces_total (test_checkout.TestCheckout.test_discount_reduces_total) ... FAIL\n\n======================================================================\nFAIL: test_discount_reduces_total (test_checkout.TestCheckout.test_discount_reduces_total)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<demo>/tests/test_checkout.py\", line 10, in test_discount_reduces_total\n    self.assertEqual(total(100, 20), 80)\nAssertionError: 120 != 80\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)"
+    },
+    {
+      "id": "suite_verified",
+      "title": "The repaired code passes and the suite reaches the change",
+      "command": "python3 <vibeproof>/checkers/test.py --subject subject.json",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "output": "test_discount_reduces_total (test_checkout.TestCheckout.test_discount_reduces_total) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK"
+    },
+    {
+      "id": "repair_verified",
+      "title": "The review checker verifies red, green and function execution",
+      "command": "python3 <vibeproof>/checkers/review_finding.py --subject review-subject.json",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "output": "tests/test_checkout.py fails at 4772883683af, passes at HEAD, and executed total 1 time(s)"
+    },
+    {
+      "id": "correct_result",
+      "title": "The repaired cart total is 80",
+      "command": "python3 -c \"from checkout import total; print(total(100, 20))\"",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "output": "80"
+    },
+    {
+      "id": "limit_import_only",
+      "title": "Limit: importing the file is enough for the ordinary test checker",
+      "command": "python3 <vibeproof>/checkers/test.py --subject subject.json",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "output": "test_arithmetic (test_checkout.TestCheckout.test_arithmetic) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK"
+    },
+    {
+      "id": "limit_unrelated_closure",
+      "title": "An unrelated test cannot verify the repair",
+      "command": "python3 <vibeproof>/checkers/review_finding.py --subject review-subject.json",
+      "expected_exit": 1,
+      "exit_code": 1,
+      "output": "FAIL: tests/test_checkout.py has not earned the right to close this finding.\n\n  never executed total. A test that reads source text instead of calling the code satisfies red-green while proving nothing -- that is the shape this check exists to refuse\n  already passes at 4772883683af, so it pins nothing -- it would have passed before the fix existed"
+    }
+  ],
+  "implementation_sha256": {
+    "checkers/test.py": "651cbbe3d7dffb15db2d7cd8ecbcfe9372a23c1402ab4d39cd66648f66a7717b",
+    "checkers/review_finding.py": "ecf4e80fda94f9b78885f812eacbc68220f3a9dcce007f2bc363efdd3f527f75",
+    "kernel/redgreen.py": "ddfbd68e9fb9ab08392cea064c8bbb1a046f787884cec49d685df7fa05ce11aa",
+    "examples/first-proof/run.py": "a9e579c8706eb90cbd8d8cd90ef21af47b61835a76012d13a84b00c48d86f26b"
+  },
+  "framework_base_commit": "efc19d10327b30ac503359ee96c94afee8d295d6",
+  "duration_seconds": 1.248,
+  "verified": true
+}

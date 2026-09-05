@@ -1,0 +1,56 @@
+name: First run / adoption feedback
+description: Tell us what happened when you tried the demo or one real task.
+title: "[First run] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for trying vibeproof. Please remove credentials, private code and sensitive paths from anything you share. Approximate timings are useful; no telemetry is required.
+  - type: dropdown
+    id: stage
+    attributes:
+      label: How far did you get?
+      options:
+        - Standalone demo
+        - Installation in my repo
+        - First real task
+        - Used it again on a later task
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, project language, test runner and coding tool.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What happened?
+      description: Include the command, expected behavior and sanitized output if something failed. Did it find a real issue, a false positive, or something you could not judge?
+    validations:
+      required: true
+  - type: input
+    id: channel
+    attributes:
+      label: Where did you find vibeproof?
+      description: Optional; for example Reddit, X, Hacker News, V2EX, or a friend.
+  - type: input
+    id: time
+    attributes:
+      label: Roughly how long did setup and the first useful result take?
+  - type: textarea
+    id: friction
+    attributes:
+      label: What made it difficult to continue?
+      description: Tell us the step or message that cost you the most effort.
+  - type: dropdown
+    id: reuse
+    attributes:
+      label: Would you use it on the next task?
+      options:
+        - "Yes"
+        - "Maybe, with changes"
+        - "No"
+        - "I have not reached a real task yet"

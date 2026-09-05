@@ -1,0 +1,80 @@
+An intentionally constructed example, not a recording of an AI session. Every command result below comes from an actual subprocess. This runs two checkers directly, not a full task/ship lifecycle.
+
+[green_suite] The unrelated test is green
+$ python3 -m unittest discover -s tests -v
+test_arithmetic (test_checkout.TestCheckout.test_arithmetic) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+exit 0
+
+[wrong_result] The feature still returns the wrong total
+$ python3 -c "from checkout import total; print(total(100, 20))"
+120
+exit 0
+
+[unexecuted] vibeproof finds that the suite never reached the changed file
+$ python3 <vibeproof>/checkers/test.py --subject subject.json
+the suite passed and executed none of the 1 changed file(s):
+  checkout.py
+
+A green suite that never reached the change proves the suite works. It says nothing about this change.
+exit 1
+
+[regression_red] A real regression test exposes the wrong total
+$ python3 -m unittest discover -s tests -v
+test_discount_reduces_total (test_checkout.TestCheckout.test_discount_reduces_total) ... FAIL
+
+======================================================================
+FAIL: test_discount_reduces_total (test_checkout.TestCheckout.test_discount_reduces_total)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<demo>/tests/test_checkout.py", line 10, in test_discount_reduces_total
+    self.assertEqual(total(100, 20), 80)
+AssertionError: 120 != 80
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (failures=1)
+exit 1
+
+[suite_verified] The repaired code passes and the suite reaches the change
+$ python3 <vibeproof>/checkers/test.py --subject subject.json
+test_discount_reduces_total (test_checkout.TestCheckout.test_discount_reduces_total) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+exit 0
+
+[repair_verified] The review checker verifies red, green and function execution
+$ python3 <vibeproof>/checkers/review_finding.py --subject review-subject.json
+tests/test_checkout.py fails at 4772883683af, passes at HEAD, and executed total 1 time(s)
+exit 0
+
+[correct_result] The repaired cart total is 80
+$ python3 -c "from checkout import total; print(total(100, 20))"
+80
+exit 0
+
+[limit_import_only] Limit: importing the file is enough for the ordinary test checker
+$ python3 <vibeproof>/checkers/test.py --subject subject.json
+test_arithmetic (test_checkout.TestCheckout.test_arithmetic) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+OK
+exit 0
+
+[limit_unrelated_closure] An unrelated test cannot verify the repair
+$ python3 <vibeproof>/checkers/review_finding.py --subject review-subject.json
+FAIL: tests/test_checkout.py has not earned the right to close this finding.
+
+  never executed total. A test that reads source text instead of calling the code satisfies red-green while proving nothing -- that is the shape this check exists to refuse
+  already passes at 4772883683af, so it pins nothing -- it would have passed before the fix existed
+exit 1
