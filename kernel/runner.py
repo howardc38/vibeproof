@@ -234,7 +234,12 @@ def run_checker(*, repo_root, checker_path, registered_sha, subject_payload,
                 # *structured* output was the unfiltered one. `secret_scan.py`
                 # redacts its own `--out` by hand and says why; that is one
                 # checker being careful, and this is the floor under all of them.
-                payload = redact_json(json.loads(outp.read_text()))
+                # With the root. Two of the three redaction calls in this file
+                # carried it and this one did not, so a repo's own declared
+                # credential families reached a checker's streams and not its
+                # structured payload -- into the same append-only row.
+                payload = redact_json(json.loads(outp.read_text()),
+                                      root=repo_root)
             except json.JSONDecodeError as exc:
                 code, err = ERROR, f"{err}\n--out was not valid JSON: {exc}"
 

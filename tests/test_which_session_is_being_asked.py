@@ -138,7 +138,12 @@ class TheGateItself(unittest.TestCase):
         stop_gate._states = lambda _root, _tid: self.OPEN
         # `_repo_and_task` takes the session now: with more than one task open
         # it narrows by whose marks are on them before it refuses to guess.
-        stop_gate._repo_and_task = lambda _session="": (root, "t-theirs")
+        # Three values now: the third is the `V4_TASK` that was dropped for
+        # naming an ended task, which this hook records on stderr the way
+        # `write_block` records it on the row it writes. Empty here -- these
+        # cases are about which session is being asked, not about a stale
+        # variable.
+        stop_gate._repo_and_task = lambda _session="": (root, "t-theirs", "")
         try:
             with contextlib.redirect_stdout(said):
                 with unittest.mock.patch("sys.stdin",

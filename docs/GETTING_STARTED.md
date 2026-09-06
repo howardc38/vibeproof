@@ -15,7 +15,7 @@ You do not need to type every lifecycle command yourself. The installed Claude c
 
 ## 1. Prepare
 
-Use a clean branch or another checkout of your project. Keep a restorable commit before installation. Confirm that your real test command works outside vibeproof first.
+Use macOS or Linux with Git and Python 3.12+. Native Windows is not validated. Use a clean branch or another checkout of your project. Keep a restorable commit before installation. Confirm that your real test command works outside vibeproof first.
 
 ```sh
 git clone https://github.com/howardc38/vibeproof.git ~/vibeproof
@@ -124,3 +124,6 @@ Use your project's actual paths; a root-level `app.py` is not inside `src/**`. R
 After your first real task, use [the feedback issue](https://github.com/howardc38/vibeproof/issues/new?template=first-run.yml). What took longest? Did it catch a real problem? Which finding was wrong or hard to act on? Would you keep it enabled for the next task?
 
 No usage telemetry is added by this launch package. Share only the details you choose; remove private paths and credentials from logs.
+
+Framework maintainers: develop in the private canonical repo; keep an adopter
+pointing to a stable released framework checkout. See [SYNC.md](SYNC.md).

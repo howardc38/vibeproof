@@ -134,8 +134,13 @@ are the price of a 0% false-positive rate.
   ``is_vendored``  misses a real credential committed under ``vendor/`` or a
         checked-in ``node_modules/``.  Deliberate: see below.
 
-**The larger gap is not the classifier -- it is the pattern table.**  These 11
-patterns come from V3 and cover 11 credential shapes.  adopter_a' own
+**The larger gap is not the classifier -- it is the pattern table.**  These
+twelve patterns come from V3 and cover twelve credential shapes.  (Eleven, this
+said, in the one paragraph whose point is how much the table misses -- and three
+other places in this kernel already counted twelve: `extended()` below,
+`redaction.py` twice, and `ledger._redact`.  A number written in prose beside a
+table it describes is one nothing can check, which is why this one is spelled
+out rather than replaced with a fresher digit.)  adopter_a' own
 credential inventory (``core/config/provider_secrets.py``, ``.env.local``,
 ``core/observability/logging.py``) contains at least four families this table
 does not match at all, so they produce no candidate for the classifier to rule

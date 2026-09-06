@@ -38,17 +38,25 @@ bypass/  ≥3,每個必須 exit 1
 ```
 
 三個都要 `argparse` 接。未宣告嘅 flag 令 argparse `exit 2`,而 2 唔喺 exit 表入面
-→ kernel 當 ERROR → 一條 claim 都答唔到。
+→ claim 會得到 UNKNOWN_EXIT，而唔係 PASS。
 
 ```
 0  過
 1  唔過
-4  呢個 repo 答唔到(冇 facts 表、冇 lockfile、冇 diff base)
-≥5 checker 自己壞咗
+4  無法驗證，例如缺少必要 facts、未配置 runtime proof 或不支援的來源
+5  checker 自己壞咗
+6/7/8  留畀 kernel 診斷；checker 唔好自行使用
+其他值  UNKNOWN_EXIT
 ```
 
 **`4` 唔係 `0`。** 一個乜都冇睇過而報成功嘅 checker,係呢一整層存在嚟拒絕嘅嘢。
 
-## 判準住喺 `kernel/analysis/`
+## 判準嘅來源
+
+一般 source 分析放 `kernel/analysis/`；要讀 kernel 設定或框架結構嘅判斷放 `kernel/`，保留 layer 邊界。
+
+一般 source 分析放 `kernel/analysis/`；要讀 kernel 設定或框架結構嘅判斷放 `kernel/`，保留 layer 邊界。
+
+一般 source 分析放 `kernel/analysis/`；要讀 kernel 設定或框架結構嘅判斷放 `kernel/`，保留 layer 邊界。
 
 如果同一條規則有一個 detector,兩者要用同一個 module。**一條問題兩個實作 = 兩個答案。**

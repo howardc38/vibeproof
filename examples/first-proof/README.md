@@ -6,7 +6,7 @@ Run from the vibeproof checkout:
 python3 examples/first-proof/run.py
 ```
 
-Requires **Git and Python 3.12+**. No packages, API keys, coding-agent subscription or network connection are needed after cloning.
+Requires **Git and Python 3.12+** on macOS or Linux. Native Windows is not validated. No packages, API keys, coding-agent subscription or network connection are needed after cloning.
 
 The script creates a temporary git repository, executes the real checkers from this checkout, and removes the temporary repository when it finishes. It does not install the framework into your project. It disables git hooks and uses a temporary repository identity for its local commits.
 

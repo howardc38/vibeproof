@@ -86,9 +86,9 @@ DOCTRINE = [
         '「沒有東西要報告」是一個正當的結果。不要為了顯得有產出而製造發現。',
         '缺少一份治理文件，不會免除那項義務。照做該步驟，並說明缺少了什麼。',
         '逐行閱讀規格與合約，並在判斷任何片段之前讀完整節。不要略讀然後總結。',
-        '每一份你讀過的文件都必須被使用。絕不在讀完之後仍按原本的計劃行事。',
+        '用讀過的文件核對計劃與實作；它可以確認原計劃，也可以要求修正。不要把讀取次數當成理解。',
         '新增一個對外寫入、一個授權決定或一個入口，同一次改動要把它寫進 facts 表。'
-        '沒有寫進去的東西，不會有任何檢查問起它——而那和乾淨長得一模一樣。',
+        '若既有 pattern 未涵蓋它，缺少詞彙可能令依賴 facts 的檢查漏看；先核對現有涵蓋面。',
     ]),
     ('範圍', [
         '以獲批准的結果判斷範圍，不以檔案數目判斷。每一個被改動的檔案都必須是達成該結果所必需。',
@@ -124,13 +124,13 @@ DOCTRINE = [
         '被標示為乾淨的部分和被標示有問題的部分同樣要驗。未被標示的範圍才是盲點。',
     ]),
     ('權威', [
-        '架構與現狀文件高於技術棧權威文件，高於專案指示，高於支援性指引，高於參考資料與範例集。',
+        '遵守使用者與宿主的授權；實作事實對照 code 和測試，文件分工看 docs/README.md。不要用參考資料另立平行權威。',
         '參考資料、比較和範例集屬於資訊。它們不是合約，也不是範本。',
         '舊系統或來源 repo 的文件，不是現況的證據。先對照現行權威解決。',
         '預設更新既有文件。絕不為方便而新增一份平行的權威文件。',
         '絕不保留一份可執行 schema 的第二個散文副本。',
         '`.v4/facts.<repo>.json` 是偵測器的詞彙表，由這個 repo 自報。'
-        '框架不猜，檢查器也不得把這個 repo 的符號寫死進自己裡面。',
+        '框架可以提出標示為 proposed 的草稿，由 repo 核實；檢查器不得把 adopter 的符號寫死進自己裡面。',
     ]),
     ('設計姿態', [
         '從真相的擁有者出發，不從請求的表面出發。接線之前先確定歸屬。',
@@ -172,7 +172,7 @@ DOCTRINE = [
         '預設使用較少、較大的工作單位；兩三個檔案的改動很少自成一個單位。只在脈絡上限、需要人作決定、失敗隔離或分開部署時才拆。',
         '不要直接在受保護分支上工作，亦不要在沒有明確許可下執行破壞性的 git 指令。',
         'Commit message 必須對得上它的 diff，並說明為何，不是說明做了什麼。',
-        'AI 撰寫的改動經人手審查才進入受保護分支。',
+        '改動按 repo 已批准的審查與合併政策進入受保護分支；不得把自動檢查或 agent 自述冒稱成人手審查。',
         '已經有一條日誌或紀錄路徑時，不要再發明一條平行的。',
         '框架與工具本身的失敗要連同根本原因記錄下來，不得靜靜繞過。',
     ]),
@@ -269,19 +269,20 @@ def render(cfg) -> str:
         # has to remember. Counting it here told every worker it would
         # arrive by itself.
         raised = [k for k, v in kinds.items() if v.get("detector")]
-        out += [f"**{len(raised)} 個 claim kind 會自動提出 claim。**"
-                "你不需要記住它們 —— detector 自己找，checker 自己判。", ""]
+        out += [f"**{len(raised)} 個 claim kind 配置了 detector。**"
+                "是否提出 claim 取決於 scope、facts、註冊狀態和實際掃描；配置存在不等於已經執行。", ""]
         for k, v in sorted(kinds.items()):
             if not v.get("detector"):
                 out += [f"`{k}` 唔會自動出現 —— 佢由 `v4 review add` 提出。", ""]
 
     engaged = sorted((k, v) for k, v in kinds.items() if v.get("engagement"))
     if engaged:
-        out += ["### 會擋住你開工的",
+        out += ["### 需要 engagement 的",
                 "",
                 "這幾個 kind 提出 claim 之後，`v4 check` 不會執行，直到你寫下一句"
                 "「這條規則對這段程式碼意味著什麼」。**不是覆述那條規則** —— 規則"
-                "已經印在螢幕上。",
+                "已經印在螢幕上。支援的 Write/Edit hook 亦會在初始 gate 未清除、"
+                "claims 已可見時要求句子；這不是所有寫入路徑的安全邊界。",
                 ""]
         for k, spec in engaged:
             r = spec.get("rule") or []
@@ -291,8 +292,9 @@ def render(cfg) -> str:
 
     protected = cfg.protected
     if protected:
-        out += ["### 寫不進去的路徑", "",
-                "要改這些必須經 `v4 scope widen`，而 widen 需要一句理由寫進 ledger：",
+        out += ["### 受保護的路徑", "",
+                "修改要符合已授權 scope 及必要的 protected-path risk 決定；"
+                "超出 scope 時用 `v4 scope widen` 記錄理由。這不是 OS 層面的禁止寫入：",
                 "",
                 "```", *[f"{p}" for p in protected], "```", ""]
 
@@ -300,13 +302,58 @@ def render(cfg) -> str:
     if tc:
         out += ["### 唯一的 test oracle", "",
                 f"```\n{tc}\n```", "",
-                "**它帶著什麼 filter，就是 `test` claim 看不見什麼。** 一條需要真實環境才驗證"
-                "得到的測試，如果沒有 marker，會靜靜地進入這個 oracle，並在沒有那個"
-                "環境時變綠。", ""]
+                "核對這條實際命令包含的 filter、測試收集範圍和 skip 行為。"
+                "缺少真實環境時，應區分沒有驗證、測試失敗和通過；不要假設每個 repo 都用 pytest markers。", ""]
 
-    out += ["---", "",
-            "找不到你要的東西：`docs/SPEC.md` 是契約，`docs/RATIONALE.md` 是為何這樣設計。"]
+    out += ["---", "", where_the_documents_are(cfg.root)]
     return "\n".join(out).rstrip() + "\n"
+
+
+PUBLIC_REPO = "https://github.com/howardc38/vibeproof"
+
+
+def where_the_documents_are(root) -> str:
+    """The one line in this document that says where to go next.
+
+    It said `docs/SPEC.md` and `docs/RATIONALE.md` unconditionally, and in an
+    adopter repo neither file is there -- both live in the framework. So the
+    single escape hatch in a generated document, written for an agent working
+    inside somebody else's repo, named two paths that resolve to nothing, and
+    the reader's only recourse was to guess.
+
+    Three answers, in the order they are true:
+
+      the framework itself   `docs/` is right here, so say the relative paths
+
+      an adopter that has    `install.write_launcher` records the framework's
+      installed              location in `.v4/home`; the documents are under it,
+                             and the absolute path is the thing a reader can
+                             actually open
+
+      neither                Say plainly that the two documents live in the
+                             framework and give the repo, rather than a path
+                             this machine cannot resolve. `.v4/home` is
+                             gitignored by design -- it holds one machine's
+                             path -- so a clone lands here, and a clone is
+                             exactly where somebody is most likely to be lost.
+    """
+    root = Path(root)
+    if (root / "docs" / "SPEC.md").is_file():
+        return ("找不到你要的東西：`docs/SPEC.md` 是契約，"
+                "`docs/RATIONALE.md` 是為何這樣設計。")
+    try:
+        home = Path((root / ".v4" / "home").read_text(
+            encoding="utf-8").strip())
+    except OSError:
+        home = None
+    if home and (home / "docs" / "SPEC.md").is_file():
+        return (f"找不到你要的東西：`{home}/docs/SPEC.md` 是契約，"
+                f"`{home}/docs/RATIONALE.md` 是為何這樣設計 —— "
+                f"兩份都住在框架，不在這個 repo。")
+    return (f"找不到你要的東西：契約是 `docs/SPEC.md`，為何這樣設計是 "
+            f"`docs/RATIONALE.md`。兩份都住在框架 repo（{PUBLIC_REPO}），"
+            f"不在這個 repo；這台機器上框架的位置寫在 `.v4/home`，"
+            f"而那個檔案不進版控，所以一個 clone 要自己寫一次。")
 
 
 def path_for(repo_root) -> Path:

@@ -14,6 +14,8 @@ vibeproof 把可执行的检查接进 Claude Code 任务，让每次结果对应
 
 [看普通话配音演示](docs/launch/assets/v4/demo-zh-CN.mp4) · [自己运行一次](#自己运行一次) · [用在你的项目](docs/GETTING_STARTED.zh-CN.md)
 
+视频记录的是 2026-09-05 演示基准。运行下方命令可验证当前 checkout。
+
 ## 这三件事，你遇到过吗？
 
 | 发生了什么 | vibeproof 帮你检查什么 |
@@ -26,7 +28,7 @@ vibeproof 把可执行的检查接进 Claude Code 任务，让每次结果对应
 
 ## 自己运行一次
 
-需要 **Git 和 Python 3.12+**。演示不用安装软件包、不用 API key，也不用订阅 coding agent。
+需要 **Git 和 Python 3.12+**，使用 macOS 或 Linux；尚未验证原生 Windows。演示不用安装软件包、不用 API key，也不用订阅 coding agent。
 
 ```sh
 git clone https://github.com/howardc38/vibeproof.git
@@ -129,5 +131,7 @@ agent 可以执行流程命令。你提供想要的结果、允许修改的文�
 ```sh
 python3 tests/run_without_silent_skips.py
 ```
+
+维护 vibeproof 本身时，请在 canonical 开发 repo 工作；见[贡献方式](CONTRIBUTING.md)与[同步流程](docs/SYNC.md)。
 
 MIT 许可。[许可条款](LICENSE) · [实现规范](docs/SPEC.md)

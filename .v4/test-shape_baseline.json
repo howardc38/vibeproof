@@ -2,6 +2,42 @@
   "note": "Assertions in this repo's own tests that read source text instead of running it. Real, and standing: tests/test_chain_integrity.py's test_argv_does_not_resolve_off_path asserts a string is absent from kernel/runner.py, which passes for any rewrite of the same bug and fails for a harmless refactor. Written down rather than fixed in the same breath as the checker that found them: each one needs a behavioural test to replace it, which is work, not a rename. Nothing new joins this list without a signature. Narrowed from 27 ids to 18 on 2026-08-10: the rule took every string in the enclosing function, so one unrelated .py literal made every read_text in that function a finding. The 9 that left were never real.",
   "accepted": [
     {
+      "id": "8743928cb49df5d7",
+      "why": "tests/test_what_guards_the_guards.py::test_the_size_is_asked_before_an_unbounded_write — reads kernel/ledger.py and asserts `_seal_if_full` appears before `open(\"w\")` inside `export_jsonl`. It is a claim about the order of two statements, and nothing executable separates the orders until an export exceeds SEAL_AT = 25,000,000 bytes: below that the seal is a no-op either way, and above it the difference is one segment boundary in a 49 MB file. The property it guards is why the sealed segment on disk is 1.97x the number, which is recorded in the comment beside the constant. Two of the three source assertions in this class were converted rather than accepted — `_seal_if_full` is now called for real, with a small `seal_at`, in three cases covering a file under the limit, one over it, and no file at all. This is the one that had nothing to call."
+    },
+    {
+      "id": "be6e475ced8dcf91",
+      "why": "tests/test_what_guards_the_guards.py::test_the_decision_is_written_beside_the_pattern — asserts `chose not to ask` appears in tests/run_without_silent_skips.py. What it holds is that the decision is written down next to the pattern that implements it, and a comment's existence has no behavioural surface by construction: the runner behaves identically whether or not the reason is beside the regex, which is exactly the failure it is there to prevent. The behaviour half is the two cases immediately above it, which put six real reason strings to `runner_mod.ENVIRONMENT` and pin which are quiet and which stay loud."
+    },
+    {
+      "id": "11705ced26b982e4",
+      "why": "tests/test_two_modules_that_have_to_agree.py::test_both_hooks_ask_the_owner — asserts neither hook carries its own `sqlite3.connect` for the open-task question. That is a claim about there being one copy, and behaviour cannot make it: two copies that both work answer identically, which is the state this repo was in until one of them was found opening the database outside its `try`. The behaviour half is beside it -- a file that is not a database, put to `_framework.is_open`."
+    },
+    {
+      "id": "4a1b72bb37a70c56",
+      "why": "tests/test_two_modules_that_have_to_agree.py::test_the_stand_in_carries_what_the_hook_reaches_for — asserts both `ImportError` fallbacks name `record_seen` and `is_open`. Running it means making the kernel import fail and reaching the path that calls them, which the case beside it does at the level that has a mechanical answer: both hooks still print `{}` and exit 0. What this holds is that the stand-in and the thing it stands in for have not drifted apart again."
+    },
+    {
+      "id": "136f2b44cf39d775",
+      "why": "tests/test_two_modules_that_have_to_agree.py::test_no_second_literal_survives_in_the_run_paths — asserts `_run` carries no second timeout literal. The behavioural cases beside it prove the number now comes from one owner in all three states (default, declared, sentinel); this one holds that a fourth spelling has not been added back, and a literal that agrees with the constant is invisible to behaviour until the day it stops agreeing."
+    },
+    {
+      "id": "22e4b7cb41b2df49",
+      "why": "tests/test_two_modules_that_have_to_agree.py::test_a_detector_that_wrote_nothing_adds_no_key — asserts the `out` key is conditional. The row is asserted for real beside it, read back from this repo's own ledger after a live derive; what this adds is the absent-key half, which would need a detector that writes no `--out` in a fixture repo to observe, and reads as identical either way to anything that only looks at rows which have one."
+    },
+    {
+      "id": "dd8d1c8b055585c4",
+      "why": "tests/test_two_modules_that_have_to_agree.py::test_the_writer_names_the_kind_the_reader_selects — reads kernel/review.py and kernel/sweep.py to hold the writer and the reader of a `lens_reviewed` row to one answer for \"which value means no task\". Behaviour cannot see that agreement: each side is correct alone, and they disagree only about a row one writes and the other queries. The behavioural half is three cases in tests/test_the_brief_a_reviewer_can_follow.py, which write both rows against a real ledger and read `task_id` back. Moved here from that file, and the move is the point: `redgreen.verify` parses the whole closing-test file, so one source assertion anywhere in it means the file can never close a review finding -- measured, exit 1, \"asserts on the source text of the code it is closing\"."
+    },
+    {
+      "id": "2a1a5473de1cf266",
+      "why": "tests/test_two_modules_that_have_to_agree.py::test_both_writers_normalise_an_empty_task — counts the normalisation in both writers rather than one. The sibling file proves each writer stores NULL; this holds that neither was left behind when the rule was applied, and two functions being individually right is exactly the state a partial repair leaves."
+    },
+    {
+      "id": "277b2d7932f751ef",
+      "why": "tests/test_two_modules_that_have_to_agree.py::test_the_lens_check_still_needs_a_corpus — pins the condition `if lens and usable and lens not in usable`. The first spelling omitted `usable` and refused every finding in a repo with no lens files at all; the existing suite caught it. In a repo that has lenses the two spellings behave identically, so nothing executable distinguishes the correction from the mistake."
+    },
+    {
       "id": "4c4a6b75670bb9b0",
       "why": "tests/test_what_the_output_says_it_did.py::test_review_close_says_it_has_not_been_checked — reads kernel/cli.py and asserts the closure offer prints that it has not been verified. Running it means raising a real finding claim, binding a closing test to it, and capturing stdout, in order to check a print statement — a fabricated finding testing a sentence written in the same commit. Three of the five source assertions in this file were converted rather than accepted: `risk.attribution` was extracted so three tests call it with an agent record, a person record and a pre-field record, and the two status numbers are read from a real `bin/v4 status --json` run. These two are what is left."
     },
@@ -58,7 +94,15 @@
     {
       "id": "f89b5aedd54e1707",
       "why": "tests/test_rust_without_a_rust_parser.py::test_a_checker_that_reads_neither_rust_nor_go_is_unmoved — the `read_text` is a probe, not an assertion: it saves the Go emitter's bytes, appends a line, recomputes `hashing.program_sha` for a checker that reads neither Rust nor Go, asserts the sha did not move, and restores the file in `addCleanup`. Nothing in the file asserts on source text. Signed `baseline_raise` eight times across fw-rust, fw-lens and five more before anyone wrote it down -- the file it belongs in has existed the whole time."
+    },
+    {
+      "id": "2b3f027807b54dd7",
+      "why": "tests/test_kernel.py::test_and_no_tracked_v4_file_falls_between_them_either -- `ast.parse(kernel/cli.py)` to collect the literals passed to `stamp_generated`, which is the third of the four ways a `.v4/` path can be accounted for. The sibling case above it does exactly this and is already accepted here (8743928cb49df5d7's neighbours); reading it a second way would put two answers on one question, which is the shape the finding this case closes (d52045d6d41c852c) is about.\n\nIt cannot be asked by running: that call executes only inside `v4 install`, and running install against an installed repo overwrites the repo's own files. The alternative -- reading `.v4/installed.json` for the three shas -- would be a test that goes red because a manifest is stale, which is an environment fact and not a claim about the code.\n\nWhat is asserted around it is not source text: the case runs `git ls-files .v4` and requires every tracked entry to be in one of the four sets. That half is what makes it a test; this half is how it learns what the fourth set holds."
+    },
+    {
+      "id": "6896ed5248157c75",
+      "why": "tests/test_two_modules_that_have_to_agree.py::ADoctorCheckReadsEverythingItComputes::test_it -- `ast.parse(kernel/doctor.py)` to find every name assigned inside `_check_a_registered_checker_that_has_never_executed` and never read. A dead local is invisible to behaviour by definition: the function returns the same verdict for every input whether or not the `DISTINCT` query above it is read, which is exactly why it survived under five lines of comment explaining what it decided. The behavioural half is beside it in tests/test_checks_that_answered_from_nothing.py, which asks the check for a verdict.\n\nThis one is not new and it is not this task's. The file is byte-identical at 0587058, eight of its nine findings were already on this list, and 7a7a52b moved this assertion into the file without adding the ninth. That commit's own message says why it moved it: \"redgreen.verify parses the whole closing-test file\" -- the defect 918d717f names and the change landing beside this entry repairs. The workaround shipped; the line that would have made it legible did not.\n\nFound by a task whose scope did not include this file, and written down here rather than repaired in passing: converting it needs a behavioural replacement that does not exist, which is work, not a rename."
     }
   ],
-  "why": "\n\n2026-08-13: `test-shape` became repo-wide (NF-3). Three findings in this repo's own tests were standing before that change and none was created by a task; each is listed with why it stays. A fourth (test_derive_passes_both) was written the same hour, was raised the same hour, and was rewritten to run `derive` instead of reading its source -- the rule was right about it."
+  "why": "\n\n2026-08-13: `test-shape` became repo-wide (NF-3). Three findings in this repo's own tests were standing before that change and none was created by a task; each is listed with why it stays. A fourth (test_derive_passes_both) was written the same hour, was raised the same hour, and was rewritten to run `derive` instead of reading its source -- the rule was right about it.\n\n2026-09-06: one more, and the first added since the list was narrowed. `test_and_no_tracked_v4_file_falls_between_them_either` reads `kernel/cli.py` for the same reason its sibling does -- to find which paths `stamp_generated` answers for -- and asking it the other way would need a `v4 install` run against this repo. The entry says so, and says what the case asserts that is *not* source text.\n\n2026-09-06, later the same day: a ninth entry for tests/test_two_modules_that_have_to_agree.py, which is where this repo keeps the assertions it has decided read source on purpose. Eight of its nine were already here; 7a7a52b moved the ninth in and did not list it, so `test-shape` has been one finding short of green on that file since. Found by a task that was not about it, listed rather than repaired, and the entry says which commit left it."
 }

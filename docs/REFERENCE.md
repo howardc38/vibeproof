@@ -24,16 +24,19 @@ The normal CLI is still named `v4`. The repository and product name are vibeproo
 | 6 | CHECKER_TAMPERED; registered checker bytes do not match |
 | 7 | SUBJECT_MOVED during the check |
 | 8 | TIMEOUT |
+| Other codes, including 2 and 3 | UNKNOWN_EXIT; not a pass |
 
 See [runner.py](../kernel/runner.py) and [state.py](../kernel/state.py) for the actual state mapping.
 
 ## Which checks hold ship
 
-The current registry gives immediate blocking status to `test`, `scope`, `secret`, `fail-closed`, `external-write`, `review-finding`, `runtime-proof` and `surface-proof`. Other registered kinds report initially; age, count and repeated failure thresholds can make them block later. Accepted risk follows the configured policy.
+Threshold escalation is evaluated on the current task, not across every task in the ledger. The current registry gives immediate blocking status to `test`, `scope`, `secret`, `fail-closed`, `external-write`, `review-finding`, `runtime-proof` and `surface-proof`. Other registered kinds report initially; age, count and repeated failure thresholds can make them block later. Accepted risk follows the configured policy.
 
 In particular, **test deletion detection is not an unconditional ship blocker by default**. See [the registry](../.v4/claim_kinds.json) and [the grouping predicate](../kernel/state.py).
 
 ## Language and runner support
+
+The full process flow is exercised on macOS and Linux. It uses POSIX process-group handling; native Windows compatibility has not been established. Facts call-site discovery scans Python and Go; TS/JS structural checks and UI-path discovery are separate mechanisms.
 
 | Mechanism | Current implementation |
 |---|---|
@@ -61,7 +64,7 @@ The earlier README said the Go/Node tracing code was unreachable from the review
 
 The shipped hook configuration targets Claude Code. Other tools can invoke the CLI, but this repository does not ship equivalent native hook adapters for them.
 
-Write/Edit hooks examine supported tool payloads and the declared scope. The shell guard examines command text. Shell scripts and other execution routes are not a security boundary. Hooks stand down when required state cannot be read. The stop hook blocks once and permits the next stop.
+Write/Edit hooks examine supported tool payloads and the declared scope. They also require engagement on visible claims until the initial engagement gate is cleared. With several open tasks and no `V4_TASK`, they refuse the ambiguous write rather than choosing the newest task. The shell guard examines command text. Shell scripts and other execution routes are not a security boundary. Hooks stand down when required state cannot be read. The stop hook blocks once and permits the next stop.
 
 The ledger uses SQLite triggers and hash chains to make ordinary writes controlled and recorded. It is not an immutable external trust service. The `task` table is not covered by the same chain as attempts and events. A process with sufficient file access can tamper with local state; do not market the ledger as impossible to edit.
 
@@ -69,7 +72,7 @@ The risk command permits an agent-signing path, including `--no-tty-check`. A st
 
 ## Evidence you can reproduce
 
-The [public demo](../examples/first-proof/README.md) includes positive and negative controls. Its [saved transcript](launch/evidence/demo.txt) and [JSON](launch/evidence/demo.json) are captured command output with normalized local paths.
+The [public demo](../examples/first-proof/README.md) includes positive and negative controls. Its [saved transcript](launch/evidence/demo.txt) and [JSON](launch/evidence/demo.json) are captured command output with normalized local paths from 2026-09-05. They are the video baseline, not proof of every later implementation. Rerun the demo to produce current evidence.
 
 The framework's suite is run with:
 

@@ -1,0 +1,13 @@
+{
+  "repo": "an_adopter_table_written_and_never_read",
+  "generated_from_commit": "0000000000000000000000000000000000000000",
+  "dal_globs": [
+    "db/**"
+  ],
+  "entrypoint_globs": [
+    "app/**"
+  ],
+  "outbound_write": [],
+  "outbound_read": [],
+  "auth_decision": []
+}

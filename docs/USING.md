@@ -6,9 +6,10 @@ Restating them here would make a second source of truth, and it would drift:
 `.claude/commands/run.md` records drifting once already, saying every task ran
 nine lenses when running them had been measured at 6.6 times the cost of not.
 
-Every command goes through `./bin/v4`. Never `python3 checkers/…` directly —
-the launcher sets `PYTHONPATH`, and without it a checker dies on its first
-import. Python exits 1 on an uncaught exception, which is the same code as
+Use `./bin/v4` for normal adopter operations: the launcher locates the shared
+framework kernel. A standalone checker in an adopter can lack that context.
+Fixtures and the documented standalone demo intentionally invoke checkers with
+their own prepared context. Python exits 1 on an uncaught exception, which is the same code as
 "found a violation".
 
 `bin/v4` is written into your repository by `v4 install`. Until it exists, every
@@ -27,13 +28,15 @@ A repository adopts the framework in this order, and the order matters:
 <framework>/bin/v4 --repo <your repo> init       # writes .v4/config.json and the registries; leaves the answers only you know as TODO
 # in <your repo>/.v4/config.json set "test_command" to what runs your suite. The others are optional.
 <framework>/bin/v4 --repo <your repo> install    # copies checkers, detectors, hooks and lenses; each checker passes its own fixtures first
-cd <your repo> && cp .claude/settings.template.json .claude/settings.json    # the hooks fire from the agent's settings, not from the repo
+cd <your repo>
+# Merge the template hook entries into existing .claude/settings.json.
+# Create from the template only if there is no settings file to preserve.
 ./bin/v4 doctor
 ```
 
 `doctor` answers, line by line, whether this repo is actually wired or only looks
-it. `BAD` is silent in normal use — if you see one, do not start. Warnings do not
-block you; on a fresh adoption these are the usual ones:
+it. `BAD` is silent in normal use — if you see one, do not start. Warnings are not automatically blocking; inspect whether they affect the
+operation you intend to verify. on a fresh adoption these are the usual ones:
 
 | warn | what it means |
 |---|---|
@@ -68,7 +71,7 @@ rather than reading DEGRADED as a formality.
 
 ```sh
 ./bin/v4 task --id t-xxx \
-  --request '<the requester''s own words, unrewritten>' \
+  --request '<verbatim requester text>' \
   --scope 'core/config/thing.py,tests/config/test_thing.py'
 ```
 
@@ -77,8 +80,9 @@ but "which files I will actually change".
 
 The cost of writing it wide is measured: a task scoped `core/config/**` that
 touched a single file had `fail-closed` raise a claim about a different file in
-that directory — existing code the task had never been near. That claim cannot
-be answered, and it is not this task's to answer.
+that directory — existing code the task had never been near. That can create unrelated work for this task. Narrow the scope before changed
+files would fall out of it, or explicitly handle the inherited finding; do not
+assume it is structurally impossible to answer.
 
 **A directory glob pulls in every file already inside it, and the arithmetic is
 worse than it sounds.** Measured on an adopter scoping a six-file change as six
@@ -92,6 +96,16 @@ them teaches you that the sentences do not matter.
 `--request` takes the original wording. `v4 cover` will later ask you to quote
 it **verbatim**, and a rewrite cannot be quoted back.
 
+For new work whose claims do not exist yet, the host can record pre-work
+engagement by task/kind before the worker edits:
+
+```sh
+./bin/v4 engage --task t-xxx --kind <kind> --actor splitter --text '…'
+```
+
+It is a self-reported position about scope, not proof of independent authorship;
+it does not replace later per-claim engagement.
+
 ### 2 · Derive
 
 ```sh
@@ -99,7 +113,9 @@ it **verbatim**, and a rewrite cannot be quoted back.
 ./bin/v4 status --task t-xxx
 ```
 
-Detectors raise claims by reading **code**, not documents. So how much there is
+Detectors inspect their declared source/configuration surfaces. Some also
+check documents or design pins; they do not accept the worker's completion
+summary as proof. So how much there is
 to answer is decided by what is actually inside your scope.
 
 ### 3 · Engage — the sentence before the work
@@ -111,7 +127,7 @@ to answer is decided by what is actually inside your scope.
 
 **Not a restatement of the rule** — the rule is already on the screen in front
 of you. Say what it means *for this code*. Seven mechanical tests judge the
-sentence and no person does. It has to be forty characters or more, not the
+sentence and no person does. It must satisfy configured `min_chars` (default forty), not the
 question restated, not the rule's own words, not a near-copy of anything written
 before on any task, and free of anything a secret scanner would read as a live
 credential — and when the claim names a file or a symbol, the sentence has to
@@ -128,7 +144,9 @@ into every traceback. **That was found before the work, not in code review.**
 
 Change code, write tests. Nothing special, with one exception:
 
-**Touch any file and every repo-scoped claim's answer expires.** That is
+**Relevant watched content changes can expire a repo-scoped answer.**
+The checker's declared reads and kernel-written/excluded paths narrow that
+content; changing `.v4/config.json` is a separate whole-file invalidation. That is
 deliberate, and it closes a real route: write a stub that passes, collect the
 greens, write the real thing without committing it, ship — with a clean ledger
 and a chain that verifies.
@@ -140,7 +158,7 @@ and a chain that verifies.
   --quote '<a span of the request, word for word>' \
   --symbol 'path/to/file.py::name' \
   --test   'tests/x_test.py::test_name' \
-  --acceptance 'what done means, in the requester''s terms'
+  --acceptance '<the requested acceptance condition>'
 ```
 
 | rule | why |
@@ -177,7 +195,8 @@ expires the expensive one's answer before you can read it.
   v4 --repo . check --task t-xxx --all      # run them anyway
 ```
 
-`--claim <id>` asks for one by name and is never held back.
+`--claim <id>` bypasses cost-based deferral for that claim. Engagement,
+registration, readability and other normal checks still apply.
 
 **Three ways out of a FAIL, and all three are accepted:**
 
@@ -185,7 +204,7 @@ expires the expensive one's answer before you can read it.
 |---|---|
 | change the code | what it says is true |
 | sign it, `v4 risk accept` | this repo cannot answer it, structurally. `status` shows RISK_ACCEPTED at once; **`ship` is held until the signature file under `.v4/risks/` is tracked by git** — commit it |
-| `v4 cover --not-done --why` | this part was decided against |
+| record an omission, `v4 cover --not-done --why` | records the request decision; it does not make an existing blocking claim terminal. Abandon the task explicitly if it will not ship |
 
 **The fourth way is the one that is not accepted: stopping with neither.**
 
@@ -196,12 +215,12 @@ expires the expensive one's answer before you can read it.
 ```
 
 Ship **re-derives until it converges**. The first run often comes back `HELD`,
-because the re-derive found a claim `v4 check` never saw — you changed something
-after deriving. **Ship does not run checkers for you; it refuses to accept a
-claim that has no answer.** Run that one, then ship again.
+because the re-derive can find a claim `v4 check` never saw. **Ship does not run
+checkers for you; it applies the current gate policy.** Unanswered report-only
+claims may remain visible without holding the task. Run that one, then ship again.
 
 Shipping writes `.v4/ledger_export.jsonl` — **commit it**, CI walks the chain
-through that file. It exists only once something has shipped; before that,
+through that file. A held ship attempt or explicit export can also create it. Before any export,
 `./bin/v4 audit --events .v4/ledger_export.jsonl` has nothing to read. Once
 the file outgrows 25 MB a ship seals it as `ledger_export.jsonl.0001` beside
 a fresh open file — commit the sealed one too, and never edit it; the walk
@@ -216,7 +235,7 @@ crosses from one to the next by itself.
 ```
 
 **This is the cheap exit, and it is meant to be used.** It is one event, not a
-re-plan: nothing is re-split and nothing already answered is re-run. The reason
+re-plan: nothing is re-split and still-valid answers can be retained. Related input changes can require a new check. The reason
 has to be long enough, and it has to name the path.
 
 Going around it is what costs: `scope` runs at ship, which is where you find out
@@ -239,8 +258,8 @@ is generated, and `./bin/v4 doctrine --write` regenerates it.
 
 **Do not ship a task you did not do, just to close it.** Abandoning is a task's
 second ending, and the claims stay in the ledger — what was found does not
-become false because nobody followed it up. `--why` has to be at least 40
-characters, like every other reason this framework records.
+become false because nobody followed it up. `--why` uses configured `min_chars` (default 40). The ending event also records
+unsettled FAILs; other commands may have their own reason-length rules.
 
 That has a practical consequence. With no `V4_TASK` set and exactly one task
 open, the hooks guard that one, so a task left lying around becomes the one
@@ -258,10 +277,11 @@ with the list of open tasks until you export `V4_TASK` or end one of them.
 ```
 
 Lenses do not run per task; they sweep periodically (every 4 days by default, in
-`lens_sweep` in `.v4/config.json`). **Not a preference, a measurement** — nine
-lenses per task cost 6.6 times not running them.
+`lens_sweep` in `.v4/config.json`). This default was informed by a historical experiment in which nine
+lenses per task cost 6.6 times not running them; it is not a universal cost ratio.
 
-There is a second gate: **it will not run while a task is unanswered.** Reviewing
+There is a second gate: **the due check waits for relevant active work with blocking claims or unreadable state.**
+A task with only report-only questions does not necessarily count as busy. Reviewing
 a tree somebody is still writing in reports half-finished state as findings, and
 that noise is what teaches people to stop reading the checklist.
 
@@ -273,6 +293,11 @@ explanation samples along it.
 
 ## Updating the framework
 
+Framework maintainers edit the canonical private source and publish through
+[SYNC.md](SYNC.md). Adopters should point at a chosen stable public checkout,
+not an actively edited development copy, if they need controlled kernel updates.
+
+
 ```sh
 cd <framework repo> && ./bin/v4 --repo <adopter> install
 ```
@@ -280,19 +305,17 @@ cd <framework repo> && ./bin/v4 --repo <adopter> install
 - change `kernel/**` → **live immediately**, no install needed (an adopter has no
   kernel of its own; `bin/v4` puts the framework's on `PYTHONPATH`)
 - change `checkers/**` / `detectors/**` → install
-- install takes **~10 minutes** on a 5,400-file repo and about two on a
-  three-file one. It is slow because every checker really does run its own red /
-  green / bypass fixtures. **Worry when it is fast** — it was fast once because
-  every checker was dying on import: 2 of 23 kinds registered on the reference
-  adopter, and install reported success.
+- Historical observations were about ten minutes on one 5,400-file repo and
+  about two on a three-file repo. Timing is not a guarantee or a health check:
+  inspect which eligible programs actually passed their gates. An earlier fast
+  install was broken because most programs died on import.
 
 After a first install, `git status` shows new directories (`checkers/`,
 `detectors/`, `hooks/`, `.v4/lenses/`, `.v4/fixtures/`), a new `bin/v4`, and two
 edits to files you own: a short pinned-example block appended to your
 `README.md`, and `.v4/home` appended to your `.gitignore`. Commit them together.
 
-After a later install, `git diff` shows a pile of `checkers/*.py`. **Do not panic
-and do not revert** — `.v4/installed.json` records each file's sha, and `scope`
+After a later install, `git diff` shows a pile of `checkers/*.py`. **Inspect the update rather than reverting solely because the diff is large** — `.v4/installed.json` records each file's sha, and `scope`
 and `test` can both tell "you did not write this". Change one byte and the sha
 stops matching and it is reported: **the exemption only recognises
 "unmodified".**
@@ -320,6 +343,10 @@ Put it back with a **literal path**, never one assembled from variables.
 
 ## One task, end to end
 
+The timings and claim counts in these comments are a historical example, not
+expected output for every repo. Replace placeholders before executing.
+
+
 ```sh
 ./bin/v4 doctor                                    # 0 BAD?
 
@@ -342,5 +369,7 @@ Put it back with a **literal path**, never one assembled from variables.
 ./bin/v4 check --task t-tg --claim <the new claim>
 ./bin/v4 ship --task t-tg                          # SHIP
 
-git add -A && git commit                           # signatures and the export get committed
+# Stage only this task's reviewed files, including required signatures and exports.
+git add <explicit-reviewed-paths>
+git commit
 ```

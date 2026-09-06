@@ -229,10 +229,15 @@ class CloseRefusesWhatItCannotBind(unittest.TestCase):
     """
 
     def _args(self, root, **kw):
+        # A stand-in for what argparse hands `cmd_review`, and it has to carry
+        # every flag the parser declares: argparse always supplies all of them,
+        # so a missing key here is an AttributeError in production code that is
+        # behaving correctly. A flag added to `review` is added here.
         base = dict(repo=str(root), action="close", claim=None, test=None,
                     command=None, parent=None, gone=None, now=None, why=None,
                     target=None, task=None, file=None, symbol=None, note=None,
-                    lens=None)
+                    lens=None, name=None, findings=None, withdraw=False,
+                    mutation_file=None, mutation_gone=None, mutation_now="")
         base.update(kw)
         return SimpleNamespace(**base)
 

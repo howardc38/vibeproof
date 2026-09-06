@@ -18,6 +18,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import ledger as ledger_mod
 from .ledger import insert, git_identity
 
 from .analysis.subject_files import PROTECTED_DEFAULT  # noqa: F401
@@ -143,6 +144,32 @@ def _reaches_protected(root, add, protected):
             or any(subject_files.matches(p, [g]) for p in guarded)]
 
 
+def _refused(conn, cfg, task_id, add, why, reason):
+    """Record that a widen was asked for and turned down, then refuse.
+
+    Three ways a widen is refused and two of them left no row anywhere: both
+    raised before any insert ran, while the third was deliberately written
+    first -- the `scope_widen` event goes in carrying
+    `engagement.accepted = false` and only then raises. `usage()` counts
+    refusals off that flag, so a widen turned down for a forbidden path counted
+    as zero, and `cli._refused_widens` printed nothing about it -- a helper that
+    exists because "a widen that was written, judged and turned down was
+    invisible in all three places the widen count is printed".
+
+    An attempt to widen into a path the task declared out of bounds is the
+    permission-boundary event this table is for, and it was the one refusal
+    that left no evidence anybody had tried.
+    """
+    insert(conn, "event", task_id=task_id, claim_id=None, kind="scope_widen",
+           actor=ledger_mod.who_acted(),
+           payload={"added": list(add), "why": why or "", "protected": [],
+                    "who": git_identity(cfg.root),
+                    "asked_by": ledger_mod.who_acted(),
+                    "engagement": {"accepted": False, "reason": reason}},
+           created_at=datetime.now(timezone.utc).isoformat())
+    raise WidenRefused(reason)
+
+
 def widen(conn, cfg, *, task_id, add, why):
     """Record the widening.  Returns (globs, protected_hits).
 
@@ -163,20 +190,25 @@ def widen(conn, cfg, *, task_id, add, why):
     """
     th = cfg.thresholds
     if not why or len(why.strip()) < th["min_chars"]:
-        raise WidenRefused(
-            f"a reason under {th['min_chars']} characters is not a reason. The "
-            f"point of this command is that widening is visible, and an empty "
-            f"reason makes it invisible again."
-        )
-    off_limits = [p for p in add if _matches(p, forbidden(conn, task_id))]
+        _refused(conn, cfg, task_id, add, why,
+                 f"a reason under {th['min_chars']} characters is not a reason. "
+                 f"The point of this command is that widening is visible, and "
+                 f"an empty reason makes it invisible again.")
+    # `_reaches_protected`, not `_matches`. The sibling's own docstring says the
+    # glob-against-glob proxy "answers wrongly in the one direction that costs
+    # something", and it was repaired there for protected paths and left here:
+    # `--add kernel/**` against a forbidden `kernel/ledger.py` is a widen that
+    # reaches a path the task declared out of bounds, and glob-vs-glob does not
+    # see it. The two questions are the same question, so they get the same
+    # answer.
+    off_limits = _reaches_protected(cfg.root, add, forbidden(conn, task_id))
     if off_limits:
-        raise WidenRefused(
-            f"{', '.join(off_limits)} was declared out of bounds when this task "
-            f"opened, and widening cannot reach a forbidden path -- `scope` "
-            f"refuses it at check whether or not it is in scope. If that "
-            f"declaration was wrong, reopen the task; do not work around it "
-            f"here."
-        )
+        _refused(conn, cfg, task_id, add, why,
+                 f"{', '.join(off_limits)} was declared out of bounds when this "
+                 f"task opened, and widening cannot reach a forbidden path -- "
+                 f"`scope` refuses it at check whether or not it is in scope. If "
+                 f"that declaration was wrong, reopen the task; do not work "
+                 f"around it here.")
     scope = current_scope(conn, task_id)
     protected = cfg.protected
     hits = _reaches_protected(cfg.root, add, protected)
@@ -210,10 +242,10 @@ def widen(conn, cfg, *, task_id, add, why):
     at_a_terminal = bool(_sys.stdin.isatty())
     now = datetime.now(timezone.utc).isoformat()
     insert(conn, "event", task_id=task_id, claim_id=None, kind="scope_widen",
-           actor="person" if at_a_terminal else "agent",
+           actor=ledger_mod.who_acted(),
            payload={"added": list(add), "why": why, "protected": hits,
                     "who": git_identity(cfg.root),
-                    "asked_by": "person" if at_a_terminal else "agent",
+                    "asked_by": ledger_mod.who_acted(),
                     "engagement": {"accepted": ok, "reason": reason}},
            created_at=now)
     if not ok:
@@ -309,10 +341,10 @@ def narrow(conn, cfg, *, task_id, drop, why):
     import sys as _sys
     at_a_terminal = bool(_sys.stdin.isatty())
     insert(conn, "event", task_id=task_id, claim_id=None, kind="scope_narrow",
-           actor="person" if at_a_terminal else "agent",
+           actor=ledger_mod.who_acted(),
            payload={"dropped": drop, "why": why,
                     "who": git_identity(cfg.root),
-                    "asked_by": "person" if at_a_terminal else "agent"},
+                    "asked_by": ledger_mod.who_acted()},
            created_at=datetime.now(timezone.utc).isoformat())
     return current_scope(conn, task_id)
 

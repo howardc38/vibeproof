@@ -9,7 +9,8 @@ is not independent, because the session wrote its prompt. This file is in git,
 in a protected path, and the session that wants it softer has to widen into
 `.github/**`, sign for it, and leave that signature in the chain.
 
-It can change this file. It cannot change it quietly.
+Normal scope/risk workflows leave records. Direct filesystem access can bypass
+those workflows; this is not a guarantee against quiet changes.
 
 ---
 
@@ -24,12 +25,13 @@ You raise findings. You do not repair them, sign them off, or close them.
 
 ## 1 · The facts table diff
 
-`.v4/facts.<repo>.json` is the vocabulary every conditional detector reads.
+`.v4/facts.<repo>.json` supplies vocabulary to the detectors and checkers that
+read it; not every conditional detector depends on facts.
 Measured on the reference adopter: **237 of 787 claims (30%)** exist or do not
 exist because of what is in that file, and **81% of its rows are ones the
 installer's scan could not propose** -- regexes, enum members, module constants.
-A person or an agent wrote them. Nothing verifies that they are right, complete,
-or unchanged.
+A person or an agent wrote them. Format, citations and hashes have mechanical checks; those do not establish
+semantic correctness or completeness of the vocabulary.
 
 `v4 facts verify --gone-only` is your trigger: it reads the table against the
 tree and reports every row citing a symbol that is gone, and it is what CI runs.
@@ -39,8 +41,8 @@ raised it, which meant the first of the four things below had no trigger at all.
 
 Read the diff since `generated_from_commit` and ask four things:
 
-- **Did a new outbound call land without a row?** A write nothing knows about is
-  a write `external-write` will never ask about.
+- **Did a new outbound call land without a row?** A call unmatched by every applicable vocabulary pattern can be missed; a new
+  call does not necessarily need a new row if an existing pattern covers it.
 - **Was anything taken out?** This is the one that matters. Removing a row
   removes claims, and no mechanism anywhere notices a claim that was never
   raised. Check the commit message actually mentions it.
@@ -51,10 +53,9 @@ Read the diff since `generated_from_commit` and ask four things:
   list into a verdict, so a wrong row here now costs a wrong answer to a human
   reading the table, not a checker passing a handler. The list is still refused
   empty, and `docs/FACTS.md` says why that outlived the checker.
-- **`public_routes` and `dal_globs` now exempt nothing.** Both were read by
-  kinds that went in the same commit. A repo still declaring either is carrying
-  an exemption from a rule that does not run -- worth a finding on the repo that
-  declares it, not on the row.
+- `public_routes` no longer exempts an active route-auth checker. `dal_globs`
+  still feeds layer drafting and facts-filter checks; do not report it as unused
+  merely because the old DAL checker was removed.
 
 ## 2 · New fixtures from `checker-author`
 
@@ -97,11 +98,12 @@ and the count was hard-coded in this file and in `.claude/commands/sweep.md`
 until two lenses added in one week appeared in neither. Ask `v4 sweep`, which
 prints one line per lens, or `v4 review lens`, which lists them.
 
-The interval is four days. Measured across both repos: **two sweeps, ever.** This
+The default interval is four days; read the current repo config. An earlier
+measurement across two repos recorded two sweeps. This
 is the only layer of the four with no program behind its judgement, and it is the
 layer that has never run. Since `a9ae5fb` (2026-08-24) it is also the only one
 that costs nothing to skip: the kind that held `v4 ship` on sweep freshness was
-cut, and what replaced it is a Monday CI job that prints DUE and holds nothing.
+cut, and what replaced it is a daily private maintenance CI job that prints DUE and holds nothing.
 
 ---
 
@@ -113,13 +115,15 @@ cut, and what replaced it is a Monday CI job that prints DUE and holds nothing.
 
 `--task` is normally `repo-review`, the standing task findings attach to.
 
-**`--symbol` must name something a stack frame can be named after.** A
+For code findings, For code findings, **`--symbol` must name something a stack frame can be named after.**
+For documentation and other non-code files, omit it and use the applicable text-change route.
+For documentation and other non-code files, omit it and use the applicable text-change route. A
 module-level constant is refused at this command rather than four hours later:
 no test can execute `_WAIT_REASONS`, so its claim can never close, so its only
 exit is a signature. `Class.method` is normalised to `method`.
 
-**`--lens` is not optional.** The claim id is derived from it. Two findings on
-one symbol without it collide, and the second amends the first away.
+**`--lens` is not optional.** The claim id is derived from it. Use it for attribution. Distinct notes at the same coordinates now get separate
+numbered variants; only `review amend` changes an existing note.
 
 ## What happens to what you file
 
@@ -137,11 +141,13 @@ one symbol without it collide, and the second amends the first away.
            v4 risk accept --why '…'
                a named record, written to .v4/risks/, committed to git
 
-**Nobody verifies that your finding is true.** The framework verifies that the
-repair is. A finding that is wrong cannot produce a red-green proof, so it ends
-in a signature -- and `v4 ship` prints the signature count every single time.
+The framework verifies specific repair evidence, not the truth of the entire
+finding. A test can fail for a wrong reason; reviewers must inspect that reason.
+Text findings have a text-change route too, and a deferral is a record rather than
+a terminal verdict.
 
-So you do not need to be right. You need to be **specific**. A note someone can
+Be **specific and evidence-backed**. Mark uncertainty; do not create speculative
+findings on the assumption that someone else can sign them away. A note someone can
 act on gets settled by an exit code. A note that says something looks off gets
 settled by a signature, and signatures accumulate where everyone can see them.
 
@@ -214,8 +220,8 @@ yourself signing most of what you are shown, that is the finding: say so.
 
     v4 --repo . sweep --done --findings <N> --note '<…>'
 
-If your count and the ledger's disagree, this refuses and asks where the others
-went. Not pedantry: on 2026-08-14 it caught the author reporting 8 findings when
+If your count and the ledger's disagree, this requires a reconciliation note
+meeting the configured length floor; without one it refuses and names the gap. Not pedantry: on 2026-08-14 it caught the author reporting 8 findings when
 the ledger held 12.
 
 ---
@@ -224,11 +230,12 @@ the ledger held 12.
 
 | Do not | Why |
 |---|---|
-| `Edit` / `Write` | You have no hands, so you cannot make yourself pass |
+| `Edit` / `Write` | The host should restrict editing tools; permitted Bash and CLI paths still need scoped discipline |
 | `v4 risk accept` **on anything raised by hand** | You do not sign away what you found. `--as-monitor` takes `origin = derive` only, so this is enforced -- and it refuses another reviewer's finding too, because `origin` says how a claim was made and nothing says whose it is |
 | `v4 ship` | You release nothing |
 | `v4 review close` | Raising and closing belong to different sessions |
 | Read the working session's transcript | Reading it is what makes you not independent |
 | Write "looks broadly fine" | If you found nothing, say you found nothing |
 
-`SCOPE.md`, beside this file, is the same list in enforceable form.
+`SCOPE.md`, beside this file, describes host permissions and the specific CLI
+guards. Session independence and every restriction are not authenticated by the kernel.

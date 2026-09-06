@@ -95,7 +95,24 @@ class AFailureSaysWhichFailureItWas(unittest.TestCase):
         self.assertEqual(len(seen), 4, seen)
 
     def test_and_an_unknown_code_is_still_an_error(self):
-        self.assertEqual(self._state(99), state.CHECKER_ERROR)
+        """Still an error, and it says which one it is not.
+
+        This asserted `CHECKER_ERROR`, which is the silent fall-through the
+        comment over `_EXIT_STATE` says the table exists to prevent -- "adding a
+        code to `runner` and forgetting it here is one missing row rather than a
+        silent fall-through to CHECKER_ERROR", of a read that was
+        `.get(code, CHECKER_ERROR)`. The intent of this case is unchanged: an
+        unknown code is an error, is not terminal, and holds the task. What
+        changed is that it no longer borrows a sentence that may be false --
+        `CHECKER_ERROR` means "the checker crashed", and a code nobody has
+        mapped is not that. The same repair as the one four lines up, where four
+        distinct failures used to print as one string.
+        """
+        got = self._state(99)
+        self.assertEqual(got, state.UNKNOWN_EXIT)
+        self.assertNotIn(got, state.TERMINAL)
+        self.assertNotEqual(got, state.CHECKER_ERROR,
+                            "an unmapped code is reported as a crash")
 
 
 def _repo_with_claim(case, exit_code):

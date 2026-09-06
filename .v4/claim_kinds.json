@@ -8,7 +8,8 @@
     "gate": "report",
     "gate_why": "兩樣都冇。超咗 ceiling 係一個數字,擺喺度唔會走,亦唔會令任何嘢靜靜咁失敗。**但佢係最容易被推到死嗰個** —— 一個永遠唔落嘅 ceiling 就係咁嚟嘅,所以三條升級規則對佢特別緊要。",
     "question_template": "Is the control plane still within the ceiling it declared?",
-    "staleness": "repo"
+    "staleness": "repo",
+    "engagement_why": "checker 答得晒個數:statement 總數對住一個宣告咗嘅 ceiling,兩邊都係客觀值。而真正要人講嘅嘢喺另一個地方問,並且有自己嘅地板 —— 升 ceiling 要喺 .v4/control_plane_budget.json 個 why 度寫低理由,而嗰個檔係 protected,所以修改需在明確 scope 內，或經適用的 scope/risk 流程；不是每次修改都必須簽名。喺呢度再問多一次,係問同一個人同一件事兩次。"
   },
   "dangling-ref": {
     "checker": "dangling-ref",
@@ -17,7 +18,8 @@
     "gate": "report",
     "gate_why": "兩樣都冇。一個指住冇嘢嘅名,遲一日一樣指住冇嘢。",
     "question_template": "Does {file} import {symbol} from a module that defines it?",
-    "staleness": "subject"
+    "staleness": "subject",
+    "engagement_why": "checker 答得晒:一個 reference 指住嘅嘢,喺嗰個 module 度存唔存在,係一個 AST 判得到嘅事實。冇中間地帶 —— 一個名要麼 define 咗要麼冇。冇嘢淨返畀人講。"
   },
   "dead-wiring": {
     "applies_to": "framework",
@@ -29,7 +31,8 @@
     "gate": "report",
     "gate_why": "兩樣都冇。一個冇 reader 嘅欄位,遲一日一樣冇 reader —— 佢係一個靜嘅缺陷,但佢唔會喺推遲期間做任何嘢。",
     "question_template": "Is anything declared here with something on one end and nothing on the other?",
-    "staleness": "repo"
+    "staleness": "repo",
+    "engagement_why": "checker 答得晒:一樣嘢喺一端宣告咗而另一端搵唔到,係兩個集合嘅差。而「呢個宣告係刻意等緊第一個用家」係一個真實嘅答案,佢由 .v4/dead-wiring_baseline.json 一條 entry 承擔,而嗰條 entry 自己帶理由。所以判斷有地方去,只係唔喺呢度。"
   },
   "design-pins": {
     "checker": "design-pins",
@@ -38,7 +41,8 @@
     "gate": "report",
     "gate_why": "兩樣都冇。一個 pin 指住冇咗嘅 symbol,個修法(改 pin 或者改返 code)唔會因為時間而變。",
     "question_template": "Do the design document's pinned claims about the code still hold?",
-    "staleness": "repo"
+    "staleness": "repo",
+    "engagement_why": "checker 答得晒:一個 pin 寫住 file::symbol,而嗰個 symbol 喺嗰個檔度 resolve 唔 resolve 到,係一個機械答案。個 pin 本身就係嗰句人寫嘅話 —— 再要一句,係要人解釋佢啱啱先寫低嗰句。"
   },
   "external-write": {
     "baseline": true,
@@ -117,7 +121,8 @@
     "gate_why": "兩樣都冇。一條跨層 import 唔會因為遲修而變貴,而且佢係 declared —— 一個宣告咗要守呢條界嘅 repo,係自己揀嘅時候守。",
     "needs": ".v4/layers.json",
     "question_template": "Does any import cross a layer the declaration does not allow?",
-    "staleness": "repo"
+    "staleness": "repo",
+    "engagement_why": "checker 答得晒:一條 import 有冇跨過一條界,係對住 .v4/layers.json 判嘅,而嗰個檔係呢個 repo 自己宣告嘅。要辯論嘅係嗰個宣告,唔係某一條 import；而改宣告係改一個進咗版控嘅檔,喺 diff 度睇得到。"
   },
   "lint": {
     "baseline": true,
@@ -133,21 +138,22 @@
   },
   "registry-consistency": {
     "applies_to": "framework",
-    "applies_to_why": "佢問嘅係「呢個 V4 裝置同自己一唔一致」,唔係「呢次改動做咗咩」。喺 adopter repo 度 .v4/** 同 checkers/** 都係受保護路徑,一次普通改動根本掂唔到,所以每個 task 都收一次錢而近乎永遠 PASS。接手嘅機制唔係承諾,係已經喺度行緊嘅四行 doctor:checker hashes(sha 對唔對得住 disk)、kinds(每個 kind 指住嘅 checker 解唔解析得到)、raisable(每個 kind 有冇嘢提得出佢)、detectors(conditional detector 對唔對得上)。真正會改 checker 嘅係呢個 repo 自己,所以呢度照舊係一道擋 ship 嘅閘。",
+    "applies_to_why": "Framework self-check of registry identities and fixture declarations. The installer omits this kind for ordinary adopters, where doctor checks the installed wiring. Here its gate is report; task-level thresholds may escalate it.",
     "checker": "registry-consistency",
     "detector": "always_registry.py",
     "engagement": false,
     "gate": "report",
     "gate_why": "兩樣都冇。Registry 唔一致,重新 register 就得,而重新 register 係一個指令。",
     "question_template": "Do the registries still describe the checkers, detectors and fixtures on disk?",
-    "staleness": "repo"
+    "staleness": "repo",
+    "engagement_why": "checker 答得晒:registry 講嘅嘢同 disk 上面嘅 sha 對唔對得上,係一次比較。而個補救係一個指令(v4 register / register-detector),唔係一個決定 —— 一個要人寫一句先做得到嘅重新註冊,只會令人跳過重新註冊。"
   },
   "review-finding": {
     "checker": "review-finding",
     "detector": null,
     "engagement": true,
     "gate": "ship",
-    "gate_why": "B —— 呢個係人手 raise 嘅,唔係一條規則自動出嘅。一條自動規則放行一個人特登提出嚟嘅嘢,係把判詞由人手上攞走。要推遲有現成路:`v4 review defer`,而佢要求指住一個 durable 目標。",
+    "gate_why": "B —— reviewer 明確提出的 task-bound finding 需要有效處理。review defer 只記錄延期和目標，不會令 blocking claim terminal；未指定 task 的 finding 預設屬於 repo-review。",
     "question_template": "Is the finding at {file}::{symbol} closed by a test that fails without the fix and actually runs the code?",
     "rule": [
       {
@@ -208,7 +214,7 @@
     "detector": "always_secret.py",
     "engagement": true,
     "gate": "ship",
-    "gate_why": "A —— 一個 commit 咗嘅憑證入咗 git history。今日修係刪一行,遲一日修係 rotate 加改 history 加通知每個 clone 過嘅人。推遲成本跳一個量級,而且冇得返轉頭。",
+    "gate_why": "A — A leaked credential can be used after exposure. Revoke or rotate immediately; deleting a line does not remove exposure, and history cleanup alone does not invalidate a credential.",
     "question_template": "Do the files this task changed contain a committed credential?",
     "rule": [
       {
@@ -258,7 +264,8 @@
     "gate": "report",
     "gate_why": "兩樣都冇。文件同 code 唔對數,改文件今日同下星期一樣平。",
     "question_template": "Does every command, path, kind and mechanism the spec names actually exist?",
-    "staleness": "repo"
+    "staleness": "repo",
+    "engagement_why": "checker 答得晒:個 spec 點名嘅指令、路徑、kind 同機制,喺 code 度搵唔搵到,係一次對照。兩邊唔對數嗰陣要改邊一邊,係一個判斷 —— 而嗰個判斷會以一次改 spec 或者一次改 code 嘅形式出現喺 diff 度,兩樣都比一句話耐用。"
   },
   "surface-proof": {
     "checker": "surface-proof",
@@ -275,12 +282,12 @@
     "detector": "always_test.py",
     "engagement": true,
     "gate": "ship",
-    "gate_why": "B —— 佢係呢個 repo 唯一嘅 test oracle。佢紅嘅時候,**其他每一條 claim 嘅綠都冇意思** —— 佢哋全部係喺一棵冇人證過行得通嘅樹上面答嘅。推遲佢即係推遲埋所有嘢嘅意義。",
+    "gate_why": "B —— 測試命令未通過時，其他檢查的 PASS 只回答各自的問題，不能代替所要求行為的測試結果。",
     "question_template": "Does the repo's declared test command pass?",
     "rule": [
       {
-        "source": "UNIT_TEST_GENERATION_GUIDELINE.md §marker",
-        "text": "`test_command` 係 `test` claim 唯一嘅 oracle,而佢帶住 marker filter。一個冇 marker 嘅 network test 會靜靜咁入咗嗰個 oracle,令一條要真環境先驗到嘅嘢喺冇環境嘅時候變綠。講出你加嘅 test 屬邊一類,同埋 CI 會唔會真係跑佢。"
+        "source": "UNIT_TEST_GENERATION_GUIDELINE.md §marker · adopter 的實際 test_command",
+        "text": "讀取這個 repo 真正的 test_command，說明它收集哪些測試、是否帶 filter、遇到缺少環境時會失敗、skip 還是錯誤地變綠。不要預設每個 adopter 都使用 pytest、marker 或框架自己的 unittest runner。說明你新增的測試在乾淨 checkout 和 CI 能實際驗證什麼。"
       },
       {
         "from": "R-c169d3aa",
@@ -342,9 +349,10 @@
     "detector": "test_token_shape.py",
     "engagement": false,
     "gate": "report",
-    "gate_why": "兩樣都冇。同 test-shape 一樣:一條斷言 rendered 文字嘅 test 冇隱藏任何嘢,佢只係證得少過佢睇落證嘅。",
+    "gate_why": "A synthetic credential-shaped literal needs explicit attribution so it is not mistaken for a real leaked credential. This kind reports initially; the secret kind handles its separate credential patterns.",
     "question_template": "tests/ 入面有冇一個似真憑證但冇講自己係假嘅 literal？",
-    "staleness": "repo"
+    "staleness": "repo",
+    "engagement_why": "checker 答得晒:tests/ 入面有冇一個似真憑證而又冇講自己係假嘅 literal,係一個 pattern 判得到嘅形狀。而「呢個真係一個 pattern 唔係一個憑證」係一個真實嘅答案,佢由 .v4/test-token-shape_baseline.json 一條 entry 承擔,而嗰條 entry 帶住理由同 id。判斷有地方去,只係唔喺呢度。"
   },
   "test-weakened": {
     "checker": "test-weakened",

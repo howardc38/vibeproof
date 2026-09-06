@@ -57,6 +57,21 @@ BRIEFS = (
     ".claude/commands/sweep.md",
     "docs/README.md",
     "docs/FACTS.md",
+    # The four role definitions and the two commands that instantiate them.
+    # This module's docstring says "the four documents that tell a session what
+    # will happen to it", and none of the four a role is actually built from was
+    # in the tuple. `spec_coverage.user_facing_docs` does read them, for
+    # `launcher_is_reachable` and `flags_resolve` -- and `flags_resolve` says in
+    # its own docstring that it is "shape only: the flag has to be declared for
+    # that subcommand", so a role prompt could name a command that parses and
+    # still cannot run. One did: `reviewer.md` line 10 carried
+    # `--task $V4_TASK` for a role that has no task by design.
+    ".claude/agents/reviewer.md",
+    ".claude/agents/worker.md",
+    ".claude/agents/task-splitter.md",
+    ".claude/agents/checker-author.md",
+    ".claude/commands/run.md",
+    ".claude/commands/wave.md",
 )
 
 #: The two that tell an orchestrator how many reviewers to open.
@@ -111,6 +126,19 @@ def _shipped_roles() -> set:
     return out
 
 
+def _lens_slugs() -> set:
+    """The reviewer lenses, by file stem.
+
+    A fourth vocabulary this repo has and this check did not know: `v4 review
+    lens` reads `.v4/lenses/`, `review add --lens` refuses a slug that is not
+    there, and the slug reaches a claim id. Found by widening `BRIEFS` to the
+    role prompts: `reviewer.md` names `near-miss`, which is a lens here and was
+    read as a name this system does not have.
+    """
+    d = ROOT / ".v4" / "lenses"
+    return {p.stem for p in d.glob("*.json")} if d.is_dir() else set()
+
+
 def _top_level_dirs() -> set:
     return {p.name for p in ROOT.iterdir() if p.is_dir()}
 
@@ -150,14 +178,16 @@ class EveryKindTheseBriefsNameIsRegistered(unittest.TestCase):
     thing that runs."""
 
     def test_it(self):
-        allowed = _registered_kinds() | _shipped_roles() | set(NOT_A_KIND)
+        allowed = (_registered_kinds() | _shipped_roles() | _lens_slugs()
+                   | set(NOT_A_KIND))
         unknown = []
         for rel in BRIEFS:
             for span in _code_spans(rel):
                 if KIND_SHAPED.match(span) and span not in allowed:
                     unknown.append(
                         f"{rel} writes `{span}` as a name this system has, and "
-                        f"it is not a registered kind, an agent, or a command")
+                        f"it is not a registered kind, a lens, an agent, or a "
+                        f"command")
         self.assertEqual(unknown, [], "\n".join(unknown))
 
     def test_the_exception_list_is_not_a_dumping_ground(self):

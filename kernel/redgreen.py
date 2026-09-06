@@ -26,6 +26,7 @@ rather than by importing a test runner, so this works with pytest, unittest, or
 whatever else a repo's `test_command` happens to be.
 """
 
+import ast
 import json
 import os
 import subprocess
@@ -127,9 +128,14 @@ atexit.register(_dump)
 def executed_files(repo_root, command, timeout=None):
     """Which files under the repo the test command actually ran.
 
-    `timeout=None` means `config.DEFAULT_TEST_TIMEOUT`. It was a literal `1800`
-    here and the same literal again at the one production call site, which is
-    two homes for one number.
+    `timeout=None` means no wall of this function's own -- the caller's kernel
+    owns it. It was a literal `1800` here and the same literal again at the one
+    production call site; removing the call site's copy only moved the second
+    wall into this default, where `.v4/checkers.json` registering the `test`
+    checker at anything above 1800 would have let this one win invisibly again.
+    The one caller inside `checkers/` runs under `runner`, which enforces the
+    registry's `timeout_sec`, so nothing here is unbounded. Callers outside a
+    kernel-enforced wall -- the tests below -- pass their own.
 
     `review-finding` already refuses a test that never executes the symbol it
     claims to close. Nothing asked the same of the suite: a `test` claim passes
@@ -140,9 +146,6 @@ def executed_files(repo_root, command, timeout=None):
     Traced through `sitecustomize` rather than a runner plugin, so it works with
     pytest, unittest, or whatever a repo's command happens to be.
     """
-    if timeout is None:
-        from .config import DEFAULT_TEST_TIMEOUT
-        timeout = DEFAULT_TEST_TIMEOUT
     repo_root = str(Path(repo_root).resolve())
     with tempfile.TemporaryDirectory() as td:
         (Path(td) / "sitecustomize.py").write_text(_SITECUSTOMIZE_ALL)
@@ -261,6 +264,53 @@ def traceable(path) -> bool:
     return Path(path).suffix.lower() in TRACEABLE
 
 
+def _same_file(where: str, want: str) -> bool:
+    """Is this coverage row about the file the claim names?
+
+    `endswith` alone, which both tracers used. That was repaired once already,
+    from the bare basename -- `internal/cache/store.go` answered a claim at
+    `internal/db/store.go` -- to the repo-relative path, and the residue is the
+    same shape one directory out: `vendor/internal/db/store.go` ends with
+    `internal/db/store.go` and would answer for it.
+
+    A path boundary is what makes the difference: either the two are equal, or
+    the coverage path has a `/` immediately before the part that matched. Go
+    reports package-relative paths and V8 reports `file://` URLs, so neither
+    can be compared for equality alone -- but a prefix that stops mid-segment
+    is never the same file.
+
+    This decides whether a review finding may close, which is the one condition
+    that stops a closure passing on a test that never ran the code.
+    """
+    where = str(where).replace("\\", "/")
+    want = str(want).replace("\\", "/")
+    return where == want or where.endswith("/" + want)
+
+
+def _identity(target_file: str) -> str:
+    """What a coverage line has to end with to be about this file.
+
+    The repo-relative path, not its basename. Both readers below asked
+    `endswith(Path(target_file).name)`, so a covered `internal/cache/store.go`
+    answered for a claim filed at `internal/db/store.go` -- the tracer reports
+    True, `verify` reports the symbol executed, and the finding closes on a
+    file nobody ran. One basename collision anywhere in the tree is enough.
+
+    It stayed cheap while Go was the only non-Python tracer. Admitting `.ts`
+    and `.tsx` is what makes it likely: a TypeScript tree carries `index.ts`,
+    `types.ts` and `utils.ts` in every directory, so the collision is the
+    normal case rather than the unlucky one.
+
+    Still a suffix, because neither producer emits a repo-relative path: Go
+    prefixes the module path (`example.com/m/internal/db/store.go`) and V8
+    emits `file:///abs/...`. Exactly one leading `./` comes off, so the two
+    spellings of the same claim agree -- and not with `lstrip("./")`, which
+    eats the dot of `.v4/x` as well.
+    """
+    path = str(target_file).replace("\\", "/")
+    return path[2:] if path.startswith("./") else path
+
+
 def _go_executed(cwd: Path, profile: Path, target_file: str, target_symbol: str):
     """`(executed, calls)` from a Go coverage profile, or `(None, 0)`.
 
@@ -287,13 +337,13 @@ def _go_executed(cwd: Path, profile: Path, target_file: str, target_symbol: str)
                        cwd=str(cwd), capture_output=True, text=True)
     if r.returncode != 0:
         return None, 0
-    stem = Path(target_file).name
+    want = _identity(target_file)
     for line in r.stdout.splitlines():
         parts = line.split()
         if len(parts) < 3 or not parts[-1].endswith("%"):
             continue
         where, name, pct = parts[0], parts[-2], parts[-1]
-        if not where.split(":")[0].endswith(stem):
+        if not _same_file(where.split(":")[0], want):
             continue
         if target_symbol and name != target_symbol:
             continue
@@ -314,14 +364,14 @@ def _node_executed(covdir: Path, target_file: str, target_symbol: str):
     """
     if not covdir.is_dir():
         return None, 0
-    stem = Path(target_file).name
+    want = _identity(target_file)
     for path in sorted(covdir.glob("*.json")):
         try:
             blob = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
         for script in blob.get("result") or []:
-            if not str(script.get("url", "")).endswith(stem):
+            if not _same_file(str(script.get("url", "")), want):
                 continue
             for fn in script.get("functions") or []:
                 if target_symbol and fn.get("functionName") != target_symbol:
@@ -411,13 +461,95 @@ def _run_traced(cwd: Path, command, target_file: str, target_symbol: str, timeou
         return proc.returncode, None, 0, proc.stdout + proc.stderr
 
 
-def verify(repo_root, *, command, test_path, target_file, target_symbol, parent_commit,
-           timeout=600):
+def _apply_mutation(worktree: Path, mutation) -> str:
+    """Break one thing in a throwaway tree.  `""` when it worked, else why not.
+
+    Exactly one occurrence, and the refusal says so: a marker that matches
+    twice breaks two things, and a test going red then says nothing about
+    which. A marker that matches none is a worker quoting text that is not
+    there, which would otherwise produce a green worktree and read as "your
+    test does not cover this".
+    """
+    rel, gone, now = mutation
+    path = worktree / rel
+    try:
+        src = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return f"the mutation names {rel}, which could not be read there: {exc}"
+    n = src.count(gone)
+    if n != 1:
+        return (f"the mutation text appears {n} time(s) in {rel} and has to "
+                f"appear exactly once -- a marker matching twice breaks two "
+                f"things, and a test going red then says nothing about which")
+    path.write_text(src.replace(gone, now, 1), encoding="utf-8")
+    return ""
+
+
+def what_runs(tree, command):
+    """The part of a test module this command selects, or all of it.
+
+    The refusal below is asked of a whole file, and one source assertion
+    anywhere in a large one disqualifies every test in it. Measured four times
+    in one day: `tests/test_kernel.py` is 8,710 lines and 114 classes, and a
+    closure offered from a class that reads no source at all was refused for
+    assertions in unrelated cases; the same happened to
+    `tests/test_what_guards_the_guards.py`; and two more findings have their
+    subject inside `test_kernel.py`, so they could not have been closed at all.
+
+    The rule is right and its reasoning holds -- calling a symbol once and then
+    reading its source satisfies red-green and proves nothing. What was too
+    coarse is the unit it was asked of, and a closure runs what its `--command`
+    names, not the module.
+
+    String containment against the names this file defines, which is all this
+    needs and all it can safely know: a command is a runner's syntax
+    (`unittest`'s dots, `pytest`'s `::`, something else tomorrow) and parsing it
+    would be this module learning three grammars. A command naming none of
+    them -- a whole-module run -- gets the whole module, which is today's
+    behaviour and the honest answer for a run that really does execute
+    everything.
+
+    Narrows only. A file that passes this today passes it after.
+    """
+    words = " ".join(command) if isinstance(command, (list, tuple)) else str(command)
+    named = [n for n in tree.body
+             if isinstance(n, (ast.ClassDef, ast.FunctionDef,
+                               ast.AsyncFunctionDef)) and n.name in words]
+    if not named:
+        return tree
+    picked = ast.Module(body=named, type_ignores=[])
+    return picked
+
+
+def verify(repo_root, *, command, test_path, target_file, target_symbol,
+           parent_commit=None, mutation=None, timeout=600):
     """Check whether a test has earned the right to close a review claim.
 
-    `command` runs exactly one test file. The parent commit goes into a throwaway
+    `command` runs exactly one test file. The red half goes into a throwaway
     worktree; the live tree is never touched, because a worker is standing in it.
+
+    Two ways to be red, and the second exists because the first cannot reach a
+    whole class of finding. `parent_commit` puts the test against the tree
+    before the repair -- which is the proof when there *was* a repair. A finding
+    of the form "nothing in the suite enters this function" has no repair: the
+    code was always right, nobody was looking at it, and the test therefore
+    passes at the parent and is refused for pinning nothing. Measured on five
+    such findings in one cut, all five refused, with the text closure refusing
+    them too (it reads the finding's own file, and the repair is a new file
+    under `tests/`). That left a signature as the only exit, which is the
+    outcome `review.resolve_symbol`'s own docstring exists to prevent.
+
+    So `mutation` is `(file, gone, now)`: break the code the test covers, and
+    the test has to notice. That is red-green one level up, and it is what the
+    author of such a test does by hand anyway to know the test works.
+
+    Exactly one of the two, because they answer the same question and a caller
+    that passed both would be asking which answer counts.
     """
+    if bool(parent_commit) == bool(mutation):
+        raise ValueError("verify needs `parent_commit` or `mutation`, not both "
+                         "and not neither -- they are two ways to make the same "
+                         "half red")
     repo_root = Path(repo_root).resolve()
     res = RedGreenResult()
 
@@ -446,15 +578,65 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol, parent_
     # the same question asked of a test offered as closure.
     try:
         import ast as _ast
+        from kernel import baseline as _bl
         from kernel.analysis import test_shape as _ts
-        _src = (Path(repo_root) / test_path).read_text(encoding="utf-8", errors="replace")
-        if _ts.source_assertions(_ast.parse(_src), _src):
+        _root = Path(repo_root)
+        _path = _root / test_path
+        _src = _path.read_text(encoding="utf-8", errors="replace")
+        # Two readers, one rule, and until now only one of them read the repo's
+        # own answer. `checkers/test_shape.py` subtracts the ids in
+        # `.v4/test-shape_baseline.json` -- findings an adopter accepted with a
+        # written reason -- and this did not. So an accepted assertion left
+        # `v4 check` green and still refused every closure offered out of its
+        # file. Measured: `d52045d6` was repaired inside a class that has to
+        # `ast.parse` `kernel/cli.py` to do its job, entry `2b3f027807b54dd7`
+        # accepted exactly that, `test-shape` printed "carrying 8" -- and the
+        # closure was refused anyway and had to be signed `unprovable`.
+        #
+        # Through `findings` and `finding_id` because they are the one spelling
+        # both readers already import, and `forgive` because it is `load` plus
+        # `partition` with the note the carried debt owes. A second expression
+        # here would be a second id, and every id in every adopter's baseline
+        # file is the first one. `complete=False` for the reason `partition`
+        # documents: this reads one file, so accepted entries belonging to the
+        # rest of the tree match nothing *in this scan* and are not stale.
+        # `is_test=True` and not `subject_files`' answer: this file is the
+        # `--test` of a closure, so it is a test by construction whatever it is
+        # named, and outside a declared test root that function answers on the
+        # name. Leaving the decision to it would have let a closing test called
+        # `t_mod.py` past the rule entirely -- a refusal that used to be
+        # unconditional here, so this would have been a hole opened by the fix.
+        _found = _ts.findings(str(_path.relative_to(_root)), _src,
+                              what_runs(_ast.parse(_src), command),
+                              "source_assertion", is_test=True)
+        try:
+            _found, _, _carried_notes = _bl.forgive(
+                repo_root, _ts.KIND, _found, _ts.finding_id, complete=False)
+        except _bl.Unreadable as exc:
+            # Not the outer `except`, which reports that this check did not run
+            # and leaves the closure standing. `.v4/**` is protected, so writing
+            # this file costs a widen and a signature -- but "expensive to
+            # write" is not "cannot be written", and reaching a file nobody can
+            # read must not be cheaper than answering the assertion. The checker
+            # answers 4 here for the same reason.
             res.symbol_executed = False
             res.notes.append(
-                "asserts on the source text of the code it is closing. Calling "
-                "the symbol once and then reading its source satisfies both "
-                "halves of red-green and still tests nothing -- the assertion "
-                "has to be about what the code did.")
+                f"{exc} -- so what it forgives could not be read, and this "
+                f"closure is refused rather than given the benefit of an "
+                f"exemption list nobody can read.")
+        else:
+            # Said out loud: a verdict reached while forgiving something is not
+            # the same verdict as one reached with nothing to forgive, and the
+            # reader of this closure is entitled to know which one they have.
+            res.notes.extend(_carried_notes)
+            if _found:
+                res.symbol_executed = False
+                res.notes.append(
+                    "asserts on the source text of the code it is closing. "
+                    "Calling the symbol once and then reading its source "
+                    "satisfies both halves of red-green and still tests "
+                    "nothing -- the assertion has to be about what the code "
+                    "did.")
     except Exception as exc:                                    # noqa: BLE001
         # This is the check an author trying to walk around red-green has an
         # interest in making raise, and a swallow left `symbol_executed` at its
@@ -498,16 +680,25 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol, parent_
 
     with tempfile.TemporaryDirectory() as td:
         wt = Path(td) / "parent"
-        add = subprocess.run(["git", "worktree", "add", "--detach", str(wt), parent_commit],
+        # HEAD for a mutation: the point is to compare against *this* tree with
+        # one thing broken, so any other commit would be measuring two changes.
+        ref = parent_commit or "HEAD"
+        add = subprocess.run(["git", "worktree", "add", "--detach", str(wt), ref],
                              cwd=repo_root, capture_output=True, text=True)
         if add.returncode != 0:
-            res.notes.append(f"could not check out {parent_commit}: {add.stderr.strip()}")
+            res.notes.append(f"could not check out {ref}: {add.stderr.strip()}")
             return res
         try:
             # The test is new, so it does not exist at the parent; carry it over.
             dst = wt / test_path
             dst.parent.mkdir(parents=True, exist_ok=True)
             dst.write_text((repo_root / test_path).read_text())
+
+            if mutation:
+                broke = _apply_mutation(wt, mutation)
+                if broke:
+                    res.notes.append(broke)
+                    return res
 
             rc_p, _, _, out_p = _run_traced(wt, command, target_file, target_symbol,
                                             timeout)
@@ -518,7 +709,7 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol, parent_
                 # them as red hands out a free half of the proof.
                 res.red_failed = False
                 res.notes.append(
-                    f"could not run at {parent_commit[:12]} (exit {rc_p}). A "
+                    f"could not run at {ref[:12]} (exit {rc_p}). A "
                     f"worktree has no untracked files, so the test environment is "
                     f"not the one you ran in. This is inconclusive, not red -- "
                     f"install what the test needs from tracked files, or point "
@@ -526,11 +717,32 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol, parent_
                     f"    {out_p.strip()[:300]}")
             else:
                 res.red_failed = rc_p != 0
-                if not res.red_failed:
+                if not res.red_failed and mutation:
                     res.notes.append(
-                        f"already passes at {parent_commit[:12]}, so it pins "
+                        f"still passes with {mutation[0]} broken, so it does not "
+                        f"cover what it says it covers. The mutation replaced "
+                        f"{mutation[1].strip()[:60]!r} and the test did not "
+                        f"notice.")
+                elif not res.red_failed:
+                    res.notes.append(
+                        f"already passes at {ref[:12]}, so it pins "
                         f"nothing -- it would have passed before the fix existed")
         finally:
-            subprocess.run(["git", "worktree", "remove", "--force", str(wt)],
-                           cwd=repo_root, capture_output=True)
+            gone = subprocess.run(
+                ["git", "worktree", "remove", "--force", str(wt)],
+                cwd=repo_root, capture_output=True, text=True)
+            if gone.returncode != 0:
+                # Every other step in this function reports its own failure by
+                # name -- the `worktree add` above quotes git's stderr, both
+                # COULD_NOT_RUN branches quote the exit and 300 characters of
+                # output -- and this one could not. The temp directory goes with
+                # the enclosing `TemporaryDirectory`; the administrative record
+                # under `.git/worktrees` does not, and `git worktree prune`
+                # appears nowhere in this tree, so a leak has no second
+                # mechanism to catch it and left no line saying it happened.
+                res.notes.append(
+                    f"the parent-commit worktree could not be removed (git "
+                    f"exited {gone.returncode}), so a record of it is left "
+                    f"under .git/worktrees and `git worktree list` will show "
+                    f"it: {(gone.stderr or '').strip()[:200]}")
     return res

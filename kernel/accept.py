@@ -32,6 +32,7 @@ from pathlib import Path
 
 from . import config as config_mod
 from . import layout
+from . import runner
 
 #: The checkers that ask a whole-tree question rather than a delta one.
 #:
@@ -118,9 +119,35 @@ def _history(root: Path, dst: Path):
                    cwd=dst, check=True, stdout=subprocess.DEVNULL)
 
 
-def _run(argv, cwd, env, timeout=1800):
+def _run(argv, cwd, env, timeout=None):
+    # `config.DEFAULT_TEST_TIMEOUT`, not a second literal. That constant's
+    # own comment says "One number, because there were two" about the
+    # timeout beside it, and this was the third.
     return subprocess.run(argv, cwd=cwd, env=env, capture_output=True,
                           text=True, timeout=timeout)
+
+
+def _suite_timeout(cfg) -> int:
+    """How long the repo's own suite may take, from the one place that knows.
+
+    `config.DEFAULT_TEST_TIMEOUT` carries the number and its own comment says
+    "One number, because there were two" -- and there were three: `_run`
+    defaulted to 1800 and the shell branch below passed 3600, neither reading
+    the constant nor the `test_timeout_sec` a repo may declare. A suite between
+    the two numbers was killed or not depending on whether `test_command` was
+    written as a list or a string.
+
+    `declared` rather than `.get`, for the reason that constant records: a repo
+    that wrote `TODO` there has not said, and that is different from a
+    `ValueError`.
+    """
+    said = None
+    try:
+        said = config_mod.declared(cfg.config, "test_timeout_sec")
+        said = int(said) if said is not None else None
+    except Exception:                                           # noqa: BLE001
+        said = None
+    return said or config_mod.DEFAULT_TEST_TIMEOUT
 
 
 #: Lines of the tail quoted in the row, and the width of each. Both are the
@@ -162,6 +189,33 @@ def _test_detail(cmd, code: int, out: str) -> str:
     return f"{tail[:_TAIL_WIDTH]}  -- whole output: {path}"
 
 
+def _fixture_detail(kind: str, failures) -> str:
+    """The names, and where the output that says why went.
+
+    Both fixture steps read `if r.returncode: bad.append(cid)` and dropped
+    stdout and stderr, so a failing acceptance said "29/31 registrable --
+    design-pins, dead-wiring" and gave no reason -- and `cmd_accept` runs this
+    inside a `TemporaryDirectory` it deletes before the summary prints, so the
+    tree it failed in is gone too and the only repair was to rebuild it by hand.
+
+    `_test_detail` above was written for exactly that cost, and records it:
+    "Measured 2026-08-27: two sessions hit this on the same day and one never
+    recovered them". This is the same instrument for the two steps beside it --
+    the whole output outside the tree, the path named where nothing was.
+
+    Only on failure, for the reason that one gives: a file per green `v4 accept`
+    is litter that teaches people to ignore the line.
+    """
+    if not failures:
+        return ""
+    fd, path = tempfile.mkstemp(prefix=f"v4-accept-{kind}-", suffix=".log")
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        for name, out in failures:
+            fh.write(f"===== {name}\n{out}\n")
+    return (f" -- {', '.join(n for n, _ in failures)}"
+            f"  -- whole output: {path}")
+
+
 def run(root: Path, *, tests=True, fixtures=True, docs=True, on_step=None):
     """[(step, ok, detail)] -- what held and what did not.
 
@@ -179,8 +233,23 @@ def run(root: Path, *, tests=True, fixtures=True, docs=True, on_step=None):
     # `accept --here --docs` a traceback from `design_pins`. The framework is
     # wherever this module was imported from.
     framework = Path(__file__).resolve().parent.parent
-    env = dict(os.environ, PYTHONPATH=os.pathsep.join(
-        dict.fromkeys([str(root), str(framework)])))
+    # `runner.child_env`, not `dict(os.environ)`. That function is the declared
+    # owner of what a spawned program is entitled to, and it says why in one
+    # line -- "the whole parent environment is the shape this refuses". This
+    # path handed the repo's own `test_command` and every `verify` child
+    # everything, so the same suite ran in a wider environment when reached
+    # through `v4 accept` than through `v4 check`, and the environment is where
+    # credentials live.
+    #
+    # The two paths this adds are not entitlements the allowlist withholds:
+    # they are how a child finds the tree it is judging and the framework
+    # judging it, which is this function's own contribution and nothing to do
+    # with what the parent happened to be holding.
+    env = runner.child_env()
+    env["PYTHONPATH"] = os.pathsep.join(
+        dict.fromkeys([str(root), str(framework),
+                       *(env.get("PYTHONPATH", "").split(os.pathsep))])).strip(
+        os.pathsep)
     out = []
 
     def say(step, ok, detail):
@@ -190,9 +259,10 @@ def run(root: Path, *, tests=True, fixtures=True, docs=True, on_step=None):
 
     if tests:
         cmd = cfg.config.get("test_command")
-        r = _run(cmd, root, env) if isinstance(cmd, list) else \
+        r = _run(cmd, root, env, _suite_timeout(cfg)) if isinstance(cmd, list) else \
             subprocess.run(cmd, cwd=root, env=env, shell=True,
-                           capture_output=True, text=True, timeout=3600)
+                           capture_output=True, text=True,
+                           timeout=_suite_timeout(cfg))
         say("tests", r.returncode == 0,
             _test_detail(cmd, r.returncode, (r.stdout or "") + (r.stderr or "")))
 
@@ -206,10 +276,10 @@ def run(root: Path, *, tests=True, fixtures=True, docs=True, on_step=None):
                       "--fixtures", entry["fixtures"],
                       "--kind", entry["kinds"][0]], root, env)
             if r.returncode:
-                bad.append(cid)
+                bad.append((cid, (r.stdout or "") + (r.stderr or "")))
         say("checkers", not bad,
             f"{len(reg) - len(bad)}/{len(reg)} registrable"
-            + (f" -- {', '.join(bad)}" if bad else ""))
+            + _fixture_detail("checkers", bad))
 
         det = json.loads((root / config_mod.DETECTORS).read_text())
         det = det.get("detectors", det)
@@ -219,10 +289,10 @@ def run(root: Path, *, tests=True, fixtures=True, docs=True, on_step=None):
                       "verify-detector", "--detector", entry["path"],
                       "--fixtures", entry["fixtures"]], root, env)
             if r.returncode:
-                bad.append(name)
+                bad.append((name, (r.stdout or "") + (r.stderr or "")))
         say("detectors", not bad,
             f"{len(det) - len(bad)}/{len(det)} usable"
-            + (f" -- {', '.join(bad)}" if bad else ""))
+            + _fixture_detail("detectors", bad))
 
     if docs:
         reg = json.loads((root / config_mod.CHECKERS).read_text())

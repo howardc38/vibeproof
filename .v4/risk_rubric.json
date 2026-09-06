@@ -1,6 +1,6 @@
 {
   "source": "auto-dev-framework/OPERATIONAL_RISK_RUBRIC.md rubric_version 1.0 (2026-07)",
-  "why": "The denominator `v4 coverage` used to report against was the predecessor's obligation catalogue: 557 ids, and this repo's own reconciliation showed two thirds of them are PO-DL-nnn generated per phase and will never recur. Answering a coverage question against a denominator that is mostly one-off by construction is the same as not answering it.\n\nThese 17 are risk classes, not stack mechanics -- drawn from Google SRE PRR, AWS Well-Architected, 12-Factor and OWASP, plus the shapes that recurred across the predecessor's overlay corpus. They change on a multi-year cadence. Nine are marked `judgment`: only this project's own architecture answers them, and a web-only generator systematically misses them -- which is exactly the half a checker cannot reach either.\n\n`answered_by` is hand-written. Whether two questions have anything in common is a judgement and no string comparison recovers it.",
+  "why": "The denominator `v4 coverage` used to report against was the predecessor's obligation catalogue: 557 ids, and this repo's own reconciliation showed two thirds of them are PO-DL-nnn generated per phase and will never recur. Answering a coverage question against a denominator that is mostly one-off by construction is the same as not answering it.\n\nThese 17 are risk classes, not stack mechanics -- drawn from Google SRE PRR, AWS Well-Architected, 12-Factor and OWASP, plus the shapes that recurred across the predecessor's overlay corpus. They change on a multi-year cadence. Nine are marked `judgment`: only this project's own architecture answers them, and a web-only generator systematically misses them -- which is exactly the half a checker cannot reach either.\n\n`answered_by` is hand-written. Whether two questions have anything in common is a judgement and no string comparison recovers it.\n\nMapping reviewed 2026-09-06 against current claim kinds. answered_by identifies a related mechanism, not proof that the whole category is covered. These mechanisms inspect bounded patterns; current covered categories are marked partial.",
   "rows": [
     {
       "n": 1,
@@ -43,9 +43,10 @@
       "fill": "judgment",
       "answered_by": [
         "external-write",
-        "fail-closed"
+        "fail-closed",
+        "runtime-proof"
       ],
-      "coverage": "answered"
+      "coverage": "partial"
     },
     {
       "n": 6,
@@ -60,10 +61,8 @@
       "category": "Authorization guard tiering",
       "trigger": "Are there discrete, independently-verified guard tiers rather than one `isAuthenticated` check?",
       "fill": "judgment",
-      "answered_by": [
-        "route-auth"
-      ],
-      "coverage": "partial"
+      "answered_by": [],
+      "coverage": "none"
     },
     {
       "n": 8,
@@ -72,21 +71,17 @@
       "fill": "mixed",
       "answered_by": [
         "secret",
-        "secret-chain",
-        "bundle-secret",
         "test-token-shape"
       ],
-      "coverage": "answered"
+      "coverage": "partial"
     },
     {
       "n": 9,
       "category": "Centralized typed config, fail-fast at startup",
       "trigger": "Does the project read env/config that, if missing/malformed, should crash at startup rather than deep in a request?",
       "fill": "mixed",
-      "answered_by": [
-        "lint"
-      ],
-      "coverage": "partial"
+      "answered_by": [],
+      "coverage": "none"
     },
     {
       "n": 10,
@@ -94,8 +89,7 @@
       "trigger": "Does the project call external SDKs/HTTP/ORM/broker libs whose native types could leak into domain logic?",
       "fill": "judgment",
       "answered_by": [
-        "layer-boundary",
-        "dal-write"
+        "layer-boundary"
       ],
       "coverage": "partial"
     },

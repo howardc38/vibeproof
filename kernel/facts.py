@@ -589,14 +589,30 @@ def tree_drift(facts: Facts, root: str | Path) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
+    # `v4 facts`, not `python -m kernel.facts`. This module owns the rules and
+    # `cli.cmd_facts` delegates to it on purpose -- a second parser there would
+    # be a second answer -- but that made this the only usage text a reader
+    # ever sees, and it named the invocation `docs/USING.md` says not to use
+    # (所有指令行 `./bin/v4`), which is the sentence `cmd_facts` quotes as the
+    # reason it exists. Measured: `./bin/v4 facts scan <one path>` exits 2 and
+    # prints five lines of `python -m kernel.facts`.
+    #
+    # The module stays runnable that way -- `__main__` below is how the tests
+    # and a maintainer reach it -- so both forms are named, in the order a
+    # reader should try them.
     usage = (
-        "usage: python -m kernel.facts propose <repo-root>\n"
-        "       python -m kernel.facts validate <facts.json>\n"
-        "       python -m kernel.facts verify <facts.json> <repo-root> "
-        "[--gone-only]\n"
-        "       python -m kernel.facts restate <facts.json> <repo-root>\n"
-        "       python -m kernel.facts scan <facts.json> <repo-root> "
-        "[outbound_write|outbound_read|auth_decision] [--sites] [--tests]"
+        "usage: v4 facts propose\n"
+        "       v4 facts validate\n"
+        "       v4 facts verify [--gone-only]\n"
+        "       v4 facts restate\n"
+        "       v4 facts scan [outbound_write|outbound_read|auth_decision] "
+        "[--sites] [--tests]\n"
+        "\n"
+        "`v4 facts` fills in this repo's table and root; spelled out, the same "
+        "commands are\n"
+        "`python -m kernel.facts <command> <facts.json> [<repo-root>] ...`, "
+        "which is what this\n"
+        "module answers to directly."
     )
     if not argv or argv[0] in {"-h", "--help"}:
         print(usage)

@@ -217,13 +217,36 @@ class TheHooksActuallyRun(unittest.TestCase):
     def test_record_seen_says_on_stderr_when_it_cannot_write(self):
         import io
         import contextlib
+        # A repo that adopted v4 and whose mark still could not be written.
+        # A bare directory is a different fact -- a tree that never adopted v4,
+        # where this hook has nothing to record and says nothing, because it
+        # fires in every repo the agent touches and a line per tool call there
+        # is noise. `.v4/` is the adoption; the kernel being out of reach is
+        # the failure this case is about.
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        (tmp / ".v4").mkdir()
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
             write_block._record_seen(tmp, None, "x.py")
         self.assertTrue(err.getvalue().strip(),
                         "a mark that could not be written said nothing at all")
+
+    def test_and_a_repo_that_never_adopted_v4_is_left_alone(self):
+        """The other side of the same line. These hooks are installed in the
+        agent's settings, so they fire in every repository their user opens;
+        recording in one that has no `.v4/` both talks over every tool call and
+        creates a ledger nobody asked for."""
+        import io
+        import contextlib
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        subprocess.run(["git", "init", "-q"], cwd=tmp, capture_output=True)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            write_block._record_seen(tmp, None, "x.py")
+        self.assertEqual(err.getvalue(), "")
+        self.assertFalse((tmp / ".git" / "v4" / "ledger.db").exists())
 
     def test_the_hook_reaches_the_kernel_through_one_bootstrap(self):
         """`write_block._kernel` is gone. It read `V4_HOME` and `.v4/home`,

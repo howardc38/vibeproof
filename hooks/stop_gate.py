@@ -129,7 +129,16 @@ def _open_task(repo_root: Path, session: str = ""):
             return mine[0] if len(mine) == 1 else AMBIGUOUS
         finally:
             conn.close()
-    except sqlite3.Error:
+    except sqlite3.Error as exc:
+        # `_states` and `_ended` in this file were both repaired to say when
+        # they could not answer -- "Silence here was the third stand-down with
+        # no message, while the two above both print" -- and this one was left.
+        # A ledger that will not open and a repo with no open task produced the
+        # same `{}`, so a gate that had stopped working looked like a turn it
+        # had nothing to say about.
+        print(f"v4 stop_gate: the ledger did not open ({exc}), so which task "
+              f"is open is unknown and this turn is not being gated",
+              file=sys.stderr)
         return None
 
 
@@ -175,18 +184,10 @@ def _is_open(repo_root: Path, task_id: str):
 
     A hook that cannot tell must not start ignoring what it was told.
     """
-    db = _framework.db_path(repo_root)
-    ledger = _framework.ledger(repo_root)
-    if db is None or ledger is None:
-        return True
-    try:
-        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
-        try:
-            return task_id in ledger.open_task_ids(conn)
-        finally:
-            conn.close()
-    except sqlite3.Error:
-        return True
+    # `_framework.is_open`, not a copy. This was the correct half of a rule
+    # written twice; its twin in `write_block` had the connect outside the
+    # `try` and raised where this answered.
+    return _framework.is_open(repo_root, task_id)
 
 
 def _worked_here(repo_root: Path, task_id: str, session: str):
@@ -234,10 +235,16 @@ def _repo_and_task(session: str = ""):
     # already had an ending. It offered three ways out and every one of them
     # would have given a finished task a second ending, which the ledger cannot
     # hold. A name pointing at something over is not a disambiguation.
-    named = os.environ.get("V4_TASK")
-    if named and not _is_open(root, named):
-        named = None
-    return root, (named or _open_task(root, session))
+    #
+    # The two implementations still differed after that repair, and the
+    # difference was what happens to the dropped value: `write_block` keeps it
+    # and puts it on the `hook_seen` row as a note, so "your shell was pointing
+    # at a finished task and the ledger was used instead" is answerable
+    # afterwards. This one discarded it with no trace, so the same session was
+    # accountable for its writes and not for its stops. Returned now, and the
+    # caller says so.
+    named, stale = _framework.task_id(root)
+    return root, (named or _open_task(root, session)), stale
 
 
 def _states(repo_root: Path, task_id: str):
@@ -316,8 +323,17 @@ def _ended(repo_root: Path, task_id: str) -> bool:
         return True
     try:
         conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
-        ledger = _framework.ledger(repo_root)
-        kinds = getattr(ledger, "ENDED_KINDS", ("shipped", "abandoned"))
+        kinds = _framework.ended_kinds(repo_root)
+        if kinds is None:
+            # The owner could not be reached, so this cannot answer. `True`
+            # here means "treat the task as ended" and lets the turn finish;
+            # the `except` below already says what that costs, and a guessed
+            # tuple would answer the question wrongly rather than not at all.
+            conn.close()
+            print("v4 stop_gate: the kernel could not be reached, so which "
+                  "kinds end a task is unknown and this turn is not gated",
+                  file=sys.stderr)
+            return True
         marks = ", ".join("?" for _ in kinds)
         row = conn.execute(
             f"SELECT 1 FROM event WHERE task_id = ? AND kind IN ({marks}) LIMIT 1",
@@ -334,6 +350,29 @@ def _ended(repo_root: Path, task_id: str) -> bool:
               f"({type(exc).__name__}: {exc}), so it stood down for this turn",
               file=sys.stderr)
         return True
+
+
+def _mark(repo_root, task_id, *, allowed: bool, reason: str = "",
+          basis: str = "", session: str = ""):
+    """Leave a row saying this gate ran, and what it decided.
+
+    It never left one. `doctor`'s hook census read a single arbitrary
+    `hook_seen` row and reported all three hooks alive, so the Stop gate -- the
+    only one of the three that can block a turn -- was reported alive on the
+    strength of its filename appearing in `.claude/settings.json`, and would
+    have read `ok  hooks  3 hook(s) wired, last fired <now>` on the day it
+    stopped running. `write_block._record_seen` states the principle this is
+    the third copy of: whether a hook is installed is configuration, whether it
+    fired is a fact.
+
+    The `rel` a write hook records is the path it judged. This gate judges a
+    turn, so it records the task it judged it against.
+    """
+    why = _framework.record_seen(repo_root, task_id, f"task:{task_id}",
+                                 allowed=allowed, reason=reason, basis=basis,
+                                 session=session, hook="stop_gate")
+    if why:
+        print(f"v4 stop_gate: no mark written -- {why}", file=sys.stderr)
 
 
 def refuse_the_stop(reason: str) -> int:
@@ -364,7 +403,7 @@ def refuse_the_stop(reason: str) -> int:
 def main():
     try:
         payload = json.load(sys.stdin) or {}
-    except Exception:                                           # noqa: BLE001
+    except Exception as exc:                                    # noqa: BLE001
         # An unreadable payload is not an empty one. `stop_hook_active` is the
         # field that stops this hook asking twice, and treating "cannot read it"
         # as "it was not set" is how a gate turns into the loop its own docstring
@@ -375,6 +414,12 @@ def main():
         # moment the task could be found without that variable, the crash path
         # started blocking. A hook that blocks when it cannot tell is a hook
         # somebody switches off.
+        #
+        # Standing down is right; standing down without a word is what made a
+        # dead gate and a turn with nothing to say look the same. The comment
+        # above got the verdict right and left the silence in place.
+        print(f"v4 stop_gate: stood down without checking -- the payload did "
+              f"not read ({type(exc).__name__}: {exc})", file=sys.stderr)
         print("{}")
         return 0
 
@@ -387,7 +432,15 @@ def main():
         return 0
 
     session = str(payload.get("session_id") or "")
-    repo_root, task_id = _repo_and_task(session)
+    repo_root, task_id, stale = _repo_and_task(session)
+    if stale:
+        # `write_block` records this on the row it writes. This hook writes no
+        # row, so stderr is where it can be said at all -- and it has to be
+        # said somewhere: a session whose shell points at a finished task is
+        # being gated against a task it did not name, and until now only its
+        # writes were accountable for that and not its stops.
+        print(f"v4 stop_gate: V4_TASK={stale} has ended, so the ledger was "
+              f"used instead of it", file=sys.stderr)
     if task_id is AMBIGUOUS:
         # Nothing here knows which task this turn was about, and the answer this
         # gate gives is the one `write_block` gives to the same state: say so.
@@ -395,21 +448,27 @@ def main():
         # was opened last, and `_worked_here` could not correct it, because the
         # marks it reads had been written against every open task by a hook
         # that could not tell either.
-        print(json.dumps({"decision": "block",
-                          "reason": _ambiguous_text(repo_root)}))
-        return 0
+        # Through `refuse_the_stop`, like the other three. It was extracted so
+        # that "a fourth refusal added later reaches the declared decision by
+        # calling it, rather than by printing the same dict somewhere new" --
+        # and this was that fourth refusal, printing the same dict. The facts
+        # table names this symbol as the one that decides who may end a turn
+        # and says all of them go through it; three of four did.
+        return refuse_the_stop(_ambiguous_text(repo_root))
     if not task_id:
         print("{}")
         return 0
 
     if _ended(repo_root, task_id):
+        _mark(repo_root, task_id, allowed=True, reason="",
+              basis="the task has ended", session=session)
         print("{}")
         return 0
 
     # Whose task this is. `V4_TASK` is this session saying so itself, and is
     # taken at its word; anything else came from the repo, and the repo does not
     # know who is asking.
-    if not os.environ.get("V4_TASK") and \
+    if not _framework.task_id(repo_root)[0] and \
             not _worked_here(repo_root, task_id, session):
         print("{}")
         return 0
@@ -420,6 +479,8 @@ def main():
         return 0
 
     if not states:
+        _mark(repo_root, task_id, allowed=False, reason="no claims",
+              basis="derive has not run here", session=session)
         # Zero claims is not "every claim is answered". It is one of two things
         # and both are worth saying: `v4 derive` has not run on this task, or it
         # ran and its scope matched nothing a detector could raise about. The
@@ -440,6 +501,8 @@ def main():
 
     open_claims = [(s, cid, kind) for s, cid, kind in states if s not in TERMINAL]
     if not open_claims:
+        _mark(repo_root, task_id, allowed=False, reason="answered, not shipped",
+              basis="every claim terminal", session=session)
         return refuse_the_stop(
             f"Every claim on {task_id} is answered and it has not shipped.\n\n"
             f"  v4 --repo . ship --task {task_id}\n\n"
@@ -450,6 +513,8 @@ def main():
             f"(SPEC.md §12.5) -- hand back and say the claims are answered. "
             f"This hook will not ask twice.")
 
+    _mark(repo_root, task_id, allowed=False, reason="claims still open",
+          basis=f"{len(open_claims)} open", session=session)
     lines = "\n".join(f"  {s:<14} {cid}  {kind}" for s, cid, kind in open_claims[:8])
     return refuse_the_stop(
         f"{len(open_claims)} claim(s) on {task_id} are still open:\n\n{lines}\n\n"

@@ -34,7 +34,7 @@ description: 後閘。到期就一個 lens 開一個 reviewer,全部並行,盲�
 sweep-current claim,逾期擋住 `v4 ship`;`a9ae5fb`(2026-08-24)量過佢跑咗 295 次
 只 fail 過一次,連同佢個 detector 同 checker 一齊剷咗。今日淨返三樣,三樣都唔係閘:
 `./bin/v4 --repo . sweep --if-due` 唔到期 exit 1、到期先印 brief;`v4 doctor` 嗰行
-`sweep` 只講最後一次幾時,唔講夠鐘未;`.github/workflows/v4.yml` 星期一個 cron 讀
+`sweep` 只講最後一次幾時,唔講夠鐘未;private 維護 workflow 目前每日的 cron 讀
 committed export 印 DUE 定 not due,而佢個註釋自己寫住唔係一個閘 —— 綠代表算得出,
 唔代表有人睇過。
 
@@ -49,7 +49,7 @@ committed export 印 DUE 定 not due,而佢個註釋自己寫住唔係一個閘 
     repo 路徑
 ```
 
-**分開幾個 message 開,就係順序執行。** 實測記錄:
+使用 host 支援的並行 dispatch，別等上一個完成才啟動下一個；message 數目本身不是並行證據。歷史記錄：
 2026-08-18 嘅 sweep,11 個 lens agent 真並行,214 條 finding。
 2026-08-18 同一個框架喺 adopter 度嗰次,ledger 寫住 `11 lens(es) claimed, 1 ran`。
 個框架印埋兩個數,就係為咗捉呢個分別。
@@ -81,14 +81,16 @@ Reviewer 出 claim,唔出 verdict,亦都唔修理:
                              --note '<一句,錯咗乜>'
 ```
 
-`--lens` 唔可以省(claim id 由佢派生,兩條撞埋第二條會變成第一條嘅修訂);
+為咗歸屬清楚，提供 `--lens`。省略會用預設分類；同座標不同 note 現時會開編號 variant，
+唔會自動修訂舊 note，修訂要用 `review amend`。
 `--symbol` 要係一個 stack frame 叫得出名嘅嘢(module-level 常數會即場拒 —— 冇 test
 執行得到,即係嗰條 claim 永世閂唔到,唯一出口係簽名)。
 
 ## 之後
 
 Finding 落喺 `repo-review` 呢個常設 task,唔係落喺你手上。閂佢係另一件事:
-一個 red-green test(parent 紅、HEAD 綠、而且真係執行過嗰個 symbol),或者一個人簽名。
+一個適用的 red-green test（含目標執行）、非程式檔案的文字修正證據，或授權的具名風險接受。
+文件／JSON finding 不要傳 `--symbol`；延期只記錄決定，不會自動令 claim terminal。
 要並行去修,用 `/wave`。
 
 `v4 risk waiting` 會講邊條係「重跑就得」、邊條係「只有簽」。

@@ -45,9 +45,26 @@ KERNEL_WRITTEN = (
     # `cli.cmd_install` passes it to `stamp_generated`, so an install still
     # answers for it by hash; a hand edit no longer does.
     ".v4/ledger_export.jsonl",
-    # The manifest cannot record its own final hash -- writing the entry changes
-    # the bytes the entry describes. Everything else `install` generates is
-    # answered by record (`install.stamp_generated`); this one has to be by name.
+    #
+    # `.v4/chain_head.json` above and `.v4/ledger_export.jsonl` here are the two
+    # this list cannot answer for by bytes: `v4 ship` writes them, not
+    # `v4 install`, so `stamp_generated` has no record of them and the sha
+    # branch is silent. That makes them exactly the shape the comment above
+    # gives for removing `.v4/checkers.json` -- exempt whatever their content --
+    # and a review asked why they stay.
+    #
+    # They stay because a stronger mechanism owns both, and this is where that
+    # is said. `ledger.audit_chain` compares the anchor against the rows it
+    # anchors and `v4 ship` refuses on `chain: BROKEN`; `ledger.verify_exported`
+    # walks the committed export the same way. A hand edit of either is caught
+    # by the thing whose whole job is to catch it, and caught harder than a
+    # `scope` row -- `ship` stops. What `scope` would add is a second reader of
+    # the same fact, on a path the kernel rewrites on every ship, which is how
+    # `.gitignore` and `.v4/home` got here.
+    #
+    # `tests/test_gates_that_said_one_thing.py` pins the handover: a forged
+    # anchor is refused by the audit. Naming a mechanism and not checking it is
+    # the half of this argument that costs nothing to make.
     ".v4/installed.json",
     # `install.write_launcher` appends a block to `.gitignore`, and nothing
     # recorded that it did -- so the next task saw it in `git diff` with nobody
@@ -89,6 +106,26 @@ ADOPTER_OWNED = (
     # was written, and `EveryPathUnderV4IsAccountedFor` only scans `kernel/**`,
     # so nothing had ever had to say which of the two it is.
     ".v4/rule_dispositions.json",
+    # A repo's declared ceiling and the written reason for its last raise.
+    # `checkers/control_plane_budget.py` reads it and nothing writes it; raising
+    # it is the one-line diff its own FAIL message describes, made by a person.
+    ".v4/control_plane_budget.json",
+    # The three baselines this repo carries. A checker *proposes* one with
+    # `--emit-baseline` and a person accepts entries into it, one at a time,
+    # each with a reason and an id -- so the file that lands in git is somebody's
+    # decision, not the kernel's output. `config.BASELINE_TEMPLATE` names them
+    # by pattern, and a pattern is what the scan below could not read: it splits
+    # at the brace and leaves `.v4/`, which every entry starts with, so the
+    # question was answered trivially for all three.
+    ".v4/fail-closed_baseline.json",
+    ".v4/test-shape_baseline.json",
+    ".v4/test-token-shape_baseline.json",
+    # What this repo says it must answer for, and how it grades what it did not.
+    # `kernel/coverage.py` reads both and writes neither; `cli` prints when they
+    # are absent. Nothing in `kernel/`, `checkers/`, `detectors/` or `hooks/`
+    # produces them.
+    ".v4/obligation_catalogue.json",
+    ".v4/risk_rubric.json",
 )
 
 #: The third answer, and the one that scales: `v4 install` copies these in and

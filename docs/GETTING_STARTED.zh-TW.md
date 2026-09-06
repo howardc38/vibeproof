@@ -1,6 +1,6 @@
 # 從短 demo 到自己的第一個 task
 
-先跑 [獨立示範](../examples/first-proof/README.md)，再把完整 framework 用在一個可以還原的 git 專案。最容易開始的環境是 Claude Code、Python 3.12+，以及已經能執行的測試。
+先跑 [獨立示範](../examples/first-proof/README.md)，再把完整 framework 用在一個可以還原的 git 專案。最容易開始的環境是 Claude Code、Python 3.12+，以及已經能執行的測試。完整流程使用 macOS 或 Linux；尚未驗證原生 Windows。
 
 ## 你決定，agent 執行
 
@@ -88,3 +88,6 @@ SHIP 不會替你部署，也不保證需求、安全性或所有分支正確。
 ## 第一個 task 後
 
 告訴我們：哪一步最麻煩？有抓到你確認值得修的問題嗎？哪些是誤報？下一個任務會不會繼續用？[回饋入口](https://github.com/howardc38/vibeproof/issues/new?template=first-run.yml)。只需自願分享去敏紀錄，不需要私人程式或憑證。
+
+Framework maintainers: develop in the private canonical repo; keep an adopter
+pointing to a stable released framework checkout. See [SYNC.md](SYNC.md).

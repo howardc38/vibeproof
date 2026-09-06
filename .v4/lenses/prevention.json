@@ -1,7 +1,7 @@
 {
   "name": "Prevention",
   "source": "前身 33 份守則 · 由 checker 候選降級落嚟",
-  "why": "每一條都曾經被判「做得到 checker」,然後喺對抗核(要求提出真實 red 同 green)度企唔住。**企唔住唔等於規則假**,而四個理由要分開睇 —— 每條 check 帶住佢自己嗰個。\n最重要嗰個係「今日冇實例」:一條預防規則喺一個健康 repo 度應該就係揾唔到嘢。用「冇發生過」去否證一個防禦,就係 Wald 嗰架轟炸機 —— 你數緊飛得返嚟嗰啲。\n放喺 lens 唔放喺 checker,因為 reviewer 睇住一個 diff 判得到,而一個 checker 對住成個 repo 會誤報。",
+  "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n每一條都曾經被判「做得到 checker」,然後喺對抗核(要求提出真實 red 同 green)度企唔住。**企唔住唔等於規則假**,而四個理由要分開睇 —— 每條 check 帶住佢自己嗰個。\n最重要嗰個係「今日冇實例」:一條預防規則喺一個健康 repo 度應該就係揾唔到嘢。用「冇發生過」去否證一個防禦,就係 Wald 嗰架轟炸機 —— 你數緊飛得返嚟嗰啲。\n放喺 lens 唔放喺 checker,因為 reviewer 睇住一個 diff 判得到,而一個 checker 對住成個 repo 會誤報。",
   "checks": [
     {
       "check": "Every repo-relative path and every cross-document section anchor mentioned in an active document must resolve.",
@@ -49,7 +49,7 @@
       "from": "R-cf16bf3d"
     },
     {
-      "check": "A client-supplied identity value must not reach a query or write unless the same function also makes an auth decision.",
+      "check": "Client-supplied identity must be validated by the server-side authorization path before the query or write. Follow middleware and callers as well as the local function.",
       "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
       "from": "R-6bffe12c"
     },
@@ -74,7 +74,7 @@
       "from": "R-93b692d8"
     },
     {
-      "check": "A missing required secret crashes at import: no optional-read form for a SECRET/KEY/TOKEN/PASSWORD-named value in a config module without a module-level failure.",
+      "check": "Validate a required secret before its dependent capability starts. Unrelated imports and intentionally disabled capabilities must remain usable without it.",
       "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
       "from": "R-f9d6d8f3"
     },
@@ -119,7 +119,7 @@
       "from": "R-86770309"
     },
     {
-      "check": "No DML statement without a WHERE clause.",
+      "check": "An UPDATE or DELETE without a WHERE clause requires an intentional whole-table operation and appropriate safeguards; INSERT syntax does not require a WHERE clause.",
       "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
       "from": "R-6491a845"
     },
@@ -284,7 +284,7 @@
       "from": "R-e1e214fe"
     },
     {
-      "check": "No bare print or console output in production files.",
+      "check": "For production services, distinguish structured operational logs from CLI/user-facing output; missing diagnostic context is the concern, not every use of print.",
       "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
       "from": "R-0c590532"
     },
@@ -384,7 +384,7 @@
       "from": "R-64ae3807"
     },
     {
-      "check": "Declared scope lists exact repo-relative paths, never globs or prefixes.",
+      "check": "Declared scope uses intentional repo-relative paths or supported globs; expand them against the intended change set and avoid accidentally broad scope.",
       "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
       "from": "R-a4f341a6"
     },
@@ -569,7 +569,7 @@
       "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊"
     },
     {
-      "check": "A test that reaches a networked symbol must carry a marker. `test_command` carries a marker filter, so an unmarked test enters the one oracle every `test` claim rests on and goes green wherever the thing it tests is unreachable.",
+      "check": "A test using a real external dependency declares its prerequisites and test type in the repo’s runner convention. Read the actual test_command and CI configuration; do not assume a marker filter exists or treat an unavailable dependency as a pass.",
       "why_not_a_checker": "建過,量過,拆咗。靜態掃出 66 個 test 檔,而抽驗第一個(tests/agent/test_loop.py)有 66 處 mock 迹象 —— 佢 mock 到貼地。分辨「真係打出去」同「mock 咗」要跟得到 fixture、monkeypatch、MagicMock 三條路,而一個睇住 diff 嘅 reviewer 一眼睇得出。",
       "from": "measured-2026-08-07"
     }

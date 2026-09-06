@@ -553,7 +553,7 @@ class OneShapeCrossesTheProcessBoundary(unittest.TestCase):
             "a = p.parse_args()\n"
             "s = json.loads(pathlib.Path(a.subject).read_text())\n"
             "print('KEYS ' + ','.join(sorted(s)))\n")
-        rc, out, err, _payload = detector_protocol.run_detector(
+        rc, out, err, _payload, _ms = detector_protocol.run_detector(
             root, root / "d.py", ["a.py"], diff_base="HEAD",
             params={"derive_exclude": ["x/**"]})
         self.assertEqual(rc, 0, err)

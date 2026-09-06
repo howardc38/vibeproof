@@ -2730,14 +2730,21 @@ class DetectorFixturesAreNotBorrowed(unittest.TestCase):
         self.assertTrue(register._shares_logic(
             tmp, tmp / "detectors/widget.py", "checkers/widget.py"),
             "the module named after the rule is the judgement")
-        return
-        # Identity, not spelling: the point is that both reach *the same*
-        # `facts_grammar`, and an import line asserted as text is satisfied by
-        # a file that imports it and then rebinds the name.
-        from kernel.analysis import facts_grammar as owner
+        # Identity, not spelling: the point is that both halves reach *the
+        # same* module object, and an import line asserted as text is satisfied
+        # by a file that imports it and then rebinds the name.
+        #
+        # `kernel.analysis.external_write`, not `facts_grammar`. These four
+        # lines sat behind a bare `return` -- the only unreachable block in the
+        # suite -- and when the return came out they failed: neither file binds
+        # `facts_grammar` any more. Both bind `external_write as analysis`, so
+        # that is the shared owner now, and asking about the old name was
+        # asking about nothing. The question is the one the comment always
+        # stated; the name it is asked of moved.
+        from kernel.analysis import external_write as owner
         for rel in ("detectors/external_write.py", "checkers/external_write.py"):
             mod = _load_module(REPO / rel)
-            self.assertIs(mod.facts_grammar, owner, rel)
+            self.assertIs(mod.analysis, owner, rel)
 
     def test_its_own_set_is_always_fine(self):
         self.assertEqual(
@@ -4666,11 +4673,28 @@ class NoKindStopsYouAndThenSaysNothing(unittest.TestCase):
     def test_a_kind_that_is_not_engaged_says_why(self):
         # The alternative to a rule is a stated reason, not silence. Otherwise
         # `engagement: false` becomes the quiet way to delete a checkpoint.
+        #
+        # `not spec.get("engagement_why")` used to be part of the `continue`,
+        # which skipped exactly the rows this exists for: it measured the length
+        # of reasons that already existed and said nothing about the ones that
+        # did not. Measured when that came out: 8 of the 11 non-engaged kinds
+        # carried none, `cmd_engage` printed "reason: none recorded -- that is a
+        # gap, not a design" for every one of them, and SPEC §9 said the
+        # opposite ("11 kinds carry it today"). The eight were written; the spec
+        # is true now.
         kinds = json.loads((REPO / ".v4" / "claim_kinds.json").read_text())
+        silent = []
         for name, spec in sorted(kinds.items()):
-            if spec.get("engagement") or not spec.get("engagement_why"):
+            if spec.get("engagement"):
                 continue
-            self.assertGreater(len(spec["engagement_why"]), 40, name)
+            why = (spec.get("engagement_why") or "").strip()
+            if not why:
+                silent.append(name)
+                continue
+            self.assertGreater(len(why), 40, name)
+        self.assertEqual(silent, [],
+                         "`engagement: false` with no `engagement_why` is a "
+                         "checkpoint removed without anybody saying so")
 
 
 class ATraceFileThatCannotBeReadIsNotACrash(unittest.TestCase):
@@ -6743,6 +6767,59 @@ class EveryPathUnderV4IsAccountedFor(unittest.TestCase):
             "ADOPTER_OWNED). Leaving it out means a task's diff will report it "
             "as work the worker cannot explain.")
 
+    def test_and_no_tracked_v4_file_falls_between_them_either(self):
+        """The same question, asked of what is actually in the repo.
+
+        The scan above reads double-quoted single literals in `kernel/**/*.py`,
+        and its own class docstring says the point is that "a fifth path arrives
+        red". Two shapes walk past it: a path built by joining two literals is
+        invisible, and a template degenerates to a bare directory --
+        `config.BASELINE_TEMPLATE` splits at the brace, leaving `.v4/`, which
+        every known entry starts with, so all three baselines were answered
+        trivially.
+
+        Measured when this was written: 6 of the 20 tracked entries under
+        `.v4/` -- `control_plane_budget.json`, three `*_baseline.json`,
+        `obligation_catalogue.json` and `risk_rubric.json` -- were in neither
+        set, and the test above was green.
+
+        Git is the other end, and it cannot be walked past: a file is tracked or
+        it is not.
+        """
+        import ast as _ast
+        import subprocess
+        from kernel.hashing import KERNEL_WRITTEN, ADOPTER_OWNED, SHIPPED_DIRS
+
+        # The third route, the same one the case above reads: `stamp_generated`
+        # records a sha per file, so those are answered by record rather than by
+        # name. The three registries are there and belong in neither list.
+        tree = _ast.parse((REPO / "kernel" / "cli.py").read_text(encoding="utf-8"))
+        stamped = set()
+        for node in _ast.walk(tree):
+            if (isinstance(node, _ast.Call)
+                    and getattr(node.func, "attr", "") == "stamp_generated"):
+                for arg in node.args:
+                    if isinstance(arg, (_ast.List, _ast.Tuple)):
+                        stamped |= {e.value for e in arg.elts
+                                    if isinstance(e, _ast.Constant)}
+        self.assertTrue(stamped, "stamp_generated call not found")
+
+        tracked = subprocess.run(["git", "ls-files", ".v4"], cwd=REPO,
+                                 capture_output=True, text=True).stdout.split()
+        self.assertGreaterEqual(len(tracked), 10, tracked)
+        known = (tuple(KERNEL_WRITTEN) + tuple(ADOPTER_OWNED)
+                 + tuple(SHIPPED_DIRS) + tuple(stamped))
+        unaccounted = [rel for rel in tracked
+                       if not any(rel == k.rstrip("/") or rel.startswith(k)
+                                  or rel.startswith(k.rstrip("/") + "/")
+                                  or k.rstrip("/").startswith(rel)
+                                  for k in known)]
+        self.assertEqual(
+            unaccounted, [],
+            "these are in the repo and in neither set: whoever added one has to "
+            "say whether the kernel writes it or a person owns it, and that is "
+            "the decision this class exists to stop being skipped")
+
 
 class ATestFileHasToBeAPythonFile(unittest.TestCase):
     """`_is_test` matched anything named `test_*`, extension included or not.
@@ -7119,7 +7196,8 @@ class ADetectorsSubjectCarriesWhatACheckersDoes(unittest.TestCase):
         So it runs `derive` and reads what arrived.
         """
         import subprocess, tempfile
-        from kernel import config, derive as derive_mod, ledger
+        from kernel import (config, derive as derive_mod,
+                            detector_protocol, ledger)
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
         subprocess.run(["git", "init", "-q"], cwd=tmp, capture_output=True)
@@ -7139,7 +7217,12 @@ class ADetectorsSubjectCarriesWhatACheckersDoes(unittest.TestCase):
 
         def spy(root, det, files, facts=None, **kw):
             got.update(kw)
-            return 0, "", "", None      # (rc, stdout, stderr, --out payload)
+            # The shape `run_detector` returns. `DetectorRun` and not a bare
+            # tuple, so this stand-in stays honest about the contract rather
+            # than about the number of elements it had on the day it was
+            # written -- which is what needed changing here when `duration_ms`
+            # was added.
+            return detector_protocol.DetectorRun(0, "", "", None, 0)
 
         with unittest.mock.patch.object(derive_mod, "run_detector", spy):
             derive_mod.derive(conn, cfg, task_id="t", scope_globs=["**"],
@@ -7465,7 +7548,7 @@ class AnAbandonedTaskDoesNotBlockAnything(unittest.TestCase):
         from kernel import ledger
         root, conn = self._repo()
         ledger.insert(conn, "event", task_id="t-probe", claim_id=None,
-                      kind="abandoned", actor="human",
+                      kind="abandoned", actor="person",
                       payload=json.dumps({"why": "a probe, ended on the record"}),
                       created_at="2026")
         row = self._line(root)
@@ -8582,6 +8665,19 @@ class OneCliTwoWaysToWriteAList(unittest.TestCase):
 
     Both are the same fact -- how this CLI reads a list of globs -- so both are
     fixed here rather than only the one that was noticed.
+
+    And both were only half of it. That pass fixed the *splitting* and left the
+    *shape*: `--scope` took one value, so a second `--scope` replaced the first,
+    and `--add`/`--drop`/`check --claim` took `nargs="*"`, where a second flag
+    does the same. Measured 2026-09-06, both while using this CLI to do other
+    work: `v4 task --scope kernel/redgreen.py --scope 'tests/**'` opened a task
+    scoped to `tests/**` alone, and `v4 scope widen --add A --add B` widened to
+    B. Each printed what it had stored and neither said anything was missing --
+    and a scope that is half of what was meant fails nothing, it just makes the
+    checkers skip files, which reads exactly like a clean run.
+
+    So every one of them is `action="append"` now, which cannot drop a value,
+    and every one arrives at `_list_arg` -- one splitter where there were four.
     """
 
     def _repo(self):
@@ -8609,21 +8705,108 @@ class OneCliTwoWaysToWriteAList(unittest.TestCase):
 
     def test_a_comma_list_reaches_widen_as_separate_globs(self):
         from kernel import cli
-        self.assertEqual(cli._globs(["one.json,docs/SPEC.md"]),
+        self.assertEqual(cli._list_arg(["one.json,docs/SPEC.md"]),
                          ["one.json", "docs/SPEC.md"])
 
     def test_the_space_separated_form_still_works(self):
         from kernel import cli
-        self.assertEqual(cli._globs(["a/**", "b/**"]), ["a/**", "b/**"])
+        self.assertEqual(cli._list_arg(["a/**", "b/**"]), ["a/**", "b/**"])
 
     def test_and_the_two_forms_can_be_mixed(self):
         from kernel import cli
-        self.assertEqual(cli._globs(["a/**, b/**", "c/**"]),
+        self.assertEqual(cli._list_arg(["a/**, b/**", "c/**"]),
                          ["a/**", "b/**", "c/**"])
 
     def test_empty_pieces_are_dropped_rather_than_stored(self):
         from kernel import cli
-        self.assertEqual(cli._globs(["a/**,", "", " , "]), ["a/**"])
+        self.assertEqual(cli._list_arg(["a/**,", "", " , "]), ["a/**"])
+
+    def test_a_repeated_flag_arrives_as_a_list_of_lists(self):
+        """`action="append"` with `nargs="*"` is what keeps `--add a b` working
+        beside `--add a --add b`, and it hands back nesting. Flattening it here
+        is why one splitter can serve both shapes."""
+        from kernel import cli
+        self.assertEqual(cli._list_arg([["a/**", "b/**"], ["c/**,d/**"]]),
+                         ["a/**", "b/**", "c/**", "d/**"])
+
+    def test_a_repeated_scope_keeps_both(self):
+        """The measured failure: the second `--scope` replaced the first and
+        the task opened able to write half of what was declared."""
+        from kernel import cli, ledger, scope as scope_mod
+        tmp = self._repo()
+        self.assertEqual(
+            cli.main(["--repo", str(tmp), "task", "--id", "t-twice",
+                      "--request", self.REQUEST,
+                      "--scope", "src/**", "--scope", "docs/**"]),
+            0)
+        conn = ledger.connect_readonly(tmp)
+        self.addCleanup(conn.close)
+        self.assertEqual(scope_mod.current_scope(conn, "t-twice"),
+                         ["src/**", "docs/**"])
+
+    def test_a_repeated_forbid_keeps_both(self):
+        from kernel import cli, ledger, scope as scope_mod
+        tmp = self._repo()
+        self.assertEqual(
+            cli.main(["--repo", str(tmp), "task", "--id", "t-forbid",
+                      "--request", self.REQUEST, "--scope", "src/**",
+                      "--forbid", "a/**", "--forbid", "b/**"]),
+            0)
+        conn = ledger.connect_readonly(tmp)
+        self.addCleanup(conn.close)
+        self.assertEqual(sorted(scope_mod.forbidden(conn, "t-forbid")),
+                         ["a/**", "b/**"])
+
+    def test_a_repeated_add_keeps_both(self):
+        """The other half of the same measurement, on the other flag shape."""
+        from kernel import cli, ledger, scope as scope_mod
+        tmp = self._repo()
+        self.assertEqual(
+            cli.main(["--repo", str(tmp), "task", "--id", "t-widen",
+                      "--request", self.REQUEST, "--scope", "src/**"]),
+            0)
+        self.assertEqual(
+            cli.main(["--repo", str(tmp), "scope", "widen", "--task", "t-widen",
+                      "--add", "a/**", "--add", "b/**",
+                      "--why", "both of these belong to this task and the "
+                               "point of the case is that both arrive"]),
+            0)
+        conn = ledger.connect_readonly(tmp)
+        self.addCleanup(conn.close)
+        self.assertEqual(sorted(scope_mod.current_scope(conn, "t-widen")),
+                         ["a/**", "b/**", "src/**"])
+
+    def test_the_space_separated_add_still_works(self):
+        """`action="append"` must not cost the form that already worked."""
+        from kernel import cli, ledger, scope as scope_mod
+        tmp = self._repo()
+        cli.main(["--repo", str(tmp), "task", "--id", "t-sp",
+                  "--request", self.REQUEST, "--scope", "src/**"])
+        self.assertEqual(
+            cli.main(["--repo", str(tmp), "scope", "widen", "--task", "t-sp",
+                      "--add", "a/**", "b/**",
+                      "--why", "the space separated form is the one this CLI "
+                               "documented first and it stays"]),
+            0)
+        conn = ledger.connect_readonly(tmp)
+        self.addCleanup(conn.close)
+        self.assertEqual(sorted(scope_mod.current_scope(conn, "t-sp")),
+                         ["a/**", "b/**", "src/**"])
+
+    def test_a_repeated_claim_selector_reaches_check(self):
+        """`check --claim` was the third `nargs="*"`. Its consumer builds a
+        `set()`, so nesting it without flattening is a TypeError rather than a
+        quiet loss -- this runs the command to say which one happens."""
+        from kernel import cli
+        tmp = self._repo()
+        cli.main(["--repo", str(tmp), "task", "--id", "t-sel",
+                  "--request", self.REQUEST, "--scope", "src/**"])
+        for argv in (["--claim", "aaaa", "bbbb"],
+                     ["--claim", "aaaa", "--claim", "bbbb"]):
+            with self.subTest(argv=argv):
+                self.assertEqual(
+                    cli.main(["--repo", str(tmp), "check", "--task", "t-sel"]
+                             + argv), 0)
 
     def test_task_scope_is_stripped_the_way_forbid_always_was(self):
         """Read back from the ledger, not from the line the command printed."""

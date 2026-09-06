@@ -56,9 +56,9 @@
     },
     {
       "pattern": ".protected",
-      "seen_at": "hooks/bash_guard.py:116",
+      "seen_at": "hooks/bash_guard.py:165",
       "kind": "authz",
-      "note": "邊啲路徑改動要一個簽名。三個 call site,得呢個會 deny —— `kernel/doctrine.py:270` 把個 list render 落 CLAUDE.md,`kernel/scope.py:162` 淨係數 hit。"
+      "note": "邊啲路徑改動要一個簽名。`cfg.protected` 今日三個 call site,而**兩個**會拒絕:呢個(`hooks/bash_guard.py`,一句 shell 掂到 protected path),同埋 `hooks/write_block.py` —— 佢有自己嘅 `protected()` 同 `is_protected()`,去到 `permissionDecision: deny`。另外兩個唔拒絕:`kernel/doctrine.py` 把個 list render 落 CLAUDE.md,`kernel/scope.py` 淨係數 hit。\n\n呢行本來寫「三個 call site,得呢個會 deny」並引用兩個行號。三個係 `cfg.protected` 嘅數目而唔係會拒絕嘅數目,而兩個行號都郁咗 —— `facts verify` 只重新驗 `seen_at`,所以一個 note 入面嘅 file:line 冇任何嘢讀,而佢會靜靜咁過期。呢度改成講模組名唔講行號:一個模組名郁嗰陣有人會察覺,一個行號唔會。"
     },
     {
       "pattern": "judge_text",
@@ -80,15 +80,15 @@
     },
     {
       "pattern": "writes_to_protected",
-      "seen_at": "hooks/bash_guard.py:116",
+      "seen_at": "hooks/bash_guard.py:165",
       "kind": "authz",
       "note": "邊個寫得乜。Hook 判一句 shell 有冇寫 protected path,有就出 `permissionDecision: deny`;`hooks/write_block.py` 對 Write/Edit 做同一件事。"
     },
     {
       "pattern": "refuse_the_stop",
-      "seen_at": "hooks/stop_gate.py:429",
+      "seen_at": "hooks/stop_gate.py:457",
       "kind": "authz",
-      "note": "邊個結束得一個 turn。三個拒絕(冇 claim、全部答完但未 ship、仲有 claim 未閂)全部經呢個 symbol 出 `decision: block`。呢個檔喺 entrypoint_globs 入面,兩個 sibling hook 由 `.protected` 同 `writes_to_protected` 覆蓋,得佢一個會拒絕而喺呢張表度冇名。呢一行取代咗 `_matches_auth`:嗰個住喺 kernel/analysis/ 嘅純分類器返一個 label 或者 None,raise 唔到亦拒絕唔到,亦冇任何 entrypoint_glob 蓋到佢 —— 一張講「邊個做得乜」嘅表唔應該指住一個只係判「個名似乜」嘅 function。"
+      "note": "邊個結束得一個 turn。四個拒絕(任務未明、冇 claim、全部答完但未 ship、仲有 claim 未閂)全部經呢個 symbol 出 `decision: block`。呢行本來寫「三個」而實際有四個:AMBIGUOUS 嗰個自己 print 同一個 dict,所以一個由呢張表追過嚟嘅讀者會搵到四個 call site 之中嘅三個。呢個檔喺 entrypoint_globs 入面,兩個 sibling hook 由 `.protected` 同 `writes_to_protected` 覆蓋,得佢一個會拒絕而喺呢張表度冇名。呢一行取代咗 `_matches_auth`:嗰個住喺 kernel/analysis/ 嘅純分類器返一個 label 或者 None,raise 唔到亦拒絕唔到,亦冇任何 entrypoint_glob 蓋到佢 —— 一張講「邊個做得乜」嘅表唔應該指住一個只係判「個名似乜」嘅 function。"
     }
   ],
   "entrypoint_globs": [

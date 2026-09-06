@@ -161,6 +161,7 @@ EVENT_KINDS = {
     "blocked": "ship or remerge ran out of bounded rounds and stopped asking",
     "checker_out": "the structured `--out` a checker wrote for one claim",
     "claim_reraised": "a claim that had been retracted, raised again by a detector",
+    "claim_not_run": "a claim the kernel decided not to put to its checker, and what held it back",
     "detector_run": "one detector over one task: whether it ran, what it claimed, what was dropped",
     "engagement": "the sentence a claim's kind asked for, and the verdict on it",
     "engagement_before": "the same sentence written against a kind before any claim of it exists",
@@ -190,6 +191,78 @@ EVENT_KINDS = {
     "task_forbid": "paths this task may not touch, declared when it was opened",
     "task_worktree": "the working tree a task was opened in",
 }
+
+
+#: Who did it, for the `actor` column beside `kind`.
+#:
+#: The sibling column has had `EVENT_KINDS` and a gate since early on, and the
+#: comment over that gate says this is "where the vocabulary is either kept or
+#: lost". `actor` had neither, and it had already drifted: `review.defer`,
+#: `review.amend_note` and `review.withdraw_deferral` wrote `human` from
+#: `sys.stdin.isatty()`, `scope` wrote `person` from the identical test, and
+#: `risk` declared `PERSON, AGENT, MONITOR` as constants because "five texts
+#: and two reports spell these". One column, two words for one fact, so a
+#: query for `person` got scope widens and missed every deferral.
+#:
+#: `person`, not `human`, because that is the spelling that was already a named
+#: constant with a reason written beside it, and `risk.attribution` reads it.
+#:
+#: Measured in this repo's ledger the day the gate landed: `hook` 35,279,
+#: `kernel` 25,420, `worker` 1,396, `reviewer` 214, `agent` 211, `human` 102,
+#: `person` 0. Those 102 rows keep saying `human` -- the ledger takes no
+#: updates, and rewriting history to match a vocabulary would be the worse of
+#: the two problems. It is not in this table because nothing may write it
+#: again; a reader of rows older than the gate should read it as `person`.
+ACTORS = {
+    "agent": "a program, with no person at the terminal when it acted",
+    "hook": "a hook, recording a write it judged",
+    "kernel": "the framework itself, not anyone using it",
+    "monitor": "a monitor session, which watches and does not do the work",
+    "orchestrator": "the session that splits and merges, not one that answers",
+    "person": ("somebody was at a terminal: a tty, which is the only evidence "
+               "there is, and which a pty fakes -- an agent that needs to act "
+               "says so with --no-tty-check instead"),
+    "reviewer": "a lens read, raising findings rather than answering claims",
+    "splitter": "the step that turns a request into a task's scope",
+    "worker": "the session answering a task's claims",
+}
+
+
+#: The three `risk` has always named, re-exported so its `signed_by` and this
+#: table's `actor` cannot drift apart -- which is the whole finding.
+PERSON, AGENT, MONITOR = "person", "agent", "monitor"
+
+
+def who_acted() -> str:
+    """`PERSON` or `AGENT`, from the one piece of evidence there is.
+
+    Five sites wrote this ternary out -- three in `review`, two in `scope` --
+    and the two files disagreed on the word. The test itself is not the fragile
+    part; having it in five places, each free to spell its answer differently,
+    is. A tty is the only evidence available: nothing else distinguishes a
+    person at a keyboard from a program with the same credentials, and
+    `risk.accept` says so where it makes the same call for `signed_by`. The
+    honest route for an agent that needs to act is `--no-tty-check`, which
+    records `agent`; a pty is not, because it makes `isatty` true and the row
+    then asserts a person who was never there.
+
+    `lifecycle.open_task` did not even ask. It wrote `human` for all three of
+    its rows, so every task an agent opened -- six of them the day this landed
+    -- carried a row asserting a person did it. Asking is the repair; a
+    vocabulary that says `person` means "a tty was there" and a writer that
+    says it unconditionally cannot both be right.
+    """
+    import sys as _sys
+    return PERSON if _sys.stdin.isatty() else AGENT
+
+
+class UndeclaredActor(ValueError):
+    """An actor with no entry in `ACTORS`.
+
+    Refused for the reason `UndeclaredEventKind` is: the row is permanent, and
+    a second word for one fact is invisible until the day somebody queries by
+    the other one.
+    """
 
 
 class UndeclaredEventKind(ValueError):
@@ -348,6 +421,86 @@ def git_identity(repo_root) -> str:
     return r.stdout.strip() or "unknown"
 
 
+def _root_of(conn):
+    """The work tree this connection's ledger belongs to, or `None`.
+
+    `insert` is handed a connection and nothing else, and the redaction below
+    needs a root: without one `redact` falls back to the twelve shipped
+    patterns and every credential family an adopter declared in
+    `.v4/secret_patterns.json` goes in clear. The path is derivable --
+    `ledger_path` builds `<git-common-dir>/v4/ledger.db` -- so this walks it
+    back rather than making every caller carry it, because a caller that
+    forgets is the same silence one level out.
+
+    `None` when the shape is not the one `ledger_path` builds (an in-memory
+    database, a test fixture), and `redact` degrades to the shipped patterns
+    there rather than raising.
+    """
+    # Not guarded. `PRAGMA database_list` on the connection this row is about to
+    # be written through fails only when the connection itself does, and an
+    # `except` here would hand back `None` -- which means "use the shipped
+    # patterns", a narrower redaction, decided by a failure nobody was told
+    # about. If the connection cannot answer, the insert that follows cannot
+    # happen either, and the caller should see that rather than a quietly
+    # thinner filter. `fail_closed` names this shape and is right about it.
+    rows = list(conn.execute("PRAGMA database_list"))
+    for r in rows:
+        name = r[2] if not isinstance(r, sqlite3.Row) else r["file"]
+        if not name:
+            continue
+        p = Path(name)
+        if p.parent.name == "v4" and p.parent.parent.name == ".git":
+            return p.parent.parent.parent
+    return None
+
+
+#: What the exporter leaves where a value was. One spelling, because
+#: `verify_exported` has to recognise it in a row it cannot otherwise explain,
+#: and a second copy of the string is how that recognition goes quietly wrong.
+_REDACTED_MARK = "[redacted]"
+
+
+#: Free text a row carries out of the repo, by table.
+#:
+#: Named here because `insert` is where it has to be applied. It was applied at
+#: export instead, and the comment there gave the reason -- "a row hashed over
+#: redacted text would not verify against the database it came from" -- which
+#: has it exactly backwards: redacting *after* the hash is what makes the export
+#: fail to verify, because `verify_exported` re-derives over the bytes it can
+#: see. Reported independently by two adopters on the same day; reproduced here,
+#: `v4 audit --events` exiting 1 with four rows accused of being edited by
+#: somebody, all four altered by this framework's own exporter.
+#:
+#: Redacting at `insert` also means the value never reaches `.git/v4/ledger.db`.
+#: That file is untracked and so does not leave by git, but it is copied,
+#: bundled and printed like any other file, and "the location is not evidence,
+#: only the value is" is this repo's own rule about exactly that.
+_REDACTED_ON_WRITE = {
+    "event": ("payload",),
+    "accepted_risk": ("why",),
+    "claim": ("note", "question"),
+    "task": ("request",),
+}
+
+
+def _redact_free_text(conn, table: str, cols: dict) -> dict:
+    """The redaction, before the row is hashed rather than after."""
+    fields = _REDACTED_ON_WRITE.get(table)
+    if not fields:
+        return cols
+    root = _root_of(conn)
+    out = dict(cols)
+    for f in fields:
+        v = out.get(f)
+        if isinstance(v, str):
+            out[f] = _redact(v, root)
+        elif isinstance(v, (dict, list)):
+            # `payload` arrives as an object and `_enc` serialises it, so the
+            # string form is what a reader sees and what the hash covers.
+            out[f] = json.loads(_redact(json.dumps(v, ensure_ascii=False), root))
+    return out
+
+
 def insert(conn, table: str, if_absent: bool = False, **cols) -> int:
     """`if_absent` turns "check, then create" into one statement.
 
@@ -372,6 +525,16 @@ def insert(conn, table: str, if_absent: bool = False, **cols) -> int:
             f"nothing can look up -- and the ledger takes no updates, so it "
             f"stays. Add the name and the one line saying what it means, in "
             f"this diff.")
+    if table == "event" and cols.get("actor") not in ACTORS:
+        raise UndeclaredActor(
+            f"actor {cols.get('actor')!r} is not in ACTORS (kernel/ledger.py). "
+            f"`actor` is the other half of what a reader queries this table by, "
+            f"and it had no gate until this one: `human` and `person` were two "
+            f"words for one fact, so a query for either missed every row that "
+            f"used the other. "
+            f"{'`human` is that older spelling and is now `person`. ' if cols.get('actor') == 'human' else ''}"
+            f"Add the name and the one line saying what it means, in this diff.")
+    cols = _redact_free_text(conn, table, cols)
     enc = _enc(cols)
     with writing(conn):
         if table == "event":
@@ -591,17 +754,100 @@ def chain_head_path(repo_root) -> Path:
     return Path(repo_root) / ".v4" / "chain_head.json"
 
 
+def _event_anchor(conn, anchor) -> list:
+    """The event chain against the witness outside the database.
+
+    The same three questions `audit_chain` asks of `attempt`, and for the same
+    reason: a walk of the rows alone cannot tell a real chain from a rebuilt
+    one, because every `row_hash` is derived from that row's own contents. Only
+    something outside the file can. `attempt` has had that since the forgery was
+    reproduced -- three rows deleted and re-appended with different content,
+    `audit_chain` returning `(True, [])` -- and `event` had the same hole with
+    nothing in it, over the table that records what every guard allowed.
+
+    Reproduced here before this function existed, on a copy of this repo's
+    ledger: triggers dropped, the last fifty events deleted, `_walk_events`
+    returned `[]`.
+
+    `None` when the anchor predates this: an adopter's committed
+    `chain_head.json` has no `events` key, and reporting that as a finding would
+    turn every repo red on the first run after an upgrade.
+    """
+    if not anchor or "events" not in anchor:
+        return []
+    row = conn.execute(
+        "SELECT COUNT(*) n, COALESCE(MAX(id), 0) last_id FROM event "
+        "WHERE row_hash != ''").fetchone()
+    head = conn.execute(
+        "SELECT row_hash FROM event WHERE row_hash != '' "
+        "ORDER BY id DESC LIMIT 1").fetchone()
+    count = row["n"]
+    prev = head["row_hash"] if head else GENESIS
+    recorded, was = anchor["events"], anchor.get("event_head_hash") or GENESIS
+
+    if count == recorded and prev != was:
+        return [f"{count} chained events on disk and {recorded} in "
+                f"chain_head.json, but the head is {prev[:12]} where the anchor "
+                f"records {was[:12]} -- same count, different chain. The event "
+                f"table was rebuilt, not appended to."]
+    if count < recorded:
+        return [f"{count} chained events on disk, {recorded} recorded in "
+                f"chain_head.json -- rows were removed from the end of the "
+                f"event chain. `scope_widen` lives here, and it is the only "
+                f"input to what a task may write."]
+    if count > recorded and prev != was:
+        # Growth is ordinary -- the anchor is refreshed on every ship. What is
+        # not ordinary is growth that does not continue from the recorded head.
+        walk = conn.execute(
+            "SELECT prev_hash FROM event WHERE id > ? AND row_hash != '' "
+            "ORDER BY id LIMIT 1", (anchor.get("last_event_id") or 0,)).fetchone()
+        if walk is not None and walk["prev_hash"] != was:
+            return [f"the event chain grew past the anchor without continuing "
+                    f"from it: the first row after {anchor.get('last_event_id')} "
+                    f"follows {str(walk['prev_hash'])[:12]}, and the anchor "
+                    f"records {was[:12]}."]
+    return []
+
+
 def write_chain_head(conn, repo_root):
+    """Both chains, because both are chained and only one was witnessed.
+
+    `attempt` had an anchor from early on and `event` did not, though `event` is
+    where `scope_widen` lives -- the sole input to `current_scope` in both
+    `kernel/scope.py` and `hooks/write_block.py` -- along with engagement
+    verdicts and every `hook_seen` mark. So the table that records what a guard
+    allowed had no witness outside the database, and the forgery the anchor
+    exists to catch worked there unchanged: drop the append-only triggers,
+    delete rows off the end, and `_walk_events` returns a clean list.
+
+    The `event_*` keys are written beside the old ones rather than replacing
+    them: every adopter's committed `chain_head.json` predates this, and
+    `audit_chain` treats their absence as "not anchored yet" rather than as a
+    finding. A gate that goes red on everybody's first run after an upgrade is
+    a gate that gets switched off.
+    """
     row = conn.execute(
         "SELECT COUNT(*) n, COALESCE(MAX(id), 0) last_id FROM attempt").fetchone()
     head = conn.execute(
         "SELECT row_hash FROM attempt ORDER BY id DESC LIMIT 1").fetchone()
+    ev = conn.execute(
+        "SELECT COUNT(*) n, COALESCE(MAX(id), 0) last_id FROM event "
+        "WHERE row_hash != ''").fetchone()
+    ev_head = conn.execute(
+        "SELECT row_hash FROM event WHERE row_hash != '' "
+        "ORDER BY id DESC LIMIT 1").fetchone()
     path = chain_head_path(repo_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({
         "attempts": row["n"], "last_id": row["last_id"],
         "head_hash": head["row_hash"] if head else GENESIS,
         "scheme": CHAIN_SCHEME,
+        # Only chained rows are counted. A ledger older than the event chain
+        # carries rows with an empty `row_hash`, and `_walk_events` already
+        # reports that boundary once rather than per row; counting them here
+        # would anchor a number the walk does not produce.
+        "events": ev["n"], "last_event_id": ev["last_id"],
+        "event_head_hash": ev_head["row_hash"] if ev_head else GENESIS,
     }, indent=2) + "\n")
 
 
@@ -780,6 +1026,7 @@ def audit_chain(conn, repo_root=None):
 
 
     problems += _walk_events(conn)
+    problems += _event_anchor(conn, anchor)
     problems += reconcile_signatures(conn, repo_root)
 
     if anchor is not None:
@@ -906,8 +1153,19 @@ def _redact(text: str, root) -> str:
     try:
         from .analysis.redaction import redact
         return redact(text, root)
-    except Exception:                                           # noqa: BLE001
-        return text
+    except Exception as exc:                                    # noqa: BLE001
+        # Not `return text`. This is the last filter before an append-only file
+        # that gets committed and scanned, and returning the input means the
+        # one case the filter exists for -- it could not run -- is the case it
+        # lets through, into a row nothing can delete from. Nine lines above,
+        # this same function argues that a wider table must never be reached by
+        # accident; a swallowed exception reaches the widest one there is.
+        #
+        # The whole value goes, and says why. Losing a note is recoverable and
+        # visible; writing an unredacted credential into a committed export is
+        # neither.
+        return (f"[redacted: this value could not be filtered "
+                f"({type(exc).__name__}: {exc})]")
 
 
 #: Bytes at which `export_jsonl` seals the file it was about to rewrite and
@@ -916,9 +1174,40 @@ def _redact(text: str, root) -> str:
 #: 2.34 MB a day (2026-09-02, 23 days of use) -- seventeen days from a push
 #: that would not go. Compressing it would have bought months and cost git its
 #: deltas: an append-only text file packs as the lines added since the last
-#: version, a gzip of it as a whole new blob on every ship. Sealing keeps every
-#: file well under the limit and every sealed one byte-stable forever.
+#: version, a gzip of it as a whole new blob on every ship. Sealing bounds the
+#: growth and makes every sealed file byte-stable forever.
+#:
+#: It does **not** keep every file well under the limit, which this line used to
+#: say. `_seal_if_full` measures the previous file *before* a rewrite that has
+#: no ceiling of its own, so a segment comes out at whatever the unsealed rows
+#: add up to. Enumerated in this repo: the one sealed segment,
+#: `ledger_export.jsonl.0001`, is 49,233,070 bytes -- 46.95 MiB, 1.97x this
+#: number and 94% of the 50 MiB cited above -- and it is committed. Nothing has
+#: breached anything; the margin is one export's growth, which is a great deal
+#: less than "well under" promises. The comment beside `_seal_if_full` records
+#: why sealing after the write was tried and reverted.
 SEAL_AT = 25_000_000
+
+#: What this number does and does not promise, because a sweep read the comment
+#: above it as a guarantee and the measurement does not support that reading.
+#:
+#: `_seal_if_full` asks the size *before* a rewrite that has no bound -- the
+#: export writes every row since the last seal -- so a file at 24 MB passes the
+#: check and comes out at whatever the ledger produces. Measured here: the one
+#: sealed segment on disk is 49,233,070 bytes, 1.97x this number. It is still
+#: under the 50 MiB GitHub warns at, which is the limit the comment cites, so
+#: nothing has breached anything; the margin is one export's growth, and that
+#: is smaller than the wording suggests.
+#:
+#: Not repaired, and the reason is the segment format rather than reluctance.
+#: The open file's first row carries the `skip` counts and `starts_after` that
+#: let a reader stitch the segments together, and `_seal_if_full` reads them
+#: from it. Sealing after a write therefore has to leave a stub carrying that
+#: header, and that changes how many segments one export produces -- which
+#: `tests/test_an_export_that_outgrows_one_file.py` pins at two for two exports.
+#: Tried and reverted here: without the stub the next export sees no open file,
+#: reads no `skip`, and re-exports every row into a second segment.
+
 
 #: The first row of an export that continues from sealed segments. `skip` is
 #: how many rows of each table the sealed files already hold, so this file
@@ -1062,13 +1351,28 @@ def export_jsonl(conn, out_path, root, seal_at=SEAL_AT):
                 # its own path and says why; no other writer of free text into
                 # this ledger had an equivalent.
                 #
-                # Here rather than at `insert`: the ledger is what an auditor
-                # walks, and a row hashed over redacted text would not verify
-                # against the database it came from. The export is the artefact
-                # that leaves.
+                # `insert` applies this now, so for any row written since that
+                # change this loop finds nothing to do -- `[redacted]` does not
+                # match the patterns, so it is idempotent. It stays as the belt:
+                # a row written before the change still holds the original text,
+                # and it must not leave the repo just because the writer that
+                # produced it predates the repair.
+                #
+                # And when it does fire, the row says so. Its `row_hash` covers
+                # the original bytes, so nothing downstream can re-derive it
+                # from what is written here -- and `verify_exported` used to
+                # report that as "Something edited the row after it was
+                # written", which is a sentence about a person who does not
+                # exist. Two adopters chased it on the same day.
+                changed = []
                 for field in _EXPORT_REDACTED.get(t, ()):
                     if isinstance(d.get(field), str):
-                        d[field] = _redact(d[field], root)
+                        was = d[field]
+                        d[field] = _redact(was, root)
+                        if d[field] != was:
+                            changed.append(field)
+                if changed:
+                    d["_redacted"] = sorted(changed)
                 fh.write(_json.dumps({"_table": t, **d}, sort_keys=True) + "\n")
                 n += 1
         # The anchor travels with the file it anchors. `.v4/chain_head.json` is
@@ -1098,7 +1402,13 @@ def verify_exported(path):
     from pathlib import Path as _Path
     open_file = _Path(path)
     files = segment_files(open_file) + [open_file]
-    problems, total, prev = [], 0, GENESIS
+    # `ev_prev` beside `prev`, and outside the loop for the same reason: the
+    # event chain crosses a segment boundary exactly as the attempt chain does.
+    # It was initialised per file, so the first event of the open file was
+    # compared against GENESIS instead of the last event of the sealed segment
+    # before it -- measured on this repo, one `prev_hash does not follow` at
+    # precisely that seam, reported the day the event walk was added.
+    problems, total, prev, ev_prev = [], 0, GENESIS, GENESIS
     for seq, f in enumerate(files, 1):
         sealed = f is not open_file
         where = f"{f.name}: " if len(files) > 1 else ""
@@ -1113,11 +1423,18 @@ def verify_exported(path):
                     f"{f.name}: expected {want} at this point in the sequence, "
                     f"so a sealed segment is missing or misnamed and the rows it "
                     f"held are gone.")
-        header, attempts, anchor = None, [], None
+        header, attempts, anchor, events = None, [], None, []
         for r in _rows_of(f):
             t = r.get("_table")
             if t == "attempt":
                 attempts.append(r)
+            elif t == "event":
+                # Collected, because they were skipped. An auditor with the
+                # file and nothing else could re-derive every attempt and not
+                # one event -- and the event rows are the ones that say what a
+                # guard allowed, which scope a task was given, and whether an
+                # engagement sentence was accepted.
+                events.append(r)
             elif t == ANCHOR_TABLE:
                 anchor = r
             elif t == SEGMENT_TABLE:
@@ -1152,6 +1469,61 @@ def verify_exported(path):
                     f"before it. A row was removed, reordered, or inserted.")
             prev = r.get("row_hash", "")
 
+        # The other chain, re-derived the same way and against its own
+        # predecessor. Rows written before `event` was chained carry an empty
+        # `row_hash`; they are skipped rather than reported, for the reason
+        # `_walk_events` gives -- a database that predates the mechanism is not
+        # a tampered one -- and skipping them here keeps the two walks
+        # answering the same question about the same rows.
+        for r in events:
+            if not r.get("row_hash"):
+                continue
+            # A row the exporter altered cannot be re-derived from what is
+            # written here, and saying "something edited it" about the
+            # framework's own redaction is an accusation aimed at nobody. The
+            # row declares it, so this reads the declaration rather than
+            # guessing -- and still counts it, because a walk that cannot
+            # verify a row and says nothing is the shape being repaired.
+            if r.get("_redacted"):
+                problems.append(
+                    f"{where}event {r['id']} ({r.get('kind')}): "
+                    f"{', '.join(r['_redacted'])} was redacted when this file "
+                    f"was written, and the hash covers the original -- so this "
+                    f"row cannot be verified from the export alone. Rows "
+                    f"written since redaction moved to `insert` carry no such "
+                    f"mark.")
+                ev_prev = r.get("row_hash", "")
+                continue
+            row = {k: v for k, v in r.items() if k != "_table"}
+            expect = _event_hash(r.get("prev_hash") or "", row)
+            if expect != r.get("row_hash"):
+                # A sealed segment is byte-stable forever, so a row exported
+                # before the mark above existed can never gain one -- and this
+                # repo has three of them, all `engagement`, all altered by this
+                # framework's own exporter. The marker string is derivable from
+                # the row itself and explains the mismatch exactly; claiming a
+                # person edited it does not. Still reported: a row that cannot
+                # be verified is a finding, and only the sentence changes.
+                if _REDACTED_MARK in json.dumps(row, ensure_ascii=False):
+                    problems.append(
+                        f"{where}event {r['id']} ({r.get('kind')}): carries "
+                        f"`{_REDACTED_MARK}` and hashes to something else, so "
+                        f"the exporter blanked a value after the hash was taken "
+                        f"and this row cannot be verified from the export alone. "
+                        f"Written before redaction moved to `insert`; a sealed "
+                        f"segment cannot be relabelled.")
+                else:
+                    problems.append(
+                        f"{where}event {r['id']} ({r.get('kind')}): the recorded "
+                        f"hash does not match its own row. Something edited the "
+                        f"row after it was written.")
+            elif (r.get("prev_hash") or "") != ev_prev:
+                problems.append(
+                    f"{where}event {r['id']} ({r.get('kind')}): prev_hash does "
+                    f"not follow the event before it. A row was removed, "
+                    f"reordered, or inserted.")
+            ev_prev = r.get("row_hash", "")
+
         # Walking forward cannot see rows dropped off the end -- the shorter
         # chain is internally perfect. `audit_chain` grew `.v4/chain_head.json`
         # for that and this walk, the one CI runs and the only one that can run
@@ -1174,7 +1546,12 @@ def verify_exported(path):
                     f"{where}the last row hashes to {prev[:12]} where the anchor "
                     f"records {str(anchor.get('head_hash'))[:12]} -- same count, "
                     f"different chain. The export was rebuilt, not written.")
-        total += len(attempts)
+        # Rows walked, both chains. It counted attempts alone, which was true
+        # while attempts were all this walked; an export of a repo that has
+        # events and no attempt yet reported "0 rows" over a file it had just
+        # re-derived every event in, and a number that understates the check is
+        # the same shape as a check that does not run.
+        total += len(attempts) + sum(1 for r in events if r.get("row_hash"))
     return total, problems
 
 
@@ -1462,113 +1839,17 @@ def reconcile_signatures(conn, repo_root=None):
     return problems
 
 
-def reconcile_deferrals(conn, root: Path):
-    """The same two directions for `.v4/deferred/`, and a weaker verdict.
-
-    `review.defer` writes a `finding_deferred` event and a git-tracked
-    `.v4/deferred/<claim>.json`, and says in its own comment that the file is
-    there "like a signature record, so it survives a clone and shows up in a
-    diff". The thing it is like was reconciled and this was not, so a
-    hand-written or deleted deferral was invisible to `v4 audit`, to staleness
-    and to `scope` -- `.v4/deferred/` is in KERNEL_WRITTEN, which is what makes
-    the third one true.
-
-    A deferral is weaker than a signature, and the difference decides where the
-    answer goes. A forged signature changes a verdict -- `RISK_ACCEPTED` is
-    terminal -- so `audit_chain` reports it and `ship` is held. A deferral makes
-    nothing terminal: losing the file loses the record of a decision, not the
-    decision's effect. So this is reported by `v4 doctor` and holds nothing.
-    Putting it in the chain would say a repo with a stale deferral file cannot
-    ship, which is not true and is the kind of overreach that gets a gate
-    routed around.
-    """
-    problems = []
-    try:
-        # A deferral somebody cancelled is not one. `review.withdraw_deferral`
-        # appends the correction rather than deleting the row, which is the
-        # same instrument `request_cover.withdraw` uses and for the same
-        # reason: the append-only rule exists so corrections are visible, not
-        # so mistakes are permanent.
-        gone = {r["claim_id"] for r in conn.execute(
-            "SELECT claim_id FROM event WHERE kind = "
-            "'finding_deferral_withdrawn'")}
-        rows = {}
-        when = {}
-        for r in conn.execute(
-                "SELECT claim_id, payload, created_at FROM event "
-                "WHERE kind = 'finding_deferred' ORDER BY id"):
-            if r["claim_id"] in gone:
-                continue
-            try:
-                rows[r["claim_id"]] = json.loads(r["payload"] or "{}")
-            except (ValueError, TypeError):
-                rows[r["claim_id"]] = {}
-            when[r["claim_id"]] = (r["created_at"] or "")[:10]
-    except sqlite3.Error as exc:
-        # Not `return problems`, which at this point is empty and is exactly
-        # what a clean reconciliation returns. `v4 doctor` prints "every
-        # deferral has a row and a committed record" from it, so a database
-        # this could not read said the thing it exists to check.
-        problems.append(f"the deferral rows could not be read "
-                        f"({type(exc).__name__}: {exc}), so whether every "
-                        f"deferral has both halves is unknown -- which is not "
-                        f"the same as yes")
-        return problems
-
-    d = root / ".v4" / "deferred"
-    on_disk = {p.stem: p for p in d.glob("*.json")} if d.is_dir() else {}
-
-    for cid, payload in sorted(rows.items()):
-        path = on_disk.get(cid)
-        if path is None:
-            # An event naming a claim that does not exist is a different fault
-            # from a missing file, and this repo has one: `c1`, 2026-08-09,
-            # written while `defer` was being built, four days before the file
-            # half existed. Saying "the file is missing" about it would send
-            # somebody looking for a file that was never meant to be written.
-            known = conn.execute("SELECT 1 FROM claim WHERE id = ?",
-                                 (cid,)).fetchone()
-            if not known:
-                # With the date, because the ledger is append-only and this
-                # one cannot be repaired: a reader has to be able to tell a
-                # row written while `defer` was being built from one written
-                # today, and the row is the only place that says which.
-                problems.append(
-                    f"a deferral names claim {cid}, and no such claim is in the "
-                    f"ledger. The event is about nothing. Written "
-                    f"{when.get(cid) or 'at an unrecorded time'}; if that is "
-                    f"old, it is history an append-only ledger cannot drop.")
-            else:
-                problems.append(
-                    f"claim {cid} was deferred and .v4/deferred/{cid}.json is "
-                    f"not on disk. A clone carries the file and not the ledger, "
-                    f"so the decision reaches nobody.")
-            continue
-        try:
-            rec = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            problems.append(f".v4/deferred/{path.name} does not read: {exc}")
-            continue
-        for field in ("why", "target"):
-            if field in rec and rec[field] != payload.get(field):
-                problems.append(
-                    f".v4/deferred/{path.name} and the ledger disagree about "
-                    f"{field!r}. One of them was edited after the other.")
-        tracked = subprocess.run(
-            ["git", "ls-files", "--error-unmatch", f".v4/deferred/{path.name}"],
-            cwd=root, capture_output=True, text=True)
-        if tracked.returncode != 0:
-            problems.append(
-                f".v4/deferred/{path.name} is not tracked by git, so the "
-                f"deferral does not survive a clone. Commit it.")
-
-    for cid, path in sorted(on_disk.items()):
-        if cid not in rows:
-            problems.append(
-                f".v4/deferred/{path.name} records a deferral the ledger never "
-                f"made. Either the event was removed, or the file was written "
-                f"by something other than `v4 review defer`.")
-    return problems
+#: `reconcile_deferrals` used to sit here and now lives in `kernel/review.py`.
+#: It reconciles the review domain -- `finding_deferred`,
+#: `finding_deferral_withdrawn`, the `.v4/deferred/<claim>.json` layout and the
+#: `why`/`target` contract -- and all four of those are names `review` already
+#: owns, spelled again here as literals because this module cannot import that
+#: one. The cycle was the symptom: a domain reconciliation was sitting one layer
+#: below the module that owns the domain, and renaming `DEFER_DIR` in `review`
+#: would have left this reconciling a directory nothing writes, reporting every
+#: deferral as missing rather than failing. Its only caller was `doctor`, so
+#: nothing held it here. `reconcile_signatures` above stays: a signature is this
+#: module's own artefact, not another layer's vocabulary.
 
 
 #: How a task ends. Two ways, and both are appends: `ship` records that the work

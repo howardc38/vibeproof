@@ -342,7 +342,7 @@ class WhatToDoAboutAClaimThatIsNotTerminal(unittest.TestCase):
         ledger.insert(self.conn, "task", id="t-dead", request="r",
                       scope_globs=["**"], base_commit="x", created_at="2026")
         ledger.insert(self.conn, "event", task_id="t-dead", claim_id=None,
-                      kind="abandoned", actor="human", payload={},
+                      kind="abandoned", actor="person", payload={},
                       created_at="2026")
         row = self._claim("c6", file="mod.py", symbol="run", task="t-dead")
         self.assertEqual(risk.route(self.conn, self.cfg, row, state.OPEN)[0],
@@ -389,7 +389,7 @@ class TheListDefaultsToWorkSomebodyCanStillDo(unittest.TestCase):
                           scope_globs=["**"], base_commit="x", created_at="2026")
             if ended:
                 ledger.insert(self.conn, "event", task_id=tid, claim_id=None,
-                              kind="shipped", actor="human", payload={},
+                              kind="shipped", actor="person", payload={},
                               created_at="2026")
             ledger.insert(self.conn, "claim", id=f"c-{tid}", task_id=tid,
                           kind="test", question="q", subject_refs=[],

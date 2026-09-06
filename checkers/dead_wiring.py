@@ -172,16 +172,30 @@ _TRACKED: dict = {}
 _SOURCE: dict = {}
 
 
-def tracked_files(root: Path) -> list:
-    """Paths git knows about, relative to `root`.  Cached for the process."""
+def tracked_files(root: Path, subject=None) -> list:
+    """Paths git knows about, minus what the repo excludes.  Cached per process.
+
+    `subject_files.tracked`, not a fifth hand-rolled copy of it. This ran the
+    same `git ls-files`, applied no `keep()` and took no subject -- so
+    `derive_exclude` was not honoured here, and on an adopter this checker read
+    files that `.v4/config.json` states are not part of derivation, including
+    the red fixtures `_install_copy` puts in `derive_exclude` because they are
+    broken on purpose.
+
+    The old fallback is gone with it: `root.rglob("*")` when git exits non-zero
+    is the `.venv` walk the analysis module was written to remove, and its
+    docstring names the cost -- `secret_chain` walked one anyway and reported a
+    finding inside `jwt/jwks_client.py`. An unreadable git answer is not a
+    repository full of files; `tracked` returns `[]` and says so by being empty.
+
+    The edge is allowed: `.v4/layers.json` lets `checkers/**` import
+    `kernel/analysis/**`, and `secret_scan`, `structural_lint`, `scope` and
+    `control_plane_budget` in this directory already do.
+    """
     key = str(root)
     if key not in _TRACKED:
-        r = subprocess.run(["git", "ls-files", "--cached", "--others",
-                            "--exclude-standard"], cwd=root,
-                           capture_output=True, text=True)
-        _TRACKED[key] = ([root / f for f in r.stdout.splitlines() if f.strip()]
-                         if r.returncode == 0 else
-                         [q for q in root.rglob("*") if q.is_file()])
+        from kernel.analysis.subject_files import tracked
+        _TRACKED[key] = [root / f for f in tracked(subject or {}, root)]
     return _TRACKED[key]
 
 

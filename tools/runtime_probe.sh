@@ -17,11 +17,24 @@ V4_HOME="${V4_HOME:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 # what this run produced, so a query for it cannot be answered by anything an
 # earlier run left behind -- which is the difference between a proof and a
 # sentence.
-RUN_ID="${1:?usage: runtime_probe.sh <run-id>}"
 # One repo, reused. The run id is the task id inside it, not the path to it:
 # `truth_command` is shared by every proof and must not move per run, which is
 # also what a real adopter has -- one database, one row per run.
+#
+# `--path` prints it and stops, because this location was written out twice --
+# here, and again inside `truth_command`, which decides where the *read* goes.
+# The two have already drifted: this script took the `V4_RUNTIME_PROBE` override
+# in bb2f81a and `truth_command` did not until 7d8f9c0, so for that window
+# setting the variable moved the write and not the read, and `runtime-proof`
+# would have reported "the trigger succeeded and the row is not there" about a
+# row written somewhere else. One expression, one file, and the config names the
+# file instead of re-spelling it.
 PROBE="${V4_RUNTIME_PROBE:-${TMPDIR:-/tmp}/v4-runtime-probe}"
+if [ "${1:-}" = "--path" ]; then
+  printf '%s\n' "$PROBE"
+  exit 0
+fi
+RUN_ID="${1:?usage: runtime_probe.sh <run-id> | runtime_probe.sh --path}"
 mkdir -p "$PROBE"
 cd "$PROBE"
 git init -q . 2>/dev/null || true

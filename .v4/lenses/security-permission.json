@@ -19,14 +19,14 @@
     "Dual control for high-risk operations — privileged operations (key rotation, production data deletion, permission escalation) require two-party approval",
     "Immutable logs (WORM) for critical operations — audit logs for financial, auth, and data-deletion events cannot be retroactively modified",
     "Network security: default deny ingress, egress filtering, critical zone isolation — network posture follows least-privilege principle",
-    "CI pipeline dependency audit: automated vulnerability scan on dependencies in CI [Growth",
-    "Production DB dashboard write restriction: production DB writes restricted to application service accounts only, not human dashboards [Growth",
-    "Rate limiting on sensitive endpoints: auth, payment, and admin endpoints have rate limits [Growth",
-    "SBOM auto-generation in CI: Software Bill of Materials generated automatically during build [Scale",
-    "Incident Response Playbook formalized: documented response procedures for security incidents [Scale",
-    "Public Bucket Audit scheduled: periodic audit ensuring no storage buckets are unintentionally public [Scale",
-    "Infrastructure scanning integrated: automated infra scanning (IaC, container images) in pipeline [Scale",
-    "Dependency updates staged rollouts: dependency updates deployed progressively, not all-at-once [Scale",
+    "CI pipeline dependency audit: automated vulnerability scan on dependencies in CI [Growth]",
+    "Production DB dashboard write restriction: production DB writes restricted to application service accounts only, not human dashboards [Growth]",
+    "Rate limiting on sensitive endpoints: auth, payment, and admin endpoints have rate limits [Growth]",
+    "SBOM auto-generation in CI: Software Bill of Materials generated automatically during build [Scale]",
+    "Incident Response Playbook formalized: documented response procedures for security incidents [Scale]",
+    "Public Bucket Audit scheduled: periodic audit ensuring no storage buckets are unintentionally public [Scale]",
+    "Infrastructure scanning integrated: automated infra scanning (IaC, container images) in pipeline [Scale]",
+    "Dependency updates staged rollouts: dependency updates deployed progressively, not all-at-once [Scale]",
     {
       "check": "Auth is applied through unified wrappers rather than re-implemented per route.",
       "from": "R-730adf1b"
@@ -44,5 +44,6 @@
     "Overly broad egress permissions",
     "Privileged writes with no audit trail",
     "Secret material present in repo or unvalidated runtime paths"
-  ]
+  ],
+  "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n"
 }

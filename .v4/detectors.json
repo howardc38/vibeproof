@@ -9,7 +9,7 @@
     "cases": 6,
     "fixtures": "tests/fixtures/design_pins_detector",
     "path": "detectors/design_pins.py",
-    "sha256": "bd9afaddd7bdd18ba358e7e85fd097f6294ce85be4b6baad72cbc4f7319b1762"
+    "sha256": "ea2076eebe1549540815f1a71df522a833f42e6d6e2d50eb85d483ca358deebf"
   },
   "external_write.py": {
     "cases": 43,

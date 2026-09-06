@@ -21,7 +21,9 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
+from typing import NamedTuple
 
 CLAIM_LINE = re.compile(
     r"^V4-CLAIM:\s*(?P<fields>.+)$", re.M
@@ -65,6 +67,27 @@ def parse_claim_lines(text):
             raise DeriveError(f"V4-CLAIM without a kind: {m.group(0)!r}")
         out.append(fields)
     return out
+
+
+class DetectorRun(NamedTuple):
+    """What one detector run leaves behind.
+
+    A `NamedTuple` and not a fifth element on a bare tuple, for the reason
+    `run_detector`'s own comment gives about the subject payload it builds: a
+    hand-typed shape repeated at each call site is one where "a field added to
+    the contract reaches whichever of them the author was looking at". The
+    checker half already has `runner.CheckResult` for this job; this is that
+    half's missing twin, and adding `duration_ms` is what forced the question.
+
+    Still a tuple, so `rc, out, err, payload, ms = run_detector(...)` reads the
+    way the four-element unpack did.
+    """
+
+    exit_code: int
+    stdout: str
+    stderr: str
+    out: object
+    duration_ms: int
 
 
 def run_detector(repo_root: Path, detector_path: Path, subject_files, facts=None,
@@ -131,8 +154,18 @@ def run_detector(repo_root: Path, detector_path: Path, subject_files, facts=None
         # `TimeoutExpired` raised through `derive.derive` and `lifecycle` to
         # `cli.main`, whose handler catches three exception types and not that
         # one -- so one slow detector ended `v4 derive` in a traceback.
+        # Measured the way the checker half measures it, at the same seam:
+        # `runner.run_checker` puts `time.monotonic()` on either side of this
+        # exact call and carries the number out on its result. Nothing did that
+        # here, so the `timeout` above was a ceiling with nothing to hold it
+        # against -- `trend.checker_cost` says what that costs in as many
+        # words: "timeout_sec is a ceiling somebody wrote down. This is the
+        # measurement, and the gap between the two is how a repo finds out its
+        # timeouts are fiction". For every detector that gap was unmeasurable.
+        t0 = time.monotonic()
         code, stdout, stderr, survivors = runner._run_contained(
             argv, repo_root, timeout, td)
+        duration_ms = int((time.monotonic() - t0) * 1000)
         if survivors:
             stderr += (f"\n[kernel] this detector exited and left {survivors} "
                        f"process(es) running in its group")
@@ -148,4 +181,4 @@ def run_detector(repo_root: Path, detector_path: Path, subject_files, facts=None
                 payload_out = json.loads(out_path.read_text(encoding="utf-8"))
             except (OSError, ValueError) as exc:
                 stderr += f"\n[kernel] --out was written and does not parse: {exc}"
-    return code, stdout, stderr, payload_out
+    return DetectorRun(code, stdout, stderr, payload_out, duration_ms)

@@ -152,17 +152,36 @@ class MovingTheRuleOutOfCodeDidNotMoveItOutOfTheKey(unittest.TestCase):
                             "the rule moved into data and out of the key")
 
     def test_this_repos_own_checker_answers_to_its_table(self):
+        """The same question, asked of a copy.
+
+        This edited `kernel/analysis/fail_closed.json` in the live working tree
+        and put it back in a `finally`. Any interruption that skips the finally
+        -- a KeyboardInterrupt between the two writes, a kill, an OSError on the
+        restore -- leaves a developer holding a corrupted rule table they did
+        not write. `program_sha` takes a root precisely so this can be asked
+        somewhere else, and every other case in this suite builds a tempdir.
+        """
+        import shutil
+        import tempfile
         from kernel import hashing
-        js = ROOT / "kernel" / "analysis" / "fail_closed.json"
-        entry = ROOT / "checkers" / "fail_closed.py"
+
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        for rel in ("kernel/analysis/fail_closed.json",
+                    "kernel/analysis/fail_closed.py",
+                    "checkers/fail_closed.py"):
+            (tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / rel, tmp / rel)
+
+        js = tmp / "kernel" / "analysis" / "fail_closed.json"
+        entry = tmp / "checkers" / "fail_closed.py"
         body = js.read_text()
-        before = hashing.program_sha(ROOT, entry)
-        try:
-            js.write_text(body.replace('"requests"', '"requests_probe"'))
-            self.assertNotEqual(hashing.program_sha(ROOT, entry), before)
-        finally:
-            js.write_text(body)
-        self.assertEqual(hashing.program_sha(ROOT, entry), before)
+        before = hashing.program_sha(tmp, entry)
+        js.write_text(body.replace('"requests"', '"requests_probe"'))
+        self.assertNotEqual(hashing.program_sha(tmp, entry), before,
+                            "the table this checker answers to is part of its key")
+        js.write_text(body)
+        self.assertEqual(hashing.program_sha(tmp, entry), before)
 
 
 class TheNamesTheDocumentationUsesStillResolve(unittest.TestCase):

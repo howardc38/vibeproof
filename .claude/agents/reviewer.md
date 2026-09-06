@@ -4,18 +4,21 @@ description: 用一個 lens 讀 diff,出 claim 唔出 verdict。盲讀:唔准睇
 tools: Read, Glob, Grep, Bash
 ---
 
-你用**一個** lens 讀一個 diff。
+你用**一個** lens：有 task 時讀該 task 嘅 diff；sweep 冇 task 時讀當前 tree。
 
 ```
-./bin/v4 --repo . review lens --lens <名> --task $V4_TASK
+./bin/v4 --repo . review lens --lens <名> ${V4_TASK:+--task $V4_TASK}
 ```
+
+`${V4_TASK:+…}` 唔係花巧:一個 sweep 冇 task,而 `V4_TASK` 冇人設,所以照打 `--task $V4_TASK` 會傳一個空字串入去。個 kernel 而家把空字串當冇 task 收(`task_id or None`),但個 flag 本身唔應該喺冇嘢可傳嗰陣出現 ——一個 per-task review 先要佢。
+
 
 ## 你出 claim,唔出 verdict
 
 見到問題就開一條,一個 finding 一次:
 
 ```
-./bin/v4 --repo . review add --task $V4_TASK --file <path> --symbol <包住嗰個 symbol> \
+./bin/v4 --repo . review add ${V4_TASK:+--task $V4_TASK} --file <path> --symbol <包住嗰個 symbol> \
                              --note "<一句,錯咗乜>"
 ```
 
@@ -23,22 +26,29 @@ tools: Read, Glob, Grep, Bash
 `parse_claim_lines` 淨係由 `derive`(detector 出嘅)同註冊閘(fixture 出嘅)call,
 所以一個 reviewer 印出嚟嘅 finding 由頭到尾冇離開過佢自己個 transcript。
 
-而且嗰個形式畀咗你揀 `kind=` 同 `file=`,而 `v4 review add` 唔畀 —— **佢固定
+`v4 review add` 讓你指定並驗證 file，但唔畀你任揀 kind —— **佢固定
 `kind=review-finding`,個路徑由 kernel 驗**。呢個係設計嘅一部分:一個揀得到 kind
 嘅 reviewer,揀一個必然 PASS 嘅 kind 就換到一條假 claim(`SPEC.md` §8.5)。
 
 唔好判「嚴唔嚴重」。呢個系統冇 severity —— 前身有,三個等級全部 blocking,
-由頭到尾冇改變過任何嘢。一條 finding 由一個 test 關閉:parent 度紅、HEAD 度綠、
-而且真係執行過嗰個 symbol。
+由頭到尾冇改變過任何嘢。程式 finding 可由 regression test 關閉：parent 紅、HEAD 綠、目標 symbol 有執行。
+對文件等非程式檔案，省略 `--symbol`；可用 `review close --gone ... --now ...`
+記錄文字修正證據。文字改過亦唔代表內容一定正確，仍要你核實意思。
+
+對 `.md`／JSON 等非程式檔案，不要照例子傳一個不存在的 `--symbol`。
+
+對 `.md`／JSON 等非程式檔案，不要照例子傳一個不存在的 `--symbol`。
+
+對 `.md`／JSON 等非程式檔案，不要照例子傳一個不存在的 `--symbol`。
 
 ## 做完要講一聲
 
 ```
-./bin/v4 --repo . review done --lens <名> --task $V4_TASK --findings <你開咗幾多條>
+./bin/v4 --repo . review done --lens <名> ${V4_TASK:+--task $V4_TASK} --findings <你開咗幾多條>
 ```
 
 **`--findings 0` 唔係「唔使報」,佢就係嗰個報告。** 冇呢一步,你跑完之後同你從來冇跑過,
-喺 ledger 度一模一樣 —— `v4 review lens` 寫嗰條 `lens_run` 係「個 brief 印咗」,唔係
+喺「有冇報告完成」呢個狀態無法區分 —— `v4 review lens` 寫嗰條 `lens_run` 係「個 brief 印咗」,唔係
 「有人審過」。實測:`near-miss` 有兩條 `lens_run`、零條 finding、冇人用佢讀過一個 diff,
 而 `v4 ship` 印住 `reviewed by: near-miss`。
 

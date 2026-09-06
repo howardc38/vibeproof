@@ -46,6 +46,7 @@ import re
 import sys
 from datetime import datetime, timezone
 
+from . import ledger as ledger_mod
 from .ledger import insert
 
 WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*|[一-鿿]")
@@ -302,6 +303,43 @@ def judge_text(cfg, *, sentence, subject_words, rules=(),
     return True, "accepted"
 
 
+def _subject_words(claim_row) -> set:
+    """What a sentence has to name, tokenised the way a sentence is.
+
+    The two sides were written independently and drifted. The subject split on
+    `/` and `.` only, so `social-ops` stayed one word; the sentence goes through
+    `WORD`, which stops at the hyphen and yields `social` and `ops`. `judge`
+    intersects them, and for a hyphenated filename that intersection is empty
+    for every sentence anybody can write -- so the gate refuses, says "name the
+    file or the symbol", and refuses the sentence that does. A `review-finding`
+    on such a file could then only ever be signed.
+
+    Reported from an adopter, reproduced here: subject `{'social-ops'}` against
+    `['at', 'could', 'launcher', 'not', 'ops', 'run', 'social', 'the']`.
+
+    It is already in this file, attributed to something else. The comment below
+    records `dep-provenance` refusing three sentences in a row "each of which
+    named the actual file" and blames the `<module>` placeholder --
+    `dep-provenance` is hyphenated, and it reproduces for this reason too. The
+    placeholder repair landed and the cause stayed.
+
+    One tokeniser, so the two cannot disagree again: whatever `WORD` admits on
+    one side it admits on the other. The `len(w) > 2` floor stays -- `py` and
+    `go` are suffixes, not subjects.
+
+    `<module>` is what the analysis layer writes when a finding belongs to a
+    file rather than to anything inside it, and a repo-scoped claim carries no
+    file at all. Together that leaves the placeholder as the only nameable
+    thing, and the tokeniser strips its angle brackets, so it can never be
+    named. A placeholder is not a subject.
+    """
+    words = {w for w in _tokens(claim_row["file"] or "") if len(w) > 2}
+    symbol = claim_row["symbol"]
+    if symbol and symbol != MODULE_SYMBOL:
+        words |= {w for w in _tokens(symbol) if len(w) > 2}
+    return words
+
+
 def judge(conn, cfg, *, claim_row, sentence, exempt_duplicate=False):
     """(ok, reason).  Mechanical only -- there is no reviewer here on purpose."""
     th = cfg.thresholds
@@ -311,8 +349,7 @@ def judge(conn, cfg, *, claim_row, sentence, exempt_duplicate=False):
     if text == template.strip():
         return False, "this is the question restated, not a reading of it"
 
-    subject_words = {w for w in (claim_row["file"] or "").replace("/", " ")
-                     .replace(".", " ").split() if len(w) > 2}
+    subject_words = _subject_words(claim_row)
     # `<module>` is what the analysis layer writes when a finding belongs to a
     # file rather than to anything inside it, and a repo-scoped claim carries no
     # file at all. Together that leaves `{"<module>"}` as the only thing a
@@ -320,8 +357,6 @@ def judge(conn, cfg, *, claim_row, sentence, exempt_duplicate=False):
     # can never be named. Measured on a live repo: `dep-provenance` refused
     # three sentences in a row, each of which named the actual file, with the
     # advice "name the file or the symbol". A placeholder is not a subject.
-    if claim_row["symbol"] and claim_row["symbol"] != MODULE_SYMBOL:
-        subject_words.add(claim_row["symbol"])
 
     # The five tests that need nothing but the sentence and its subject -- the
     # same five `judge_text` names, counted the same way, because this comment
@@ -359,10 +394,16 @@ BEFORE_KIND = "engagement_before"
 
 
 #: Who a pre-work sentence came from. Self-reported, like every other `actor`
-#: in this ledger -- `worker`, `human`, `hook` and `kernel` are all set at the
+#: in this ledger -- `worker`, `person`, `hook` and `kernel` are all set at the
 #: call site and none of them is evidence. It is here because without it the one
 #: question this event exists to answer cannot be asked at all.
-BEFORE_ACTORS = ("splitter", "worker", "human")
+#:
+#: A subset of `ledger.ACTORS`, and named from it: this was `("splitter",
+#: "worker", "human")`, a second enumeration of one vocabulary, and it is why
+#: `v4 engage --actor human` wrote a word no other writer used. Narrower than
+#: the full set on purpose -- a `hook` or the `kernel` does not write a sentence
+#: before the work, and offering them as choices would suggest they could.
+BEFORE_ACTORS = ("splitter", "worker", ledger_mod.PERSON)
 
 
 def judge_before(conn, cfg, *, task_id, kind, sentence, actor="worker"):

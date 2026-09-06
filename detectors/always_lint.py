@@ -20,7 +20,10 @@ def main() -> int:
     so `review.resolve_symbol` refuses every `--symbol` for it and a
     finding raised with none has nothing for `redgreen` to trace -- which
     leaves a signature as the only exit, the outcome that function exists
-    to prevent. Twenty-six siblings already have this shape.
+    to prevent. Every other program under `checkers/` and `detectors/` has this shape;
+    a count of them was written here, in nine files, and went stale in
+    all nine at once -- nothing in this repo reads a docstring, so
+    nothing could have said so.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--subject")

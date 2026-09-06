@@ -1,12 +1,14 @@
 """The public demonstration must run real checks in both directions."""
 
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location("first_proof", ROOT / "examples/first-proof/run.py")
+evidence = json.loads((ROOT / ".v4/lenses/near-miss.json").read_text())["evidence"]
+spec = importlib.util.spec_from_file_location("first_proof", ROOT / evidence["path"])
 demo = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(demo)
 
