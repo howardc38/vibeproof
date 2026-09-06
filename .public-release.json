@@ -78,7 +78,7 @@
     },
     ".v4/checkers.json": {
       "mode": "100644",
-      "sha256": "b6ca9ed30dbff9c6f1e592feedc33ebdf74796031e4795b32c21238075053c0f",
+      "sha256": "3041d8e5705d8e5478cd41647cacb297f7139961be9cb87f76d904bce31b20c0",
       "source": ".v4/checkers.json"
     },
     ".v4/claim_kinds.json": {
@@ -193,7 +193,7 @@
     },
     ".v4/rule_dispositions.json": {
       "mode": "100644",
-      "sha256": "e8a1f072aff3529860c187379bf6bda59de3cf4bd040f0b5db0dd5db3cd11ebe",
+      "sha256": "67dc0df797c3856f74e87e02751286a2b56dd4b139e65eb42a6a194f04252dde",
       "source": ".v4/rule_dispositions.json"
     },
     ".v4/test-shape_baseline.json": {
@@ -246,16 +246,6 @@
       "sha256": "1ce940dae0502e5cc6b1c654991f0625fa1e134b3ad8c013c5c12dd909a63590",
       "source": "bin/v4"
     },
-    "checkers/_selftest_hollow.py": {
-      "mode": "100755",
-      "sha256": "bde8a403d144f99fbe0702c79d4eb5ca87e9ab5ab614dfce177194d12ab0e0cc",
-      "source": "checkers/_selftest_hollow.py"
-    },
-    "checkers/_selftest_real.py": {
-      "mode": "100755",
-      "sha256": "b2c36025a184d97958d2acbbcca132338eb06cf99ff66e950a8051f5b2789cff",
-      "source": "checkers/_selftest_real.py"
-    },
     "checkers/control_plane_budget.py": {
       "mode": "100644",
       "sha256": "cc3171bb0808f91fbb05b8acec212faa1ac3c7e07f5efe92629efd4842c5adbf",
@@ -293,7 +283,7 @@
     },
     "checkers/registry_consistency.py": {
       "mode": "100755",
-      "sha256": "e13c4832ca86ecfa28c3f50d775e77e997a41cb3975fc6c7e94f467cd0fa790d",
+      "sha256": "ffbba251a01e479554261855bde2400d109e79d6c0b863bba190089e4cbf20ac",
       "source": "checkers/registry_consistency.py"
     },
     "checkers/review_finding.py": {
@@ -7591,56 +7581,6 @@
       "sha256": "04178274bbbe02df46822fa8885017c43a8a3e69fc6972e63387358dbd909809",
       "source": "tests/fixtures/secret/red/test_live_integration.py"
     },
-    "tests/fixtures/selftest/green/case1.py": {
-      "mode": "100644",
-      "sha256": "532edfc81d7bf3bf329f8ee952509ad759361f221e1689e4bad4b71d4f249d37",
-      "source": "tests/fixtures/selftest/green/case1.py"
-    },
-    "tests/fixtures/selftest/green/case2.py": {
-      "mode": "100644",
-      "sha256": "4635b156a1035bfac0cae8d45b8466e324ca8f8afae4c465071241b6ccd01861",
-      "source": "tests/fixtures/selftest/green/case2.py"
-    },
-    "tests/fixtures/selftest/green/case3.py": {
-      "mode": "100644",
-      "sha256": "5cc1dfcf5da7cafdafb5c8ad0aec175272a487dd575dcc6562d883f42c9bd2fb",
-      "source": "tests/fixtures/selftest/green/case3.py"
-    },
-    "tests/fixtures/selftest/green/case4.py": {
-      "mode": "100644",
-      "sha256": "54e40d5e04795b8607144da3d50e0473b997ba3f887a628bac9590f450bbc822",
-      "source": "tests/fixtures/selftest/green/case4.py"
-    },
-    "tests/fixtures/selftest/green/case5.py": {
-      "mode": "100644",
-      "sha256": "da88642cecdbc4c838b60bfd75dab1248b8c1d216e498af2cab25809ffc53cd6",
-      "source": "tests/fixtures/selftest/green/case5.py"
-    },
-    "tests/fixtures/selftest/red/case1.py": {
-      "mode": "100644",
-      "sha256": "d715ba56169cbaf15896e1b8edefb04bc5e07dcfc005c4bdc34e6a0cf55fd7e4",
-      "source": "tests/fixtures/selftest/red/case1.py"
-    },
-    "tests/fixtures/selftest/red/case2.py": {
-      "mode": "100644",
-      "sha256": "d051d1d2739131283afb2407c78f62426d0532c0caf84eed40377b6860661de4",
-      "source": "tests/fixtures/selftest/red/case2.py"
-    },
-    "tests/fixtures/selftest/red/case3.py": {
-      "mode": "100644",
-      "sha256": "39574a118e903dba117418e6ffc64d8a5eca5c6f23203b241ce672120cfa4ee0",
-      "source": "tests/fixtures/selftest/red/case3.py"
-    },
-    "tests/fixtures/selftest/red/case4.py": {
-      "mode": "100644",
-      "sha256": "79d112bed540c8311648c53658bbef87e7655b6c2cc918e8aee530d425f02007",
-      "source": "tests/fixtures/selftest/red/case4.py"
-    },
-    "tests/fixtures/selftest/red/case5.py": {
-      "mode": "100644",
-      "sha256": "d820a404fe6a13432198f265daded33e88b406c87c47621f6c89bf6a489ba388",
-      "source": "tests/fixtures/selftest/red/case5.py"
-    },
     "tests/fixtures/signature_change/bypass/caller_passes_by_keyword/.v4/config.json": {
       "mode": "100644",
       "sha256": "cac37f4e1360a50993fc44081096f62514865bf716d82e2040fca5e4dff83065",
@@ -13453,7 +13393,7 @@
     }
   },
   "policy_sha256": "9d00da3efc44795b7ee2acc63800ca8b5307fd8c507e9f3e938f2c4906c099e4",
-  "public_parent": "7322c10b278faea3e491a80748137c2f8d749b0e",
+  "public_parent": "88203357c9772f876063a5e4669e3d450d65ab03",
   "schema": 1,
-  "source_revision": "752657e6f7178089ea7fd424191b1991474cecfd"
+  "source_revision": "44ff84deb85909b53de4a3b04ac5975615a82070"
 }

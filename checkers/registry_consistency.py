@@ -112,10 +112,12 @@ def check(root: Path):
     # claims both directions and the detector half below does both. So a program
     # could sit in `checkers/` -- a protected path, a directory `install` copies
     # wholesale into every adopter -- registered nowhere, called by nothing, and
-    # named by nothing. Two are there today.
+    # named by nothing.
     # `_`-prefixed is scaffolding by this repo's own convention -- the detector
     # loader skips those names and so does `derive`, so a program called
-    # `_selftest_real.py` is not claiming to be a checker. Same rule both sides.
+    # An underscore-prefixed helper is not claiming to be a registered checker.
+    # Same rule both sides; the retired self-test prototypes needed no exemption
+    # beyond this naming convention.
     checker_files = {p.name for p in (root / "checkers").glob("*.py")
                      if not p.name.startswith("_")}
     registered_files = {Path(str(e.get("path", ""))).name for e in checkers.values()}

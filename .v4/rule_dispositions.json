@@ -1000,7 +1000,7 @@
       "assigned": "2-checker",
       "landed": ".v4/lenses/prevention.json",
       "refuted_because": "other",
-      "refutation": "紅唔起:紅 fixture 由定義上唔可能存在。個 fixture 講明係「a REGISTERED check whose body is sys.exit(0)」,但 register.py:171-200 要求 5 紅 + 5 綠 fixture 全中先入 registry,:297-298 一失敗即拒。DOGFOOD_LOG.md:52-60 已經真跑過呢個實驗,結論就係 NOT registrable。checkers/_selftest_hollow.py(2 行,sys.exit(0))存在但唔喺 .v4/checkers.json 入面 —— proposal 自己都咁講。要造",
+      "refutation": "歷史實驗：只回傳 PASS 的 hollow checker 會被 red fixtures 拒絕，不能用「已註冊而永遠 PASS」作正常可達狀態。舊 _selftest prototypes 與未引用的 selftest fixture 目錄已移除；tests/test_kernel.py::RegistrationGate 會自行建立 real／hollow checker 及 red／green／bypass fixtures，實際執行 register.verify_checker，保留這條註冊拒絕的驗證。",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
       "id": "R-4f2b5ba5"
     },
