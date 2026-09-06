@@ -287,6 +287,18 @@ def _redact(text: str, root=None) -> str:
     return redact(text or "", root)
 
 
+def _redact_json(value, root=None):
+    """`redaction.redact_json`, for the structured half of the same output.
+
+    A detector's `--out` payload lands in the same append-only table as its
+    stderr, so it takes the same filter. Separate from `_redact` above only
+    because one takes text and the other takes parsed JSON -- both call the
+    module that owns the patterns, neither carries its own.
+    """
+    from .analysis.redaction import redact_json
+    return redact_json(value, root=root)
+
+
 #: A claim the newest detector raised again.  The row cannot be updated, so the
 #: fact that these bytes also raise it is an event.
 RERAISED_KIND = "claim_reraised"
@@ -314,8 +326,20 @@ def derive(conn, cfg, *, task_id, scope_globs, subject_files, phase, detectors_d
     # nothing converges on the first round, which is the right answer for a
     # container. Findings close one at a time through `v4 review close`.
     if task_id == ledger_mod.REVIEW_TASK:
+        # Detectors do not run here, and orphans still do. A finding about a
+        # file that has since been deleted is exactly the container's business:
+        # `v4 review close` needs the file to compare against, so a finding
+        # whose subject is gone has no closure available and no way out but a
+        # signature saying the code is gone -- which this function's own
+        # comment calls a rename that nobody should have to sign for. Returning
+        # `retracted: []` here meant the repair one screen up could not reach
+        # the 25 claims it was written for.
+        with ledger_mod.writing(conn):
+            orphans = _retract_orphans(
+                conn, cfg.root, task_id, set(), set(),
+                datetime.now(timezone.utc).isoformat())
         return {"created": [], "refused": [], "detectors_ran": {},
-                "seen": set(), "retracted": []}
+                "seen": set(), "retracted": orphans}
 
     root = cfg.root
     detectors_dir = Path(detectors_dir or root / "detectors")
@@ -455,7 +479,7 @@ def derive(conn, cfg, *, task_id, scope_globs, subject_files, phase, detectors_d
         # right now" -- so everything a worker had already committed inside the
         # task was invisible to them. `test-weakened` raised 0 claims across 36
         # tasks on the reference adopter.
-        rc, stdout, stderr, det_out = run_detector(
+        rc, stdout, stderr, det_out, det_ms = run_detector(
             root, det, subject_files, cfg.facts or None, diff_base=base,
             # What a checker's subject has carried all along. A detector that
             # sweeps past its subject files needs it for the same reason.
@@ -609,8 +633,36 @@ def derive(conn, cfg, *, task_id, scope_globs, subject_files, phase, detectors_d
                         # caller discards.
                         "dropped": dropped,
                         "considered": considered,
+                        # What the detector wrote to `--out`. `run_detector`
+                        # parses it and says in its own comment "Returned
+                        # rather than stored, so the caller that owns the
+                        # ledger decides" -- and this caller bound it as
+                        # `det_out` and decided nothing: one occurrence in the
+                        # whole repo, the binding itself. Fourteen detectors
+                        # write structured findings into a temp file that is
+                        # deleted with the directory. `runner.record` keeps the
+                        # checker equivalent as `checker_out` and its comment
+                        # names the alternative: "the kernel parsed this, held
+                        # it in memory, and dropped it".
+                        #
+                        # Redacted like every other payload that reaches this
+                        # table, and only when there is one -- an absent key is
+                        # cheaper to read than a null on every row.
+                        **({"out": _redact_json(det_out, root)}
+                           if det_out is not None else {}),
+                        # What it cost. The checker half has carried this since
+                        # `runner.record` was written -- `duration_ms` on the
+                        # attempt and a `cost_observation` row -- and this row
+                        # had nothing, so the timeout every detector runs under
+                        # was a number with nothing to compare it to.
+                        "duration_ms": det_ms,
                         "could_read": _could_read(det.name)},
-               created_at=now)
+               # This detector's own instant, not the one taken before the
+               # loop. 20,062 `detector_run` rows in this ledger carry 951
+               # distinct timestamps -- one per `derive`, with every detector of
+               # a round stamped identically -- so the table could not say which
+               # ran first, or where in a round the time went.
+               created_at=datetime.now(timezone.utc).isoformat())
         ran.append(det.name)
         healthy.add(det.name)
 
@@ -642,7 +694,36 @@ def _retract_orphans(conn, root, task_id, seen, healthy, now):
         "SELECT * FROM claim WHERE task_id = ?", (task_id,)).fetchall()
     out = []
     for row in rows:
-        if row["id"] in seen or row["detector"] not in healthy:
+        if row["id"] in seen:
+            continue
+        # Already retracted stays retracted, and does not get said twice. The
+        # row is terminal after the first pass -- `state.claim_state` returns
+        # RETRACTED on that one event -- so re-inserting it changes no verdict
+        # and grows an append-only table by one row per `derive`. It went
+        # unnoticed while nothing reached this branch for a review finding;
+        # wiring the container into it made every `v4 derive --task
+        # repo-review` write twenty-five more.
+        if conn.execute("SELECT 1 FROM event WHERE claim_id = ? AND "
+                        "kind = 'retracted' LIMIT 1", (row["id"],)).fetchone():
+            continue
+        # A claim with no detector passes the detector guard, because the guard
+        # is about a detector that crashed and there is none to crash. That
+        # reading was missing, so `None not in healthy` was true for every
+        # `review-finding` and this function -- whose own comment says
+        # "Renaming a file is not a risk anybody should have to sign for" --
+        # could not reach the claims where a file had been renamed away.
+        # Measured: 21 open findings about `dep_provenance.py`,
+        # `sweep_current.py`, `dal_write.py` and six other modules removed at
+        # `a9ae5fb`, each one closable only by a signature saying the code is
+        # gone.
+        #
+        # Only the `gone` route for those. `settled` is about a detector that
+        # was narrowed until it stopped raising something, which is a sentence
+        # about a detector; a claim without one cannot be in that state, and
+        # letting it through there would retract a live finding whose file is
+        # still on disk.
+        detector_less = not row["detector"]
+        if not detector_less and row["detector"] not in healthy:
             continue
         refs = json.loads(row["subject_refs"])
         files = [r["path"] for r in refs if r.get("kind") == "file"]
@@ -663,7 +744,7 @@ def _retract_orphans(conn, root, task_id, seen, healthy, now):
         answered = conn.execute(
             "SELECT exit_code FROM attempt WHERE claim_id = ? "
             "ORDER BY id DESC LIMIT 1", (row["id"],)).fetchone()
-        settled = bool(answered) and answered["exit_code"] == 0
+        settled = bool(answered) and answered["exit_code"] == 0 and not detector_less
         if not (gone or settled):
             continue
         insert(conn, "event", task_id=task_id, claim_id=row["id"], kind="retracted",

@@ -1,13 +1,25 @@
 # Dogfood log
 
-Every entry here is a design problem that **building** V4 exposed, which
-**reading** V4 did not. Four adversarial review agents read the design and
-produced roughly sixty findings; the entries below are the ones none of them
-caught, because they only appear when you try to write the code.
+This is a dated development record. The recorded reviews missed problems
+subsequently exposed during implementation. That observation does not prove
+that code review could never find them. Commands, counts and implementation
+descriptions below describe their entry dates, not the current release.
+For current behavior use [SPEC.md](SPEC.md) and [USING.md](USING.md).
 
-That gap is the reason this log exists, and it is also the argument: if a
-design is only wrong in ways that surface while the code is being written,
-reviewing it harder does not find them.
+Corrections checked against code on 2026-09-06:
+
+- The historical warning about a second editable source does not prohibit
+  a deterministic distribution. [SYNC.md](SYNC.md) now defines private as the
+  sole editable source, and public as a selected export with drift checks.
+- The control-plane directory allowlist failure was specific to a completeness
+  measure; it is not evidence against every permission or publication allowlist.
+- The composition-audit story below records its intent. Current
+  `kernel/composition.py::collisions` compares worktree paths rather than the
+  content stamp stored by `kernel/runner.py::record`; neither a clean report
+  nor its livelock label proves composition safety. See SPEC.md §4.6.
+- The old hook entry says both “printed DEGRADED” and “healthy”. That wording
+  does not establish the historical flag value. Today `DEGRADED` concerns
+  observed hook activity, not merely whether settings exist.
 
 Format: what I hit, what it means for the design, what changed.
 

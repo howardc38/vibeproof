@@ -351,7 +351,23 @@ def main() -> int:
             unanswerable.append(why)
 
     if a.out:
-        Path(a.out).write_text(json.dumps({"results": results}, indent=2))
+        # `run_id` travels here, and this is the only durable place it can.
+        # It is the one thing tying an invocation to the row it created in the
+        # truth owner, and it was deliberately kept off stdout -- the
+        # registration gate compares stdout across two runs, so an id there
+        # would make every case "not deterministic" for a reason that has
+        # nothing to do with the checker. That argument does not reach `--out`:
+        # `register.py` compares `(exit_code, stdout)` and never this payload.
+        #
+        # Without it there is no correlation id anywhere durable. Measured on
+        # this repo's committed export before the change: 116 runtime-proof
+        # claims, every `checker_out` payload carrying proof/ok/why and no
+        # run_id -- so a set of recorded external writes existed whose rows in
+        # the truth owner nobody could name afterwards. `runner.record` keeps
+        # this payload as a `checker_out` event in the append-only ledger,
+        # which is what makes it an answer to a question asked next year.
+        Path(a.out).write_text(json.dumps(
+            {"run_id": run_id, "results": results}, indent=2))
     if not_triggered:
         print(f"FAIL: {len(not_triggered)} declared proof(s) never ran -- the "
               f"trigger did not succeed.\n\n  "

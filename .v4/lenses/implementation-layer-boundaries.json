@@ -70,5 +70,6 @@
     "Sheet/bot/temp file becoming hidden truth — spreadsheets, chat bots, or temp files silently become the system's actual source of truth instead of the designated authority store",
     "Adapter return shape becoming de facto truth — adapter response objects are consumed directly by business logic without mapping, making the adapter's schema the implicit contract",
     "Signature changes without call-site audit — required kwarg added to function signature but callers not enumerated and updated (typical: cold paths like worker handlers / error branches / legacy adapters missed; see IMPLEMENTATION_ARCHITECTURE_GUIDELINE §5A.1 Signature Evolution)"
-  ]
+  ],
+  "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n"
 }

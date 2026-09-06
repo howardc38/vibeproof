@@ -12,8 +12,9 @@ test claim green forever.
 import re
 import argparse, json, subprocess, sys
 from pathlib import Path
+from typing import NoReturn
 
-def main() -> int:
+def main() -> NoReturn:
     """The program, as a function.
 
     A module-level script has no symbol a stack frame can be named after,
@@ -24,6 +25,10 @@ def main() -> int:
 
     `sys.exit` inside stays `sys.exit`: it raises, so it travels out
     through `main()` unchanged and the verdict is the one it always was.
+    That is why the return is `NoReturn` and not `int`. The annotation said
+    `int`, the last line was an unreachable `return 0`, and the caller was
+    `sys.exit(main())` -- three statements about one function, two of them
+    describing a value it has never once produced.
     """
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from kernel import config as config_mod  # noqa: E402
@@ -82,7 +87,20 @@ def main() -> int:
         # the list at the source.
         d = subprocess.run(["git", "diff", "--name-only", "--diff-filter=d",
                             base], cwd=root, capture_output=True, text=True)
-        if d.returncode == 0:
+        if d.returncode != 0:
+            # Saying so, because the alternative is what this did: a non-zero
+            # exit left `changed` empty, the tracer was never attached, and the
+            # claim passed on the suite's exit code alone -- the binding half
+            # switched itself off with nothing to say it had. An unreadable
+            # diff is a fact about the diff, not a repo whose suite covers its
+            # own change.
+            print(f"the diff against {base} did not read (git exited "
+                  f"{d.returncode}), so which files this task changed is "
+                  f"unknown and the binding half of this claim is unanswered",
+                  file=sys.stderr)
+            if d.stderr.strip():
+                print(f"  {d.stderr.strip()[:300]}", file=sys.stderr)
+        else:
             # `kernel_written` with the repo root: a file whose bytes still match
             # what `v4 install` shipped is the framework's, not this task's, and
             # asking the suite to cover it is asking the wrong repo's tests.
@@ -92,13 +110,16 @@ def main() -> int:
 
     ran = None
     if changed:
-        from kernel import config as config_mod
         from kernel.redgreen import executed_files
-        declared_timeout = config_mod.declared(cfg, "test_timeout_sec")
         try:
-            rc, ran, combined = executed_files(
-                root, cmd,
-                timeout=int(declared_timeout or config_mod.DEFAULT_TEST_TIMEOUT))
+            # No wall of its own. The comment forty lines up says the second
+            # timeout was removed and that there is "One owner: the registry"
+            # -- and this call was the second timeout. `.v4/checkers.json`
+            # gives the `test` checker 900s and `runner` enforces it, so the
+            # smaller number always won; a suite running between the two was
+            # killed by the kernel and recorded as CHECKER_ERROR, a failure the
+            # worker did not cause and cannot act on. One owner, for real now.
+            rc, ran, combined = executed_files(root, cmd)
             r = subprocess.CompletedProcess(cmd, rc, combined, "")
         except Exception as exc:                                # noqa: BLE001
             # The tracer could not attach. That is not a verdict about the
@@ -219,8 +240,9 @@ def main() -> int:
                 "knew better was already run.")
 
     sys.exit(0 if r.returncode == 0 else 1)
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # No `sys.exit(main())`: every path out of `main` is already a `sys.exit`,
+    # so wrapping it described a returned code that never arrives.
+    main()

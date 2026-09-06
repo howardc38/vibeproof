@@ -1,6 +1,6 @@
 # README 應寫什麼？vibeproof 的差異化在哪裡？
 
-分析日期：2026-09-05。自身功能以目前 code 和實際註冊資料為依據；agent/command Markdown 只作產品資產閱讀，不當成已執行的證據。競品以公開 repo 的特定 commit 和實作路徑比較，沒有執行其程式，也沒有做跨產品效能 benchmark。這是有界樣本，不是全市場窮盡調查。
+分析日期：2026-09-05。自身功能已於 2026-09-06 對照整合版 code 重核；競品仍是下列固定版本的 2026-09-05 研究。agent/command Markdown 只作產品資產閱讀，不當成已執行的證據。競品以公開 repo 的特定 commit 和實作路徑比較，沒有執行其程式，也沒有做跨產品效能 benchmark。這是有界樣本，不是全市場窮盡調查。
 
 ## 結論
 
@@ -41,7 +41,7 @@ Ship 亦有機械 Stop gate 和階段狀態管理，故 agents、commands、分�
 
 ### 1. 「你驗過的那份，還是現在這份嗎？」
 
-vibeproof 在讀取 claim 狀態時，核對相關 subject、config、checker、facts、detector，以及適用時的 worktree digest。風險接受也綁狀態。這比單純記住某個時間的 PASS 更具體。來源：[stale_reason](../../kernel/state.py#L149)、[risk state](../../kernel/state.py#L84)。
+vibeproof 在讀取 claim 狀態時，核對相關 subject、config、checker、facts、detector，以及適用時的 worktree digest。風險接受也綁狀態。這比單純記住某個時間的 PASS 更具體。來源：[stale_reason](../../kernel/state.py)、[risk state](../../kernel/state.py)。
 
 具體比較：agent-done-or-not 這次讀到的 Bash state-drift 函式比較 commit 與 clean→dirty 狀態，不逐一 hash 目前未提交內容。因此它不能只靠那個函式區分同一 HEAD 下 dirty→dirty 的再次修改。這是可指向 code 的相對差別，不是對其整個產品的全面結論。
 
@@ -49,7 +49,7 @@ vibeproof 在讀取 claim 狀態時，核對相關 subject、config、checker、
 
 ### 2. 「review 說修好了，究竟用什麼把 finding 關掉？」
 
-reviewer 經 `review add` 建立固定類型的 finding，不能隨意換成一個容易 PASS 的 kind。修正測試路徑可以把同一測試放到舊 commit 與現在執行，並觀察目標函式。來源：[raise_finding](../../kernel/review.py#L216)、[redgreen.verify](../../kernel/redgreen.py#L414)。
+reviewer 經 `review add` 建立固定類型的 finding，不能隨意換成一個容易 PASS 的 kind。修正測試路徑可以把同一測試放到舊 commit 與現在執行，並觀察目標函式。來源：[raise_finding](../../kernel/review.py)、[redgreen.verify](../../kernel/redgreen.py)。
 
 TDD 與 red-green 不獨有；Agentic-SDLC 也有 [redgreen-gate](https://github.com/Sweet-Papa-Technologies/Agentic-SDLC/blob/50d9220b6a1ebbf4be5ab11329bb4264683403b3/plugins/fofo/skills/sdlc/scripts/redgreen-gate#L36)。差別要說在「具體 finding 的關閉如何接到實際測試與狀態」，而不是把 red-green 說成新發明。
 
@@ -57,7 +57,7 @@ TDD 與 red-green 不獨有；Agentic-SDLC 也有 [redgreen-gate](https://github
 
 ### 3. 「暫時不擋的問題，是保留了，還是被忘掉？」
 
-report-only 問題仍有 claim 和 attempt，ship 會把它列出。評估任務時，數量、年齡或反覆失敗門檻可令 report 升級為 blocker。來源：[split_open](../../kernel/state.py#L447)、[thresholds](../../kernel/state.py#L413)。
+report-only 問題仍有 claim 和 attempt，ship 會把它列出。評估任務時，數量、年齡或反覆失敗門檻可令 report 升級為 blocker。來源：[split_open](../../kernel/state.py)、[thresholds](../../kernel/state.py)。
 
 「warning 與 error 分級」並不新；比較有用的是把它與持續狀態、明確原因及判定接在一起。也必須說清楚：目前數量是在該 task 報告中計算，並非所有舊 task 的 debt 都會自動阻止下一個 task。
 
@@ -65,7 +65,7 @@ report-only 問題仍有 claim 和 attempt，ship 會把它列出。評估任務
 
 ### 4. 「AI 連 checker 都能寫，那誰檢查 checker？」
 
-註冊前執行 red/green/bypass fixtures，拒絕把 red 的原封副本當 bypass，並重跑比較返回碼及 stdout。這比把任意 script 路徑加入設定更有可說明的保障。來源：[verify_checker](../../kernel/register.py#L259)、[repeatability](../../kernel/register.py#L342)、[register](../../kernel/register.py#L489)。
+註冊前執行 red/green/bypass fixtures，拒絕把 red 的原封副本當 bypass，並重跑比較返回碼及 stdout。這比把任意 script 路徑加入設定更有可說明的保障。來源：[verify_checker](../../kernel/register.py)、[repeatability](../../kernel/register.py)、[register](../../kernel/register.py)。
 
 驗證工具本身、mutation testing、插件自測都不是新概念。vibeproof 的特色是把這一步放在自己的註冊／安裝入口。這個價值較適合會擴充規則的使用者，不一定是完全新手的第一個痛點。
 

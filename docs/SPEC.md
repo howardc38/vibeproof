@@ -15,7 +15,7 @@ docs/DOGFOOD_LOG.md.  Neither is needed to implement this file.
 
 # vibeproof — implementation spec
 
-**A task is a set of questions. Each question is answered by a separate program. The kernel runs that program itself, reads its exit code itself, and records the answer. When they are all answered, it ships.**
+**A task is a set of questions. Each question is answered by a separate program. The kernel runs that program itself, reads its exit code itself, and records the answer. Ship evaluates the current answers, per-kind gate policy, chain integrity and confirmed facts; report-only questions can remain visible.**
 
 No steps, no cycles, no prose contracts, no phase documents.
 
@@ -25,7 +25,7 @@ No steps, no cycles, no prose contracts, no phase documents.
 
 1. **Where code already exists, this document states the contract and the invariants; the code is the implementation.**
 2. **Where it says "not a guarantee", do not upgrade it.** The predecessor to this document made three "structurally impossible" claims and all three were false.
-3. **What is not built is in §10.** Anything that appears here and not in §10 is built and pinned by a test.
+3. **What is not built is in §10.** Current mechanisms are linked to implementation pins. A pin verifies that a symbol exists; it does not prove every sentence or behavior is tested. Historical observations are explicitly labelled.
 4. **This document is governed by two checkers.** Nobody has to be believed when they say they checked:
 <!-- pinned: checkers/design_pins.py::main -->
 <!-- pinned: checkers/spec_coverage.py::main -->
@@ -40,6 +40,7 @@ No steps, no cycles, no prose contracts, no phase documents.
 ---
 
 ## 1. The data model
+<!-- pinned: kernel/ledger.py::SCHEMA -->
 
 ```
 task    the unit of one change. Carries the request verbatim, scope globs, base commit
@@ -47,7 +48,7 @@ task    the unit of one change. Carries the request verbatim, scope globs, base 
     └ attempt  the kernel ran that program once. The exit code comes from the OS
 ```
 
-**The primary key is `(task, claim, attempt)`.** No phases, no cycles, no steps.
+**Evidence is organized as task → claim → attempt.** The SQL tables have their own primary keys (`task.id`, `claim.id`, `attempt.id`); this is a hierarchy, not a composite SQL primary key.
 
 ### Claim identity
 <!-- pinned: kernel/hashing.py::claim_id -->
@@ -76,7 +77,7 @@ claim_id = sha256(task_id ‖ kind ‖ file ‖ symbol ‖ variant)[:16]
 
 **`subject_refs` is written by the kernel — not by a detector, not by an LLM.** Choosing the subject is choosing which bytes verify your own answer.
 
-The `attempt` ref exists because a `surface` claim depends on a `runtime` observation, and a file hash cannot express that: re-running the runtime check changes no file. The kernel derives it from `depends_on_kind` in `claim_kinds.json`.
+The `attempt` ref can represent a future dependency such as a surface claim depending on a runtime observation: re-running that observation need not change a file. The kernel derives it from `depends_on_kind` in `claim_kinds.json`.
 
 ⚠️ **It takes the first claim of that kind, not all of them.** When a task has more than one claim to depend on,
 <!-- awaiting-first-user: depends_on_kind -->
@@ -104,17 +105,20 @@ yet:
 <!-- pinned: kernel/derive.py::run_detector -->
 
 ```json
-{"claim_id": "", "claim_kind": "", "task_id": "", "diff_base": "",
- "symbol": "", "variant": "", "params": {},
+{"claim_id": "", "claim_kind": "", "task_id": "", "diff_base": "<task base>",
+ "symbol": "", "variant": "", "params": {"derive_exclude": ["tests/fixtures/**"]},
  "repo_root": "/abs/path/to/worktree",
  "subject_refs": [{"kind": "file", "path": "app/x.py"}]}
 ```
 
-**Only `repo_root` and `subject_refs` carry anything** — `subject_refs` is the
-set of files to scan this round. A detector that needs a diff base writes its
-own `or "HEAD"`. **This passage did not exist before**, and somebody building a
-detector from "the same three flags as a checker" would read fields that are
-permanently empty strings.
+`kernel.detector_protocol.run_detector` constructs this with `runner.Subject`.
+During derivation, `diff_base` is the task's base and `params.derive_exclude`
+carries the repo exclusions. Registration supplies its fixture base and keeps
+fixture exclusions separate. Claim-specific fields remain empty because no claim
+exists yet. Direct callers can omit the optional base/params; a detector must not
+assume those fields are permanently empty.
+<!-- pinned: kernel/detector_protocol.py::run_detector -->
+<!-- pinned: kernel/runner.py::Subject -->
 
 **All three must be accepted by `argparse`.** An undeclared flag makes argparse
 `exit 2`, and 2 is not in the exit table → the kernel reads ERROR → not one
@@ -228,12 +232,12 @@ it.**
 
 `after` still firing means the fix is not a fix, and the task can never ship.
 
-⚠️ **A detector needs its own fixtures and cannot borrow the checker's.** They
-ask different questions: a checker asks "is there a problem in this code", a
+⚠️ **A detector needs fixtures that answer its own question.** Sharing the
+checker's fixture corpus is permitted only when `_shares_logic` establishes the
+shared-analysis exception described above. Otherwise they ask different questions: a checker asks "is there a problem in this code", a
 detector asks "does this change need this checked". The since-removed
 `bundle-secret` checker's green fixtures were front-end files with no leak, and
-the same files should all have made the detector fire. Sharing makes half the
-cases wrong by definition.
+the same files should all have made the detector fire. For that historical pair, sharing made the green cases answer the wrong question.
 
 **A gate on the checker and none on the detector is backwards** — the detector
 decides what is available to be checked at all. A detector that emits nothing
@@ -243,13 +247,23 @@ report goes on saying it ran.
 
 ⚠️ **An unconditional detector (`always_*.py`) cannot be gated and must not
 pretend to be.** They emit the same line every time, so the "must not fire" case
-cannot be expressed. They are three lines long and their behaviour is decided by
-`claim_kinds.json` — the gate belongs on that kind's checker. **A conditional
-detector must pass its gate.**
+cannot be expressed, and their behaviour is decided by `claim_kinds.json` — the
+gate belongs on that kind's checker. **A conditional detector must pass its
+gate.**
 
-Do not leave 1 and 2 undefined: a detector that crashed but exited 1 reads as
-"scanned, found nothing" — fail-open, and silent, at the one step that decides
-what gets checked.
+**At the time** this paragraph also said they are "three lines long", and that
+half was wrong by an order of magnitude: the nine files run 19 to 36 lines —
+`always_layers` 19, `always_scope` 19, `always_budget` 20, `always_test` 21,
+`always_registry` 23, `always_wiring` 23, `always_spec` 24, `always_secret` 25,
+`always_lint` 36 — each carrying a module docstring, an argparse block and a
+function docstring. The exemption stands on the other reason and did not need
+that one. Nothing saw it: `counted_claims` settles numbers written as
+numeral-quantifier-noun against a population this repo can count, and "three
+lines long" is neither, so **this correction is not held by any check either**.
+
+A detector exit other than 0 is recorded as not run, not as a clean scan.
+This protects the meaning of the report and retraction logic; missing detector
+coverage still does not independently hold ship.
 
 ---
 
@@ -271,14 +285,16 @@ The same three flags as a detector. The `--subject` JSON:
 ```
 
 **`--facts`** — read-only facts the kernel dumps beforehand (the outbound symbol
-list, entrypoint patterns). **A checker cannot read the ledger.**
+list, entrypoint patterns). **The checker contract does not give it a ledger connection.** This is not
+filesystem isolation: a subprocess with the same OS permissions can attempt to
+open local files. Do not describe the contract as an enforced read boundary.
 <!-- pinned: kernel/config.py::RepoConfig -->
 
 | | |
 |---|---|
 | Where it comes from | `<repo>/.v4/facts.<repo-name>.json` (glob `.v4/facts*.json`), run through `kernel.facts.validate`. **A malformed file is an error, not an empty one** — reading it as empty silently disarms every detector that depends on it |
-| **May be absent** | A checker **must still work with no facts** (carrying a generic vocabulary of its own). **But absence has to make it say so** |
-| How absence is expressed | An empty or malformed table → **exit 4, not exit 0**. With no vocabulary to scan for, every repo reports clean |
+| **May be absent** | The CLI must accept an omitted `--facts`. A checker independent of facts can run; one requiring a usable vocabulary must report inability to verify instead of treating missing data as clean |
+| How absence is expressed | For facts-dependent checks, an unusable required table → **exit 4, not exit 0**. A malformed repository facts file can instead be refused earlier by `RepoConfig` |
 | How "there genuinely are none" is said | `absent: {"<table>": "<how it was checked>"}`, at least 20 characters, and the table must really be empty. <!-- pinned: kernel/analysis/facts_grammar.py::ABSENT_KEY --> A bare `[]` is still refused. The distinction matters because refusing empty tables outright stopped the wrong thing: a library with genuinely no outbound writes **could not adopt at all**, and the message told it to invent rows. Silence is still refused, and absence became a sentence with an author, in the diff, that the next person can re-run |
 | Who confirms it | Absences written by `v4 install` carry an `AUTO:` prefix, `doctor` keeps reporting them, and **`v4 ship` is HELD while one remains**. The gate moved from adopt to ship — the gate that stopped the wrong thing could not stop it, the one that stops the right thing can |
 | Fixtures | A fixture directory may carry its own `facts.json`. Without one, the repo's is used. **A fixture should use its own** — otherwise it tests one repo's vocabulary rather than your rule |
@@ -296,8 +312,8 @@ list, entrypoint patterns). **A checker cannot read the ledger.**
 
 **Empty `subject_refs` means this is a repo-scoped claim**: work out which files
 to scan from `repo_root` and `diff_base` yourself (`git diff --name-only <base>`
-plus `git ls-files --others --exclude-standard`). Returning exit 4 blocks the
-claim forever.
+plus `git ls-files --others --exclude-standard`). Exit 4 leaves the claim unanswered. Whether it holds ship depends on gate
+policy; supplying valid inputs or an applicable accepted risk can change that.
 
 ### Out: the exit code
 <!-- pinned: kernel/runner.py::PASS -->
@@ -307,7 +323,9 @@ claim forever.
 | **0** | PASS (including "scanned, nothing to verify") | claim answered |
 | **1** | FAIL | claim unanswered, the whole of stdout goes into the ledger |
 | **4** | **UNSUPPORTED — I cannot verify this**. Five checkers print this as `CANNOT VERIFY` (`external-write`, `fail-closed`, `runtime-proof`, `scope`, `secret`; `dependency` did too, until it was removed); same meaning, same exit code | **Not an answer.** Listed in the ship report |
-| **≥5** | ERROR / timeout | Neither PASS nor FAIL |
+| **5** | ERROR | The checker failed as a tool |
+| **6 / 7 / 8** | Reserved diagnostic codes | CHECKER_TAMPERED / SUBJECT_MOVED / TIMEOUT |
+| **Other values** | Unrecognized exit, including 2 or 3 | `UNKNOWN_EXIT`; neither PASS nor FAIL |
 
 > Two names for one thing, because the two sets of checkers were written on
 > different days. Both are kept rather than one renamed, because these numbers
@@ -319,13 +337,13 @@ Report `1` when something was caught; do not return `4` because a few other
 files did not parse. The other way round lets one syntax error silence a real
 finding.
 
-**6, 7 and 8 are assigned by the kernel, not returned by a checker.**
+**6, 7 and 8 are reserved for kernel diagnostics; checkers should not return them.**
+This is a protocol rule, not authenticated proof of who produced the number.
 `CHECKER_TAMPERED = 6` (disk sha differs from the registered one),
 `SUBJECT_MOVED = 7` (the two hashes around the exec differ), `TIMEOUT = 8`. All
 three are written into `attempt.exit_code` by `runner` as diagnosis — **and
 `state` keeps them apart: 5 derives `CHECKER_ERROR`, 6 `CHECKER_TAMPERED`, 7
-`SUBJECT_MOVED`, 8 `TIMEOUT` (`_EXIT_STATE`), and only a code the kernel does
-not name falls back to `CHECKER_ERROR`.** (This sentence used to say `state`
+`SUBJECT_MOVED`, 8 `TIMEOUT` (`_EXIT_STATE`), and a code the kernel does not name derives `UNKNOWN_EXIT`.** (This sentence used to say `state`
 treated all of them alike. It did, and `v4 status` printed `CHECKER_ERROR` for
 four different failures.) Diagnosis and state derivation are two things; this
 table is the first, the state table in §4 is the second.
@@ -376,11 +394,11 @@ not a git repo, and the next passage of §3 tells a repo-scoped checker to work
 out its subject with `git diff`. **The failure is a baffling exit 4 or 5, not a
 clear message.**
 
-⚠️ **The registration gate structurally cannot reach the "empty `subject_refs`"
-branch.** `_subject_for` always fills in every file for a directory case. So a
-repo-scoped checker's fallback path **cannot be covered by the fixture tests** —
-either do not use that branch, or cover it with a separate unit test, knowing the
-gate does not.
+⚠️ **Ordinary directory fixtures populate `subject_refs` from their case files.**
+An empty `subject_refs` override is ignored by the current truthy override test.
+Do not assume those fixtures cover a repo-scoped fallback: cover it explicitly
+in a test or a repo probe. `probe_repo_subject` separately exercises an empty
+subject during adoption; that is a different path from ordinary fixture expansion.
 
 A directory fixture may carry a `<case>/.v4/fixture.json` (one per case, not the
 one at the repo root):
@@ -437,7 +455,8 @@ the current hashes, and whether anybody signed.
 | `STALE` | The latest exited 0, but the key no longer matches | ✗ |
 | `ANSWERED` | The latest exited 0 and everything matches | ✓ |
 | `UNSUPPORTED` | The latest exited 4 | ✗ |
-| `CHECKER_ERROR` | The latest exited 5 — the checker crashed (or exited a code the kernel does not name) | ✗ |
+| `CHECKER_ERROR` | The latest exited 5 — a tool error was recorded | ✗ |
+| `UNKNOWN_EXIT` | The latest used an exit code absent from the state mapping | ✗ |
 | `CHECKER_TAMPERED` | The latest exited 6 — its registered bytes are not its bytes | ✗ |
 | `SUBJECT_MOVED` | The latest exited 7 — the tree changed while it ran | ✗ |
 | `TIMEOUT` | The latest exited 8 — it did not finish | ✗ |
@@ -500,14 +519,17 @@ caught — copying it across is a sentence larger than its own situation.
 ### Staleness key
 <!-- pinned: kernel/state.py::_staleness_key -->
 
-**Six things**, and any one of them changing makes the claim STALE:
+**Six input categories** are compared for a PASS and a task-scoped risk signature.
+A changed applicable input makes a previous PASS STALE; failed/unsupported
+attempts retain their own states, and an expired signature falls back to attempt
+state. Not every edit affects every category:
 
 ```
 subject    the digest of subject_refs (file → sha256; attempt ref → that claim's latest attempt id)
-config     the sha of .v4/config.json      ← test_command is the sole oracle for a test claim
+config     the sha of the whole .v4/config.json (not only test_command)
 checker    the sha of that checker **and of everything it transitively imports inside this repo**
-detector   the sha of the detector that raised it
-worktree   only for kinds with staleness=repo
+detector   the entry-file sha of the detector that raised it (not its transitive imports)
+worktree   only for staleness=repo, limited to the checker's declared reads where supplied
 facts      the sha of the facts table, for a checker that scans against it ("" for the rest, so an unrelated edit costs those nothing)
 ```
 
@@ -530,7 +552,9 @@ positive was fixed in `kernel/analysis/dangling_ref.py`, the verdicts went from
 different question — "are the bytes executing the ones that were registered"
 (exit 6 `CHECKER_TAMPERED`). Two questions, two answers, not to be merged.
 
-**`detector` is the same argument as `checker`:** narrowing a detector should
+**`detector` has a narrower hash than `checker`:** it covers the entry file.
+Changes in shared analysis can also move the checker program hash, but this is
+not a transitive detector hash. Narrowing a detector should
 expire what it raised under the old rule, exactly as changing a checker should
 expire what it passed. Without this, `claim.detector_sha` is a column that is
 written and never read.
@@ -539,7 +563,8 @@ written and never read.
 <!-- pinned: kernel/hashing.py::worktree_digest -->
 
 ```
-sha256(HEAD ‖ git diff HEAD --binary ‖ path+sha of every untracked file)
+sha256(sorted path + current Git-blob hash for each relevant file)
+        filtered by declared reads when supplied; staging/committing unchanged bytes does not move it
         excluding 7 kernel-written paths (see KERNEL_WRITTEN): .v4/risks/**  ·
               .v4/chain_head.json  ·  .v4/ledger_export.jsonl  ·  .v4/installed.json
               ·  .gitignore  ·  .v4/home  ·  .v4/deferred/
@@ -604,7 +629,7 @@ the ledger is clean and the chain verifies.**
 |---|---|
 | No UPDATE, no DELETE | Three triggers per append-only table, each `RAISE(ABORT)`: `no_update_<t>`, `no_delete_<t>`, and `gate_insert_<t>` (the write gate below) |
 | No status column | It is not in the schema at all |
-| Writes from outside are detectable | The hash chain |
+| Covered inconsistencies can be detected | Attempt/event chains, claim digests and signature reconciliation; this does not authenticate every table or every possible external write |
 
 **Tokens are not in `attempt`.** The kernel exec-ing a subprocess costs zero
 tokens; what costs tokens is the worker's reasoning, which only the platform
@@ -683,9 +708,10 @@ Measured:
 not have been written. It is not a boundary; a real one needs a daemon or a
 separate uid (§10).**
 
-**What the chain buys: `v4 audit` tells you a row was tampered with.** Both are
-needed: the gate stops the cheap route, the chain catches the expensive one. The
-anchor is CI running audit.
+**What the chain buys: `v4 audit` detects inconsistencies in covered records
+and available anchors.** A writer able to alter both data and its trust anchors
+can defeat that evidence. The gate and chain are useful checks, not immutable
+storage or proof of an authenticated author.
 
 ### Ship
 <!-- pinned: kernel/lifecycle.py::ship -->
@@ -694,7 +720,7 @@ anchor is CI running audit.
 passes ⟺ ① the pre-ship re-scan converges (≤3 rounds)
           ② nothing is blocked: every claim of a `gate: ship` kind ∈ {ANSWERED, RISK_ACCEPTED, RETRACTED},
              and no unanswered `gate: report` claim has crossed an escalation threshold (§10.4, `split_open`)
-          ③ the hash chain verifies
+          ③ no fatal chain/signature inconsistency remains (nonfatal warnings are printed)
           ④ the facts table has no unconfirmed `AUTO:` absence (see §8.8)
 always printed (not a gate): which detectors ran, which did not, how many widens, accepted_risk per kind,
           and every unanswered claim of a `gate: report` kind, beside the reason that kind defers
@@ -713,8 +739,9 @@ an LLM reading prose, not a parser.
 ### A ship's retry budget belongs to the task
 <!-- pinned: kernel/lifecycle.py::ship -->
 
-`ship_rederive_max` counts **from the start of the task to now**, not afresh on
-each `v4 ship`. Reissuing it each time is no limit at all, and every round adds
+`ship_rederive_max` counts **claim-producing ship rounds across the task**,
+not afresh on each `v4 ship`. A round creating zero claims demonstrates
+convergence and does not consume this budget; an unreadable old round is charged. Reissuing it each time is no limit at all, and every round adds
 claims to an append-only ledger — **retrying becomes a way to accumulate
 permanently unanswerable claims, with nothing that clears them.**
 
@@ -723,13 +750,13 @@ permanently unanswerable claims, with nothing that clears them.**
 
 | When | Over what |
 |---|---|
-| The task opens | base commit + declared scope |
+| After opening the task, when `v4 derive` is run | task base + declared scope |
 | After `scope widen` | **a full scan** |
 | **Before `v4 ship`** | **the actual diff** ← the important one |
 
-**All three are the same full scan.** Claim ids are idempotent, so rescanning is
-free; an incremental scan is a second code path buying what idempotency already
-gives away.
+**These routes use the same derivation implementation.** Stable claim IDs
+avoid duplicate claim rows. Rescanning still costs execution time and records
+detector runs; idempotence does not make that work free.
 
 **The third cannot be skipped:** code a worker writes can create an external
 write that did not exist when the task opened.
@@ -752,8 +779,8 @@ finding.
 <!-- pinned: kernel/analysis/subject_files.py::keep -->
 **It follows the subject, and is not only used at derive.** Nine checkers work
 out their own files from git — they have to: a repo-scoped claim has no
-`subject_refs`, and answering "nothing to scan" is UNSUPPORTED, which blocks that
-claim forever. All nine fallbacks had never read this rule. The measured cost:
+`subject_refs`, and answering "nothing to scan" can be UNSUPPORTED. That is
+unanswered, with its ship effect determined by gate policy. All nine fallbacks had never read this rule. The measured cost:
 `v4 install` copies every checker's bypass fixtures into the adopter repo, and
 the first `v4 check` reported **13 committed credentials**, every one of them a
 fixture doing its job. So it lives in `params.derive_exclude` now, read from one
@@ -770,9 +797,10 @@ or [default]` — point `ui_globs` at a directory that does not exist and it can
 never raise anything, while the ship report goes on saying it ran. **And what
 actually happened was not somebody pointing at the wrong directory:
 `kernel/facts.py` hardcoded `ui_globs` to `[]`, so it ran 665 times across 113
-questions and raised 0. That kind is gone and the hardcode is still there —
-`kernel/doctor.py` uses the same field to decide whether to warn "you have a UI
-and no `surface_command`", so what it silenced was more than one kind.** **This
+questions and raised 0. That kind is gone. `facts.propose` now derives `ui_globs` from recognized
+UI source instead of always writing an empty list; `doctor` also reads that field
+to decide whether a missing `surface_command` matters. The old hardcode affected
+more than one kind, but is not the current proposal behavior.** **This
 is §2's "change the suffix set to `.pyx`", arriving through the table instead of
 through the code, and structurally invisible to the fixture gate — because a
 fixture case brings its own facts.**
@@ -790,8 +818,9 @@ some glob in FILTER_KEYS matches no tracked file
                           → the ship report lists it as not run
 ```
 
-**"Does not count as having run" is the whole mechanism:** derive neither aborts
-nor quietly counts it as run — both would let a broken table go on shipping.
+**"Does not count as having run" is the mechanism:** coverage stays visible and
+its claims cannot be retracted on a false clean scan. This report does not itself
+prevent shipment; the detector-coverage limit in §2 still applies.
 
 ⚠️ **Running it twice — once with the table, once without, then diffing the claim
 sets — was tried and lost.** It read every reasonable narrowing as an attack:
@@ -820,9 +849,10 @@ declare that flag, so declaring it and reading it are two different things.
 v4 --repo . audit --compositions
 ```
 
-For each pair of repo-scoped claims it asks: does answering one immediately
-leave the other looking at a tree that no longer exists. **Both directions →
-livelock, and the task can never ship.**
+This is a diagnostic command, not a proof of impossibility. It compares the
+latest attempts for repo-scoped claims and suppresses pairs with a recorded
+allowed hook event between them. Its `LIVELOCK` label is a heuristic, not an
+observed cycle of mutual invalidation.
 
 **Why it exists: it happened twice, and both times two individually correct
 mechanisms produced it together.**
@@ -832,13 +862,19 @@ mechanisms produced it together.**
 | `test` binds to worktree content | `.pyc` used to be committed | Running the tests breaks `scope`, running `scope` breaks the tests |
 | A signature has to leave a record in git | A repo-scoped claim binds to worktree content | The file the signature writes expires the signature |
 
-**The collision is in neither rule, so a reader of the rules cannot find it.**
-Thirteen agents read the whole design and caught neither. **A reviewer reading a
-diff is structurally unable to see this class.**
+The recorded reviews missed these interactions. That does not establish that
+a reader cannot find them. A reviewer must inspect the interaction between rules to find this class;
+checking each rule in isolation does not establish composition safety.
 
-Its limit: it reasons from what the checkers actually wrote, so a collision has
-to have happened once to be visible. **It catches the second one, not the
-first.**
+**Known implementation limit, verified 2026-09-06:** `collisions` currently
+compares `attempt.worktree`, while `runner.record` stores a filesystem path in
+that column and the content stamp in `attempt.head_commit`. Attempts in one
+checkout can therefore hide a real content change; different checkout paths
+can look like changes. The heuristic also does not establish causality or
+prove that two claims can never pass together. Treat this output as an
+investigation lead only. Fixing this algorithm is separate from this document
+refresh.
+<!-- pinned: kernel/runner.py::record -->
 
 ### 4.7 Accounting for the request itself
 
@@ -870,7 +906,8 @@ So this one **does not judge**. It only makes the accounting exist:
 > most of it — and say what each span got.
 
 Quotes are verified with `str.__contains__` against the request stored in the
-ledger. They cannot be paraphrased, so the account cannot drift. A span that got
+ledger. The quoted text cannot be paraphrased through this interface. The claimed
+mapping from that text to delivered work is still a report, not semantic proof. A span that got
 nothing is declared `not done` with a reason, and that reason is a sentence a
 person can argue with in the diff. **Narrowing is still allowed — it just stops
 being silent.**
@@ -997,16 +1034,18 @@ declaration cheap, not to make the declaration harder to get wrong.**
 The duplicate exemption: a second widen inside one task will necessarily read
 like the first, and without the exemption it would necessarily be refused.
 
-### What can never be widened into
+### What requires a protected-path decision
 <!-- pinned: kernel/scope.py::protected_for -->
 
 ```
 .v4/**  checkers/**  detectors/**  .github/**
 ```
 
-`.v4/config.json` holds `test_command` — the sole oracle for a `test` claim. One
-`pytest -k nothing` makes every test claim permanently green. To change these
-paths → `ACCEPTED_RISK kind=scope_widen_protected`.
+These are built-in protected paths; `protected_paths` can add others, including
+hooks and Claude settings. `.v4/config.json` holds `test_command`: changing it can
+weaken what is measured, although a zero exit alone does not defeat the Python
+execution check. Protected widening requires the recorded
+`scope_widen_protected` risk route.
 
 **No gate stops an ordinary widen (a gate there is what the predecessor was). The
 control is measurement, and the measurement has to be visible:** `v4 status` and
@@ -1076,7 +1115,7 @@ sentence.
 
 ---
 
-## 6. Signatures — the one place a person touches this
+## 6. Recorded risk acceptance
 <!-- pinned: kernel/risk.py::accept -->
 
 ```
@@ -1098,15 +1137,18 @@ mirror image of the predecessor's P0/P1/P2 pantomime.
 > the repo, and a repo-scoped claim binds to worktree content — computing it
 > first means the act of signing invalidates the signature.
 
-**Two policies, pick one:** `allow_accepted_risk` (occasionally interrupts you to
-sign) or `no_accepted_risk` (never interrupts, but an unprovable task is stuck).
+**Two policies:** `allow_accepted_risk` permits the recorded acceptance routes;
+`no_accepted_risk` refuses them. The latter does not eliminate setup questions or
+other human decisions, and a blocking unprovable claim then needs a different
+resolution. TTY checks and signer names do not authenticate a human; the CLI
+also provides explicitly recorded agent and monitor routes.
 **There is no third — "risk may be accepted with nobody signing" is no risk
 control at all.**
 
 ⚠️ **The frequency of `ACCEPTED_RISK` is an undeclared unknown, and it is the
-single point of the promise that you are not needed in the middle.** Record it
-per task through phases 1–3; **more than once per task means the design has gone
-wrong**.
+single point of the promise that you are not needed in the middle.** Measure interruption frequency per task. The earlier experimental phases used
+"more than once" as a design warning, not a kernel-enforced limit or a universal
+proof that the design is wrong.
 
 ---
 
@@ -1217,7 +1259,6 @@ faking UPDATE with "the newest row wins".
 ```json
 {
   "test_command": ".venv/bin/pytest -m 'not integration' -q",
-  "test_timeout_sec": 1800,
   "policy": "allow_accepted_risk",
   "protected_paths": [".v4/**", "checkers/**", "detectors/**", ".github/**"],
   "derive_exclude": ["tests/fixtures/**", "**/__pycache__/**"],
@@ -1228,21 +1269,19 @@ faking UPDATE with "the newest row wins".
 }
 ```
 
-**There are two timeouts, and the one that kills a checker is not
-`test_timeout_sec`.** What decides whether a claim becomes CHECKER_ERROR is each
-checker's own `timeout_sec` in `.v4/checkers.json` (`v4 register --timeout`,
-default 300; this repo's `test` is 900). `.v4/config.json`'s
-`test_timeout_sec` only bounds the execution-trace sub-run inside
-`checkers/test.py`. **Set both, and the outer one must be larger than the inner**
-— with a registry at 300 seconds and a local 1800, everything in between is
-killed by the kernel, recorded as CHECKER_ERROR, and the worker is looking at a
-failure that has nothing to do with them.
+**The registry owns the ordinary test checker's timeout.** Its `timeout_sec`
+in `.v4/checkers.json` is set by `v4 register --timeout` (default 300).
+`checkers/test.py` now calls `executed_files` without a second wall; the runner
+contains the process group and records a timeout as exit 8 / `TIMEOUT`.
+`v4 accept` runs the suite directly and still uses `test_timeout_sec`, falling
+back to `DEFAULT_TEST_TIMEOUT`; that is separate from an ordinary checker run.
+The earlier advice described a removed inner timeout and
+must not be used to configure the current ordinary checker. Standalone callers
+of `executed_files` outside that runner must provide their own appropriate bound.
 
-**Both must be a multiple of the escalation line.** With both on the same line,
-the day the test suite reaches that number the system does not signal "time to
-think about mapping" — **every task's test claim times out together → ERROR →
-every ship blocked**, and the worker is looking at a failure that is not theirs
-and cannot be fixed.
+Choose the registry timeout from measured suite cost with headroom. This is an
+operational decision, not an automatic mapping threshold or a guarantee that
+all suites take the same time.
 
 **The whole suite runs; there is no file→test mapping.** Measured: 4,418 tests in
 72 seconds. At 72 seconds no mapping saves anything, and it brings a new failure
@@ -1273,7 +1312,9 @@ last are the schema as first written; the rest arrived with the gate tier, the
 engagement rules, the baselines and `install`'s applicability test, and this
 sketch had not followed.
 
-**The question sentence is generated from the template. No LLM can write one.**
+**Normal claim creation formats the question from its kind template.** The
+template is an editable repository input and can itself be authored by an LLM;
+this is separation of the emission contract, not author authentication.
 This is what "the claim set is the contract, and there is no prose contract"
 means.
 
@@ -1358,12 +1399,12 @@ travels with a clone and shows up in a diff (the ledger lives inside `.git/`).
 > terminal, so a stale file loses the record of a decision and not its effect —
 > which is why it is a `doctor` row and not a held ship.
 
-**Everything it decides is an enum or a path the kernel can verify.** What it
-wants to say goes in `note` — **which selects no checker and is not part of
-identity**.
+The kind, checker and coordinates are constrained independently of prose.
+`note` selects no checker and is not directly hashed into the identity, but
+`review add` compares notes to deduplicate or allocate a new numbered variant.
 
-**Opening and closing are separate, and both are events rather than columns** —
-the ledger takes no updates, and the test that closes a finding is chosen after
+Opening appends a claim. Later note amendments and closing-test bindings append
+events rather than rewriting the original claim; a closing test is chosen after
 the claim exists.
 
 ## 8.7 How a new repo adopts this
@@ -1382,15 +1423,15 @@ v4 install      # everything else
 **It does not ask you to choose.** Choosing among 21 checkers means knowing which
 of them has a subject in your repo — which is exactly the question the detector
 layer answers automatically on every task. A person looking at filenames cannot
-answer it and should not be asked to. So everything is installed, and the
-detectors decide which fire.
+answer it and should not be asked to. Eligible kinds are selected using framework/declared/readability rules, then
+detectors decide which applicable questions to raise.
 
 Five things it will **not** do:
 
 | | Why |
 |---|---|
 | It does not skip the gate | Every checker still has to FAIL on its own red fixtures and PASS on its greens before entering the registry. Installing in bulk must not become a back door for a checker that would be refused on its own |
-| It does not overwrite | A repo with a modified checker is saying something; restoring it quietly answers that repo's claims with a program its author never wrote |
+| It preserves adopter-edited copies | `installed.json` distinguishes untouched copies from edits. Untouched copies are updated, and eligible retired programs can be removed; an adopter-edited copy is retained and reported |
 | It does not install the framework's own | A kind can declare `applies_to: framework` in `claim_kinds.json`. `dead-wiring` reads `kernel/ledger.py`; `spec-coverage` resolves SPEC against `kernel/cli.py` — in a second repo they exit 4 or blow up |
 | It does not install a kind that has nothing to read | Every checker declares `reads: [glob…]` in `.v4/checkers.json`. <!-- pinned: kernel/analysis/subject_files.py::readable --> If not one file in the repo matches, it is not installed and its kind is not written into `claim_kinds.json` either. **This is the cross-stack safety net** — a Go tree has no `**/*.py`, so a Python-only checker is held back by the same machinery instead of being installed and returning PASS over source it never parsed. (Holding back is the default in absence; thirteen checkers later actually learned to read Go — see the end of §8.7.) Measured at the time on a Go repo with four real defects planted in it: **at the time** 15 of 27 checkers honestly returned exit 4, **8 returned 0 without having read one Go file**, and among them `dependency` said `PASS: no package manifest declares a dependency` over an unpinned `go.mod` with no `go.sum` |
 | It does not install a kind that cannot be answered | `applies_to: declared` plus `needs: <path>`. `layer-boundary` waits for `.v4/layers.json`, `control-plane-budget` waits for a ceiling. Measured: two of the twelve claims on a brand-new repo's first task were these, both permanently unanswerable, and the only way out was a signature per kind with nothing prompting for it. **A missing rule says so in `doctor`; a rule that blocks every task reads as a broken framework.** The moment the file appears, another `v4 install` installs it — and since `write_layers`, `layer-boundary`'s file does not have to be written from nothing: `install` drafts `<repo>/.v4/layers.json.draft`, and renaming it turns it on (see the `layer-boundary` section above) |
@@ -1424,7 +1465,7 @@ reason to keep a rule**; whether what it catches is worth anything is.
 
 **The bar for a language is a real parser**, not "a set of regexes": Python uses
 `ast`, Go uses Go's own `go/ast` (`kernel/analysis/_go/`, a subprocess, zero
-Python-side dependencies, because a Go repo necessarily has a Go toolchain), and
+Python-side dependencies, when the host has a Go toolchain), and
 TS/JS for now uses regexes over text with comments and strings stripped — a
 compromise watched by the bypass fixtures, and the day they stop holding is the
 trigger for bringing in a parser.
@@ -1510,8 +1551,7 @@ wasmi. All were cloned, 1,316 `.rs` files, and every number below is counted fro
 those 1,316 files rather than taken from a document or an impression.
 
 **No parser, and this time not "for now".** Python uses `ast` because the
-interpreter running this has one; Go uses `go/ast` because a Go repo necessarily
-has a Go toolchain. Neither holds for Rust: every Rust parser is a crate, and
+interpreter running this has one; Go uses `go/ast` when the host has a Go toolchain. Neither holds for Rust: every Rust parser is a crate, and
 this framework takes no third-party dependencies; `rustc` cannot be assumed
 present in an adopting repo either — this machine does not have it. So
 `kernel/analysis/rssource.py` is a scanner, beside `pysource` and `gosource`,
@@ -1578,7 +1618,9 @@ wrongly read as an expectation becomes a FAIL on a test nobody weakened.
 | `test-token-shape` | 99 (`assert_eq!(format!(…))` 25 · `.to_string()` 74) | Measured, not built. This is the next best-numbered candidate, not a question of principle |
 | `external-write` | 70 (`fs::` writes 28 · `File::create` 29 · outbound 3 · `Command::new` 10) | Two of the five repos are CLI tools, where writing files is the product. Telling an unobserved outbound write from a program doing what it exists to do needs the facts table, and no Rust repo has one |
 
-**A Rust file does not leave any kind stuck at exit 4 today.** A detector meeting a
+For the listed unsupported automatic detectors, an unrecognized Rust file
+normally raises no claim. A manually raised or repo-scoped claim can still be
+UNSUPPORTED. A detector meeting a
 suffix it does not know does `continue` and raises nothing, so the seven above are
 silence rather than "cannot verify". The silence is written down here because on
 disk a kind measured and then declined looks exactly like a kind nobody thought
@@ -1599,14 +1641,14 @@ and which tree it judges.
 
 | | Where it lives | Shared? |
 |---|---|---|
-| `kernel/` | The framework repo | **Shared** — every adopter points at the same copy |
+| `kernel/` | The framework repo | **Shared by adopters pointing at that framework checkout**; a different pinned checkout is a different kernel source |
 | `checkers/` `detectors/` `hooks/` | Per adopter (copied by `copy_files`) | Not shared |
 | the ledger: claim · attempt · event · chain | Per repo, at `<git-common-dir>/v4/ledger.db` | Not shared |
 | `.v4/`: config · facts · baselines · risks · checkers.json · detectors.json · installed.json · home | Per adopter | Not shared |
 | `.v4/fixtures/` | Per adopter (copied by `copy_files`, paths rewritten by `fixture_dest`) | Not shared |
 | `.v4/lenses/*.json` | Per adopter (copied by `copy_files`) | Not shared |
 | `.github/monitor/*.md` | Per adopter (copied by `copy_files`) — **at the time** one kind's FAIL text pointed at it; since removed | Not shared |
-| `.claude/settings.template.json` · `.claude/commands/` · `.claude/agents/` | Per adopter (hooks take effect only once you `cp` it to `settings.json` yourself) | Not shared |
+| `.claude/settings.template.json` · `.claude/commands/` · `.claude/agents/` | Per adopter (merge the hook entries into existing `settings.json`; create it from the template only when absent) | Not shared |
 | `.v4/ledger_export.jsonl` | Per adopter, **committed** | Not shared |
 
 **The ledger sits under `.git/`, not under `.v4/`.** So it is never committed,
@@ -1737,8 +1779,17 @@ non-overlapping with everything in the history.
 above leans on is an assumption rather than a guarantee.** One kind raising 19
 claims on one task is entirely possible. Nothing collapses them — collapsing
 would return to one sentence per kind, and that sentence cannot say which code it
-is about. **This is a known trade, not an overlooked hole; if phase 3 measures it
-costing more than it buys, it goes.**
+is about. **This is a known trade, not an overlooked hole; re-evaluating its cost requires a new explicit decision, not an obsolete
+automatic removal condition.**
+
+The write hook now also calls `unengaged` before a supported Write/Edit.
+Existing engagement-carrying claims must have accepted sentences until a write
+is allowed with basis `cleared`. A write with `no-claims` does not spend this
+gate; a later derive can reveal the claims it must inspect. Once cleared it is
+not reimposed during the repair loop. Unreadable state stands down and is
+reported. Claims created only after new code exists are necessarily checked
+later, and `v4 check` still enforces per-claim engagement.
+<!-- pinned: hooks/write_block.py::unengaged -->
 
 ### Which kinds carry engagement, and why those
 <!-- pinned: kernel/engagement.py::rule_for -->
@@ -1856,24 +1907,25 @@ therefore unused.
 costs nothing; refusing after twenty minutes is a different mechanism at a
 different price.
 
-⚠️ **Enforcement is in `check`, and notification has to be in `derive`** — two
+⚠️ **Per-claim enforcement is in `check`; the supported write hook also enforces
+the initial visible-claim engagement gate, and `derive` provides notification** — two
 different points, and they were once conflated. A claim exists from the moment
 the task opens, so which ones need a sentence is knowable as soon as derive
-finishes; but `check` is where a claim is answered, so the gate can only live
-there. **`derive` used to say nothing at all**, and a worker saw
+finishes; but `check` is where a claim is answered, so it remains enforced there even after the initial write gate is spent. **`derive` used to say nothing at all**, and a worker saw
 `NEEDS_ENGAGEMENT` only after writing the code and running `check` — which makes
 "before any work has been done" false in the implementation, and it leaked
 through the report rather than through the rule. `derive` lists them now.
 <!-- pinned: kernel/cli.py::cmd_derive -->
 
-**No limit and no judge** — all seven criteria are objective and satisfiable, so
-it cannot loop.
+These are mechanical text checks, not a semantic judge. The kernel does not
+create a review cycle, but an agent can still retry refused sentences repeatedly;
+there is no guarantee of zero retries or zero cost.
 
 > ⚠️ **All seven can be satisfied to the letter** (paste the symbol name and pad
 > to 40 characters; the seventh needs a credential-shaped string avoided, and
 > describing the shape does not require quoting one). This is known: the aim is
-> to make the moment happen, not to prove it happened. **If phase 3 finds no
-> external signal that it changed anything, it goes.**
+> to make the moment happen, not to prove it happened. **The original experiment did not isolate its causal effect; the standing design
+> retains it unless a new explicit decision changes that.**
 
 ### 9.1 A rule landing in a program
 
@@ -1931,9 +1983,9 @@ one of them looks at the code and none looks at the thing judging the code.
 claim.
 
 **It does not judge whether the deletion was right.** Removing a duplicate,
-merging two cases, renaming a file are all normal. Judging is the signature's
-job — removing a test is one of the few things that really should have a name on
-it in the commit.
+merging two cases, renaming a file are all normal. A reviewer judges the deletion. `test-weakened` is report-only by default; a
+signature is not automatically required for every deletion. Escalation or a
+different repo policy can make the unresolved claim blocking.
 
 ### Lens files come in two shapes, and the brief knew only one
 <!-- pinned: kernel/review.py::check_text -->
@@ -1947,8 +1999,8 @@ do not divide by file: 6 files are entirely objects (`prevention`, `devx`,
 `near-miss`), and the other 7 mix both inside one file, with no file being all
 strings.
 
-`lens_brief` prints them with an f-string, so those 185 **reach the reviewer
-looking like a Python dict literal** — and inside that literal is
+The old `lens_brief` printed them with an f-string, so those objects **reached
+the reviewer looking like a Python dict literal** — and inside that literal is
 `why_not_a_checker`, meaning "no instance of this was found in the target repo
 today". **Handing a reviewer the argument for not looking is worse than handing
 them nothing.**
@@ -1970,8 +2022,9 @@ which it should be. `LENS_KEYS` is now derived from use (which keys `lens_brief`
 indexes), and `unusable` judges each lens: are the four keys present, is `checks`
 a non-empty list, does `anti_patterns` contain an empty string — that last one
 because an empty string becomes a wordless bullet at the end of a reviewer brief,
-which reads as a truncated list. **The schema is not in a document, it is in a
-function that fires**, and the two shapes coexisting cannot recur today.
+which reads as a truncated list. **The executable schema is in `unusable`.** Both string and dict-shaped checks
+remain supported; `check_text` normalizes their presentation. Malformed payloads,
+not the coexistence of those valid forms, are what validation rejects.
 
 ### `layer-boundary` — a module stated its own contract and nothing read it
 <!-- pinned: kernel/analysis/layers.py::scan -->
@@ -2025,8 +2078,9 @@ repair: after drafting facts, `v4 install` drafts a
 
 Fewer than two layers writes no file: one layer is not a boundary.
 
-**`allow` is drafted from every cross-layer import that exists today, so the
-first run is necessarily green.** That is deliberate, and it decides where the
+**`allow` is drafted from the cross-layer imports this scanner recognizes.**
+On unchanged, readable source those observed edges are allowed; parsing or
+unsupported-source problems are not a guaranteed green. That is deliberate, and it decides where the
 work sits:
 
 > An edge listed in `allow` is answered by **deleting a line**; an edge not
@@ -2089,7 +2143,7 @@ reformatting as a changed expectation spends its credit on reformatting.
 literal into a constant (`EXPECTED = 4`), or replacing `== 3` with
 `isinstance(..., int)` — both leave the assertion **carrying no expectation at
 all**, and that is itself the change. The third hides behind a `.md` edit, and
-the conjunction counts only `.py`.
+the conjunction considers supported non-test source files, not documentation edits.
 
 ### Two tables sat there a long time with nobody asking the question between them — asked, then removed
 <!-- pinned: kernel/analysis/route_auth.py::is_route -->
@@ -2135,14 +2189,16 @@ close since the day it was built. **Nothing asked the same question of the whole
 suite.** A `test` claim passed when `test_command` exited 0, whether or not a
 single changed line had run.
 
-Now: if **not one** of the `.py` files the diff touched was executed, a green
+Now: if **not one** of the eligible changed `.py` files was executed, a green
 suite does not count. The tracer is injected through the same `sitecustomize`, so
-pytest, unittest or whatever the repo uses all work.
+compatible pytest/unittest runs can be observed. A runner or interpreter mode
+that disables `sitecustomize` or discards its environment needs separate verification.
 
 **A suite that goes green without ever touching the change has proved the suite
 works and said nothing about the change.**
 
-⚠️ Only when there is a diff base and the diff touches Python. Reporting "nothing
+⚠️ Only when there is a diff base and eligible Python changes. Deleted files,
+test files, fixtures and framework-owned files are excluded from that set. Reporting "nothing
 ran" for a documentation-only change is a checker inventing a finding.
 
 ⚠️ This is "at least one", not "all". Requiring every changed file to have been
@@ -2150,7 +2206,7 @@ executed turns into noise immediately in any real repo — and telling "this fil
 should have been exercised" from "this file having no test is correct" is the
 `test-sufficiency` lens's job.
 
-### Two rules recorded as owed now have checkers
+### Historical implementations of two rules recorded as owed
 <!-- pinned: kernel/analysis/signature_change.py::scan -->
 <!-- pinned: kernel/analysis/webhook_replay.py::scan -->
 <!-- pinned: kernel/analysis/pysource.py::reachable_nodes -->
@@ -2165,7 +2221,7 @@ call site meant. **The answer is not a better heuristic, it is resolution.** Bot
 repo-module resolution built for `dangling-ref` already answers where `mod`
 lives. **Measured on the same repo: 248 → 0.**
 
-**`webhook-replay`** — the reason given was "neither repo has a webhook handler,
+**`webhook-replay` (historical; its checker/kind was later removed)** — the reason given was "neither repo has a webhook handler,
 so it cannot go red". **That criterion is wrong for a preventive rule, and it is
 the same Wald error** — a repo with no webhooks having no webhook defects is
 exactly what it should look like.
@@ -2212,7 +2268,7 @@ routes in total. All were fixed, and every fix is a real rule:
 | `review-finding` | call it once, then assert on source | The execution trace was satisfied and the assertion still meant nothing |
 | `registry-consistency` | `rule.text` set to three spaces | "Is there a rule" and "does it say anything" are two questions |
 | `control-plane-budget` | 200 statements on one line | It counted lines, not statements |
-| `control-plane-budget` | move the code to an unlisted directory | **A whitelist. Every whitelist dies this way** |
+| `control-plane-budget` | move the code to an unlisted directory | A directory allowlist omitted executable code from this particular size measure |
 | `dep-provenance` | declare it in `reqs.txt` | It recognised by filename, not by content |
 
 Two of the fixes are inversions: **whitelist → blacklist** (every `.py` except the
@@ -2222,7 +2278,7 @@ requirements).
 And `test`'s own green fixture used `true` — meaning those fixtures encoded the
 assumption that exit 0 is a pass. **They were the thing that had to change.**
 
-### Four rules that survived adversarial review now have checkers
+### Historical build-out of four rules that survived adversarial review
 <!-- pinned: kernel/analysis/dangling_ref.py::scan -->
 <!-- pinned: kernel/analysis/test_shape.py::unbounded_fanout -->
 
@@ -2296,7 +2352,7 @@ raising it is a one-line diff, and **that diff is the argument**.
 ### `v4 trend`
 <!-- pinned: kernel/trend.py::report -->
 
-Every other command answers about one task. And the findings that decided
+The lifecycle commands focus on one task; `trend` provides cross-task measurements. And the findings that decided
 anything are all arithmetic across tasks — how deep into a task the first
 engagement sentence lands, how many claims one file brings in, how many terminal
 states are signatures rather than checkers — each of them SQL somebody typed once
@@ -2323,12 +2379,12 @@ is in twenty files, and changing yours breaks none of them).
 ### `v4 remerge`
 <!-- pinned: kernel/remerge.py::stale_after -->
 
-B merges, HEAD moves, and every repo-scoped answer A already gave is about a tree
-that no longer exists — while A's worker has exited, because exiting is how a task
+B merges, HEAD moves, and a repo-scoped answer may no longer match the
+content its checker reads — while A's worker has exited, because exiting is how a task
 finishes. Two questions, one counter.
 
-Subject-scoped ones do not move: they are pinned to their own bytes, and a merge
-that did not touch them does not expire them. Capped at three rounds, for the
+A subject-scoped answer is not expired merely because HEAD changed. Its
+subject, program, config, detector and applicable facts inputs can still move. Capped at three rounds, for the
 same reason `ship` caps its own re-derive — at the limit this is a fact about how
 those two cuts were made, and a fourth round will not discover it.
 
@@ -2442,9 +2498,9 @@ maintains still pass", and a framework's surface is its command line: the
 throwaway repo runs — **through `bin/v4`** — the five commands `docs/USING.md` §1
 teaches a newcomer (`init` / `doctor` / `task` / `derive` / `status`), and any
 non-zero exit, or any command that should print something printing nothing,
-fails. Every test in this repo imports `kernel` directly, so a launcher that will
-not start, a subcommand deleted from the parser, and a `--repo` that no longer
-resolves would all be green under `test_command`.
+fails. Many unit tests import `kernel` directly; CLI integration tests also exist.
+The dedicated surface probe adds an explicit end-to-end check of the documented
+entry route rather than assuming imports establish launcher behavior.
 
 > ⚠️ This passage used to say "**always exit 4, and that is correct** … and this
 > repo has no second suite". That stopped being true on `04db3e2` (2026-08-20),
@@ -2530,7 +2586,7 @@ either of the first two is measuring against a denominator that is mostly
 one-off by construction.**
 
 Coverage today: `PO-4` → `test` and `lint`; `PO-5` → `external-write`,
-`fail-closed` and `test`; **`PO-6` (surface truth) is answered by nothing**.
+`fail-closed` and `test`; **the current `PO-6` catalogue mapping names no mechanism**; this does not mean the configurable surface/runtime proof commands are absent.
 
 This is a report and not a gate: a gate would fail every task for debt no task
 created, and unlike `lint` — **nothing here could ever be retired by a baseline,
@@ -2559,7 +2615,7 @@ because the denominator is mostly one-off by construction.**
 | **The merge logic for tasks running in parallel** | **⚠️ This row narrowed, and the old version was again the "claiming something built is not built" error.** It used to say a parallel orchestrator (several tasks at once) was not built, and measured on the reference adopter: **eight worktrees and five tasks open at once**, each with a file-level scope, across two waves already (`wave1/*`, `wave2/*`). The kernel supported it all along — `ledger_path` runs `git rev-parse --git-common-dir`, one ledger serves every worktree, and `hashing.claim_id` mixes in `task_id` precisely so two tasks touching one call site do not collide. `/wave` (§12.5) writes that practice down now.<br><br>**What is genuinely not built is the merge half**: rejoining is a manual `git merge`, the `remerge_max` knob was removed along with it (a knob for something that does not exist is the disease itself), and nothing says anything about two cuts changing the same symbol. `task-splitter` measured **89% clean auto-merge (n=36)**, so this is a one-in-ten gap rather than a blocking one |
 | **The relational half of negative constraints** | `--forbid` holds "do not touch this file or directory". It does not hold "a report may not become an authority", "do not change the test to suit the bug", or "do not add an abstraction layer" — the shape those three share is that **the violation is in a relationship, not in a path**, and judging one needs to know which thing is the authority and which the projection, knowledge that lives nowhere here |
 | **Real surface and runtime observation** | The read-back half of `external-write` exists; genuine production observation does not. It needs a live environment, credentials, and per-adopter wiring |
-| **Secrets in build artefacts** | It needs a build to run **and** a real secret handed to a CI job to prove it did not leak. Using a production secret to prove a production secret did not leak is a worse trade than the leak it is looking for |
+| **Secrets in build artefacts** | A build-specific probe is not included. Such a probe can use a non-production synthetic canary through the relevant injection path; a production credential is not required |
 
 > ⚠️ **This table was itself wrong once, in the way that is hardest to catch: it
 > claimed things were not built that were.** The four working roles, the two
@@ -2583,16 +2639,15 @@ because the denominator is mostly one-off by construction.**
 |---|---|
 | **The write-block hook** | `hooks/write_block.py`. **It is not a boundary** — hooks are platform configuration, an agent can change them, and a platform without hooks has none of this. The `scope` checker is still the answer itself; this is early warning |
 | **A widen triggering engagement** | The `--why` **is** that engagement sentence, run through the same mechanical criteria, exempt from the duplicate check |
-| **`bundle-secret`** | The static half. It does not verify build artefacts: that needs a build to run **and** a real secret handed to a CI job to prove it did not leak |
+| **`bundle-secret` (historical)** | Its static checker was built and later removed. No current registered kind verifies build artefacts; a future build probe should use a synthetic canary |
 | **Reviewer lenses** | 13 lenses and 303 checks in `.v4/lenses/`. Among those carrying a predecessor doctrine as their source, `STEP_7_AUDIT_LENS` produced `llm-agent-action-surface` (11 checks); `prevention` has 114, demoted from checker candidates. `v4 review lens --lens <name>` prints the brief |
 | **Obligation reconciliation** | `v4 coverage`. **And it refutes the "332 categories" claim** |
 | **The three-arm experiment (phase 4)** | **Judged done by the repo owner on 2026-08-24; this row moved here from "not built yet".** Three things ran: ① the **2026-06 A/B experiment** over predecessor variants (bare / old / new-split-ON / new-split-OFF / new-fixed / old-fixed), 6 runs, ~$95, ~885K subagent tokens, a pre-registered locked rubric, blind review, mutation tests, Task B — which refuted the intra-phase split (+18% cost / +48% time) and is why `split_pipeline` was removed; the evidence is in the predecessor repo's git history (`git show d44ecbe^:research/2026-06-framework-eval/INDEX.md`). ② **§14's own oracle procedure** ran over two tasks, with the results in `RATIONALE.md` §14.2's ⚠️ box — and that run is where the "two assertions are asymmetric" design hole was found. ③ **The 113-question measurement**, in which the checkers since removed fired 2,589 times between them — the basis on which the `v4-trim-detector-layer` branch removed 11 checkers, recorded in that branch's `.v4/risks/*.json` signature reasons.<br><br>⚠️ **The shape `RATIONALE.md` §14.1 originally described (K = 5–8 tasks × three arms A/B/C, difficulty controlled by running one task three ways) was never run as written** — what ran is the three above. What this row records is that the question is no longer open, not that the original experimental design was executed |
 
 **There is no line target for the kernel.** This line used to say 1,500–2,500
 lines, and nothing measured it — the shape the control-plane paragraph above is
-about. What holds is the ceiling in `.v4/control_plane_budget.json`: 15,415
-statements (`ast.stmt`, not lines — a semicolon does not make a control plane
-smaller) over every git-tracked `.py` outside `tests/` and `docs/`, judged by
+about. What holds is the current `ceiling` in `.v4/control_plane_budget.json`, measured
+in statements (`ast.stmt`, not lines — a semicolon does not make a control plane smaller) over every git-tracked `.py` outside `tests/` and `docs/`, judged by
 `control-plane-budget` on every task. Raising it is a one-line diff, and that
 diff is the argument.
 
@@ -2603,8 +2658,8 @@ diff is the argument.
 <!-- pinned: kernel/review.py::lens_brief -->
 
 `LENS_KEYS` says a lens carries four fields: `name` · `source` · `checks` ·
-`anti_patterns`. `why` is **not among them**, so it can never be "missing" and can
-never be printed — which is the exact shape this repo's own `dead-wiring` exists
+`anti_patterns`. `why` is optional rather than required. The former brief implementation did
+not print it — which is the exact shape this repo's own `dead-wiring` exists
 to catch, except that it lives inside a JSON field rather than a registry, so that
 checker cannot see it.
 
@@ -2682,8 +2737,11 @@ not arrive looks like a gap when you go looking; this is not a gap — **somethi
 is there, it runs, it passes the gates, and it is not what you asked for. It
 passes precisely because it resembles it.**
 
-The eight examples in `why` are all measured in this repo, in five shapes, and
-there is one check per shape:
+The five checks retain their review purposes. The shared lens now points to
+`examples/first-proof/run.py` and its executable regression test, available in
+both private and public distributions. It does not require either distribution
+to carry the other's Git history. The following table records historical design
+examples; it is not the current portable evidence descriptor:
 
 | Shape | One example |
 |---|---|
@@ -2733,7 +2791,7 @@ moments:
 
 | | When | What it asks |
 |---|---|---|
-| engagement | **before** the first file is written | what this rule means for the code you are about to write |
+| engagement | Before the first supported write when existing claims are visible; also before checking each required claim | what this rule means for the code being judged |
 | checker | **after** it is written | does what you wrote pass |
 
 "This checker caught nothing" does not measure "that engagement sentence never
@@ -2820,7 +2878,7 @@ that self-report, wearing the ledger's name.
 
 | Printed | Meaning |
 |---|---|
-| `n of m reported: X (k finding(s))` | A reviewer worked through X and reported k (**k may be 0**) |
+| `n of m reported: X (k finding(s))` | A reviewer recorded completion and k (**k may be 0**); this is not independently verified reading coverage |
 | `briefed and never reported back: X` | Somebody took X's brief and did not come back |
 | `no brief printed since the last sweep: X` | No brief was printed at all |
 
@@ -2865,9 +2923,9 @@ The line has 3 states:
 
 | Printed | Meaning |
 |---|---|
-| `reviewed by: X (n finding(s))` | A reviewer worked through X and reported n (**n may be 0**) |
+| `reviewed by: X (n finding(s))` | A reviewer reported completion and n (**n may be 0**); the event is self-reported |
 | `briefed and never reported back: X` | Somebody took X's brief and did not come back |
-| `no lens has reported on this task` | No brief was printed at all |
+| `no lens has reported on this task` | No completed-review event was recorded; brief coverage is reported separately |
 
 **There used to be two, and the missing one was the most common.** `v4 review
 lens` writes a `lens_run` the moment it prints a brief, and printing a brief is
@@ -2907,9 +2965,10 @@ The second reason is measured volume: of the 113 questions, the 17 tasks that ra
 lenses produced **between 9 and 57** `review-finding` claims each, median **27**.
 A gate adding 27 things to every task is not a gate, it is a stop.
 
-The third reason is structural: a finding hangs on `ledger.REVIEW_TASK` — the
-standing task nobody ships — so "gate the ship on it" is not a flag, it is a
-change of structure.
+Unscoped findings default to `ledger.REVIEW_TASK`, the standing review task.
+A finding explicitly raised with `--task` belongs to that task and participates
+in its `review-finding` gate. There is no automatic global gate from every
+unscoped finding to every other task.
 
 So it stays a report. **An absence is visible** (the line prints every time),
 and visibility is this layer's mechanism, for the same reason `v4 sweep` records
@@ -2973,12 +3032,12 @@ hold.
 |---|---|
 | `external-write` | A — an outbound write nobody established: the charge went out and cannot be recalled, and replaying it cannot be recalled either. Waiting does not make the verdict worse, it makes the effect happen during the wait. |
 | `fail-closed` | A — a fail-open handler that shipped lets things through quietly in production, and you never learn when it did. During the wait it is not "an unfixed defect", it is "a defect happening and leaving no record". |
-| `review-finding` | B — this one is raised by a person, not by a rule. An automatic rule letting through something a person deliberately raised takes the verdict out of that person's hands. There is already a way to postpone it: `v4 review defer`, which demands a durable target. |
+| `review-finding` | B — this one is raised by a person, not by a rule. An automatic rule letting through something a person deliberately raised takes the verdict out of that person's hands. `v4 review defer` records a durable target but does not make a task-bound blocking finding terminal; that task still needs a valid resolution. |
 | `runtime-proof` | A — an execution that left no evidence is an execution that is over. It cannot be supplied afterwards: what you can supply is evidence of the **next** run, not the one that already happened. Waiting is giving up. |
 | `scope` | A — a file touched that should not have been, discovered after a merge, means a revert; and reverting a commit somebody has already built on is not the same order of cost as changing a glob today. |
-| `secret` | A — a committed credential is in git history. Fixing it today is deleting a line; fixing it later is rotating, rewriting history and notifying everyone who cloned. The cost jumps an order of magnitude and does not come back. |
+| `secret` | A — a committed credential is in git history. A credential already committed may need revocation or rotation immediately; later propagation adds history cleanup and notification costs. The cost jumps an order of magnitude and does not come back. |
 | `surface-proof` | A — as with runtime-proof, a surface not proved at the time is a different run when it is proved later. |
-| `test` | B — it is this repo's only test oracle. While it is red, **every other claim's green means nothing** — they were all answered on a tree nobody proved works. Postponing it postpones the meaning of everything. |
+| `test` | B — it is this repo's only test oracle. While it is red, other successful checks do not establish that the requested behavior passes — each remains evidence only for its own question. Postponing it postpones the meaning of everything. |
 
 #### The ones that only report
 
@@ -3006,8 +3065,11 @@ hold.
 
 Three thresholds, all living in `thresholds` in `.v4/config.json`
 (`kernel/config.py::DEFAULT_THRESHOLDS` supplies defaults, so a repo that
-declares none still escalates). A `report` kind crossing any of them is treated
-as `ship` this time:
+declares none still escalates). Within the task being evaluated, a `report` kind crossing any threshold is
+treated as blocking this time. Counts are not a global debt gate over unrelated
+tasks: `report_max_open` counts nonterminal claims of the same kind in this task;
+age uses each claim's creation time; repeat counts distinct FAIL fingerprints.
+The comparisons are strict `>` (defaults 10 open, 14 days, 5 repeated states):
 
 | threshold | What it catches |
 |---|---|
@@ -3026,8 +3088,8 @@ attempt rows**. That distinction is not a detail:
 > the very kind it was written for. Counting states instead, none of the 237
 > report claims passes five, and the highest is two.
 
-A "state" is what an answer depends on, which is what can change the verdict: the
-subject, the program, and the tree it reads (`subject_digest` · `checker_sha` ·
+The repeat fingerprint is narrower than the complete staleness key: it uses the
+subject, checker program and recorded tree stamp (`subject_digest` · `checker_sha` ·
 `worktree`). Two attempts alike in all three asked one question twice.
 
 `exit 4` does not count — a checker saying "I cannot judge this" is not the work
@@ -3167,15 +3229,14 @@ violations fails the first task on things it did not cause — **exactly how
 
 | Rule | |
 |---|---|
-| **A finding id may not contain a line number** | The same reason as §1's claim identity. Use `sha256(rule ‖ file ‖ symbol)` |
+| **A finding id may not contain a line number** | The same reason as §1's claim identity. Use `kernel.baseline.finding_id` with the kind, path, symbol, variant and required structural discriminators |
 | **The file not existing is not an amnesty** | It does not mean "exempt everything". Fail-closed |
 | **A worker cannot add to it** | `.v4/**` is in protected_paths → it needs `ACCEPTED_RISK kind=scope_widen_protected` → it leaves a commit with somebody's name on it |
 | **Debt already paid may not fail a task** | An entry in the baseline with no matching violation is simply ignored. **Failing somebody for having fixed a violation is the fastest way to teach people around the gate** |
 | **Carried debt is printed on PASS too** | Not only on FAIL. An honest record nobody reads is the pantomime §4 is about |
 
 **Do not carry pre-existing violations with signatures:** `ACCEPTED_RISK` expires
-against the same key (§6), and a delta checker is `staleness=repo`, so any file
-changing means signing again — **once per task, and §6 says more than once per
+against the same key (§6), and a delta checker is `staleness=repo`, so a relevant watched input changing can require signing again — **once per task, and §6 says more than once per
 task means the design has gone wrong.**
 
 **Scanning checkers with `staleness=subject` need one too.** The sentence above
@@ -3219,17 +3280,17 @@ this SPEC built a system **nobody uses**. The table of four roles lived in
 `spec-coverage`.
 
 **These are not prompts.** Prompts belong in `.claude/agents/` (the monitor's in
-`.github/monitor/`, because it does not run inside a task) and they change. These
-are 5 **constraints**, each enforceable by the kernel or a hook, which is why they
-are contract.
+`.github/monitor/`, because it does not run inside a task) and they change. These are responsibilities for 5 roles. Scope and registration have mechanical
+checks; role independence, blind reading and complete review remain host/prompt
+requirements where no enforcement is listed.
 
 | Role | Produces | May not | Enforced by |
 |---|---|---|---|
-| `task-splitter` | a task plus a set of scope globs | — | `v4 task --scope` refuses claims outside the scope |
+| `task-splitter` | a task plus a set of scope globs | — | `v4 task --scope` stores scope; derivation filters claims, and hooks/checkers judge writes and the resulting diff |
 | `worker` | answers to claims | **may not call `v4 ship` itself** | see below |
 | `reviewer × lens` | claims, not verdicts | **may not read the worker's rationale**; may not sample | see below |
 | `checker-author` | a checker plus fixtures | — | `v4 register`'s gate — fixtures that do not hold cannot be registered |
-| `monitor` | claims from a lens sweep, not verdicts; plus **a signature on one detector claim** (`risk accept --as-monitor`) | **may not change the repo it is sweeping** (`.github/monitor/SCOPE.md`); **may not sign any hand-raised claim** — including one another reviewer opened | **At the time** a kind used sweep freshness to hold `v4 ship`; since removed — 294 of its 295 executions were skipped, printed 0 bytes, and forced 87 signatures, because it declared `staleness: repo` and received a task's subject refs. **Layer ③ has no trigger point now.** The signature half is enforced by `claim.origin`: `review add` writes `origin = review`, `scope widen` writes `widen`, and `--as-monitor` accepts only `derive`. **That refusal is wider than the rule, and the wider half is not an oversight**: `origin` records **how** a claim was made and not **who** made it, and two sessions in one repo share a `git config user.email` while `v4` does not know which session raised it — so "is this yours" is a question no column can answer, and adding a `raised_by` would write the same word on both. The guard therefore asks what `origin` can answer (was it raised by a program), and the refusal says what it knows. **`--as-monitor` records `signed_by: monitor` in both the record file and the `accepted_risk` row**, and `v4 ship` and `v4 trend` count the routes separately |
+| `monitor` | claims from a lens sweep, not verdicts; plus **a signature on one detector claim** (`risk accept --as-monitor`) | **may not change the repo it is sweeping** (`.github/monitor/SCOPE.md`); **may not sign any hand-raised claim** — including one another reviewer opened | **At the time** a kind used sweep freshness to hold `v4 ship`; since removed — 294 of its 295 executions were skipped, printed 0 bytes, and forced 87 signatures, because it declared `staleness: repo` and received a task's subject refs. Layer ③ is scheduled by the sweep workflow, but missing review coverage does not hold ship. The signature half is enforced by `claim.origin`: `review add` writes `origin = review`, `scope widen` writes `widen`, and `--as-monitor` accepts only `derive`. **That refusal is wider than the rule, and the wider half is not an oversight**: `origin` records **how** a claim was made and not **who** made it, and two sessions in one repo share a `git config user.email` while `v4` does not know which session raised it — so "is this yours" is a question no column can answer, and adding a `raised_by` would write the same word on both. The guard therefore asks what `origin` can answer (was it raised by a program), and the refusal says what it knows. **`--as-monitor` records `signed_by: monitor` in both the record file and the `accepted_risk` row**, and `v4 ship` and `v4 trend` count the routes separately |
 
 ### A worker may not ship its own work
 <!-- pinned: hooks/stop_gate.py -->
@@ -3286,10 +3347,10 @@ tree; after `/sweep`, each reviewer runs `reviewer.md`. Both files exist because
   passing it down. Measured: `11 lens(es), 214 finding(s)` in this repo, and the
   same framework in an adopter reporting `11 lens(es) claimed, 1 ran`.
 
-**A prompt is not a contract.** Those five files change, and they belong in
+**A prompt is not a contract.** Those prompt files change, and they belong in
 `.claude/`. The contract is this section's table — `v4 task --scope` refuses
-claims outside the scope, `hooks/stop_gate.py` stops a session ending without a
-ship attempted, and `v4 register`'s gate judges what a checker-author hands in.
+claims outside the scope, `hooks/stop_gate.py` can interrupt the first stop on unfinished work; it allows
+the repeated stop and does not authenticate a worker's right to invoke ship, and `v4 register`'s gate judges what a checker-author hands in.
 **The reviewer reading blind is unenforced, as marked above.**
 
 ⚠️ The third boundary `/run` holds — **stop when a ship does not converge** —
@@ -3320,15 +3381,15 @@ whether it mentions them — a document with no list has no incomplete list.
 | Command | What it does |
 |---|---|
 | `v4 init` | Creates `.v4/` for a new repo (config · claim_kinds · two empty registries). It **does not guess** `test_command`, and writes no facts template — see §13.6 |
-| `v4 install` | Copies in every checker, detector, fixture, lens and hook, **registering each one through its own fixture gate**, regenerates `CLAUDE.md`, and writes a `bin/v4`. See §8.7 |
+| `v4 install` | Copies eligible checkers, detectors, fixtures, lenses and hooks, **registering gated programs through their fixture gates**, regenerates `CLAUDE.md`, and writes a `bin/v4`. See §8.7 |
 | `v4 accept` | Runs all of this repo's own gates at once, on a tree with **no local state**: the declared test command, every checker against its fixtures, every detector likewise, and the four checkers that ask about the whole tree rather than this diff. It takes the **index** (`git write-tree`) rather than HEAD — what is uncommitted is what needs verifying. `--here` skips the archive; CI runs this. **Why the archive: `.git/v4/` is not cloned, so anything that only holds because of local state dies exactly here** — measured (**at the time**) at `7d8f9c0`: 2 of 31 checkers failed to register in a clone and nowhere else |
 | `v4 verify` | Runs one checker against its own red/green fixtures |
 | `v4 register` | Verifies first, and enters the registry only on passing |
 | `v4 verify-detector` | Runs one detector against "should fire" and "should not fire" fixtures, reporting only |
 | `v4 register-detector` | The same, writing `.v4/detectors.json` on passing. **Without this step `derive` will not run it** (§2) |
 | `v4 round` | Opens or closes a measurement round (§7, the ruler freezes) |
-| `v4 task` | Opens a task. `--base` names the commit the delta gates diff against, defaulting to HEAD — **open the task after committing and the diff is empty, so `scope` reads nothing and goes green**. Naming an older commit only makes the diff larger; no base can hide work, because nothing is newer than HEAD |
-| `v4 abandon` | A task's second ending: it will not ship, and it says why. The reason has the same minimum length as `--not-done`, and the claims all stay in the ledger. **It exists because with no `V4_TASK` the hooks guard "the most recent unfinished task"** — without this command a task left lying around becomes the permanent gatekeeper, and the only exit is shipping something nobody did |
+| `v4 task` | Opens a task. `--base` names the commit the delta gates diff against, defaulting to HEAD — **open the task after committing and the diff is empty, so `scope` reads nothing and goes green**. Choose the actual pre-task comparison point. A wrong base can omit work; an older base does not imply a monotonically larger net diff |
+| `v4 abandon` | A task's second ending: it will not ship, and it says why. The reason uses configured `min_chars` (default 40), claims stay in the ledger, and the ending event names unsettled FAILs. **Without `V4_TASK`, one open task can be inferred; multiple open tasks now cause an ambiguous-task refusal** — without this command a task left lying around becomes the permanent gatekeeper, and the only exit is shipping something nobody did |
 | `v4 derive` | Runs every detector and raises claims |
 | `v4 check` | Runs the checkers for a task's unanswered claims |
 | `v4 status` | Each claim's derived state |
@@ -3342,7 +3403,7 @@ whether it mentions them — a document with no list has no incomplete list.
 | `v4 foresee` | Asked before cutting: for a name defined inside this scope, which file outside it spells it by hand (§10, "`v4 foresee`"). Imports do not count, and neither does a name defined all over the repo |
 | `v4 remerge` | Asked after a merge: which repo-scoped answers are now about a tree that no longer exists (§10, "`v4 remerge`"). Subject-scoped ones do not move, and it is capped like `ship` |
 | `v4 engage` | Writes the sentence a claim asks for (§9) |
-| `v4 review` | Raises a reviewer finding, or closes it (§8.5). `group` records several as one fact — measured on one sweep: 224 closed into **26 groups**, averaging 7.4 each. It only records the judgement: those 26 groups span 3.2 files on average, only 9 sit inside one file, and no split by path or lens reproduces them |
+| `v4 review` | Raises a reviewer finding, or closes it (§8.5). `group` records a reviewer's judgment that several findings share one fact; it does not automatically prove or close them |
 | `v4 sweep` | The back gate is periodic (§10.1): is it due, what would run, `--done --findings <n>` to record that it ran, `--history` for previous ones. `--if-due` exits 1 when it is not due, so cron stands down. **It does not review** — it prints the brief and records that it happened |
 | `v4 doctor` | Is this repo actually wired, or does it only look it |
 | `v4 explain` | Which program judges a claim. From the kind to the checker, the detector, and the module inside `kernel/analysis/` that reaches the judgement — a chain that used to take four manual steps, two of them JSON no command ever printed |
@@ -3366,7 +3427,7 @@ whether it mentions them — a document with no list has no incomplete list.
 | `verify` / `register` | every fixture passes | a case did not match its expectation |
 | `verify-detector` / `register-detector` | the same | the same |
 | `risk accept` | signed | — a refusal (reason too short, wrong kind, `no_accepted_risk`) is **exit 2**, not 1 |
-| `audit` | the chain is intact | a row does not line up |
+| `audit` | no fatal live-chain/signature problem; nonfatal warnings can remain | fatal inconsistency (`--events` refuses any export verification problem; `--compositions` reports its own failures) |
 | `doctrine --check` | `CLAUDE.md` is the generated artefact | it is not |
 | `run-checker` | **the checker's own exit code, passed through unchanged** (§3's four classes) | |
 
@@ -3420,21 +3481,33 @@ every ship.
 ### What CI runs
 <!-- pinned: kernel/ledger.py::audit_chain -->
 
-`.github/workflows/v4.yml` has a `chain` job: it runs
-`v4 audit --events .v4/ledger_export.jsonl`, then checks the attempt count
-against the committed `.v4/chain_head.json`. **A chain verified only forwards
-falls to having a few rows cut off the end, so the count has to answer to an
-anchor outside the database.**
+`.github/workflows/v4.yml` runs seven named steps: **Tests**, **This repo's
+facts table still cites something that exists**, **The spec still describes this
+repo**, **Every checker and detector still passes its fixtures**, **Walk the
+exported chain**, **Refuse a truncated export**, and a separate job asking
+**is the after-gate due**.
 
-No export file is a failure, not a skip. A job that quietly skips because its
-input is missing and a job that is always green are the same job.
+The two chain steps run `v4 audit --events .v4/ledger_export.jsonl` and then
+check the attempt count against the `_chain_head` row **inside the export** --
+not against `.v4/chain_head.json`. **A chain verified only forwards falls to
+having a few rows cut off the end, so the count has to answer to an anchor the
+walk did not produce.** The workflow's own comment records why the anchor moved:
+comparing against the committed file failed all six runs of this workflow,
+because that file is refreshed on a different beat from the export.
+
+Both chain steps print a line and exit 0 when there is no export and no
+committed chain head. **At the time** this section said "No export file is a
+failure, not a skip", and that was a statement about a job which by then did the
+opposite -- what the steps actually refuse is an export that is *there* and
+short. A section describing a topology the repository has moved on from is worse
+than no section: it is read by people deciding whether CI covers them.
 
 ### Hook
 <!-- pinned: hooks/stop_gate.py -->
 
 | Hook | What it stops |
 |---|---|
-| `hooks/write_block.py` | A Write/Edit to a path outside scope. **Protected has two states rather than being unexamined** — with a task open it is a scope question, and a glob that covers it (or a widen) passes; with no task open it denies any protected path outright. The second state is the normal one rather than the exception: `ledger.ENDED_TASKS_SQL` unions `repo-review` into ended, so every review and monitor session sits in it. The other half (shell commands) belongs to `bash_guard.py`, and at ship time to the `scope` checker |
+| `hooks/write_block.py` | A Write/Edit outside scope, plus engagement owed on visible claims until the initial engagement gate is cleared. **Protected has two states rather than being unexamined** — with a task open it is a scope question, and a glob that covers it (or a widen) passes; with no task open it denies any protected path outright. The second state is the normal one rather than the exception: `ledger.ENDED_TASKS_SQL` unions `repo-review` into ended, so every review and monitor session sits in it. The other half (shell commands) belongs to `bash_guard.py`, and at ship time to the `scope` checker |
 | `hooks/stop_gate.py` | Stopping on a task that has not shipped and still has unanswered claims |
 | `hooks/bash_guard.py` | A shell command that writes to a protected path |
 
@@ -3453,8 +3526,9 @@ not read that field — so it computed the right answer, printed a refusal nobod
 read, and exited 0, while the `hook_seen` event was written as usual and ship
 reports went on printing a healthy hook.
 
-Wiring lives in `.claude/settings.template.json`. **Without that file both hooks are files
-nobody calls** — `write_block.py` existed that way for a while, and every ship
+The shipped wiring example lives in `.claude/settings.template.json`; the host
+executes the entries actually enabled in `.claude/settings.json`. Merely having
+the template does not activate the hooks — `write_block.py` existed that way for a while, and every ship
 report printed DEGRADED, because it had never once fired.
 
 `bash_guard.py` covers the other hole: the write hook watches Write/Edit, and
@@ -3520,8 +3594,10 @@ stops again — same input, same output, which is a loop whose only exit is the
 route that message does not list. The second time through it allows the stop,
 and the FAIL stays in the ledger — **the record is the ledger, not the reply.**
 
-⚠️ **Neither is a boundary; both are friction.** A shell defeats either one, and
-the checkers at ship time catch what the hooks caught earlier.
+⚠️ **These hooks are friction, not a security boundary.** State read failures can
+stand down, unsupported access paths can bypass hooks, and the stop escape is
+intentional. Later checkers inspect their declared conditions; they do not prove
+that every bypass or missing review was caught.
 
 ---
 
@@ -3590,8 +3666,9 @@ a complete mechanism carrying zero rules. §9 records an incident of the same
 shape: engagement shipped with zero rules because the assignment table had been
 left in another document.
 
-**A new adopter supplies:** `claim_kinds.json` (schema in §8), a checker and
-fixtures for each kind (§12), and a facts table (`FACTS.md`). **What they do not
+**A normal adopter supplies:** its real test command and reviewed repo facts.
+`v4 install` brings the eligible kinds, programs and fixtures. An author adding
+new kinds supplies their kind entries, checkers and fixtures (§12). **What they do not
 supply is the mechanism.**
 
 ### 13.6 How a new repo joins
@@ -3684,8 +3761,8 @@ values in `.v4/rule_dispositions.json`, by `spec-coverage`.**
 wording and reported 141 failures — because rules get translated, shortened and
 split when they land, and comparing text is a rule against rewording.
 
-Layer ① is the stated exception: those 78 went through one synthesis into 79
-grouped lines, so there is no 1:1 to compare and only the count is verified.
+Layer ① is the stated exception: the original synthesis produced 79 grouped
+lines; later additions and migrations changed the current totals, so there is no 1:1 to compare and only the count is verified.
 **That is a weaker guarantee, and it should say so rather than pretend
 otherwise.**
 

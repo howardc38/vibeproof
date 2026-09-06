@@ -23,5 +23,6 @@
     "Only English input tested when users speak other languages",
     "Tool registry changed but system prompt not updated",
     "Agent suggests actions that aren't available"
-  ]
+  ],
+  "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n"
 }

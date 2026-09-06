@@ -297,7 +297,7 @@ class HookOutputMatchesWhatTheHostReads(unittest.TestCase):
                 str(Path(__file__).resolve().parents[1]))
             conn = ledger.connect(root)
             ledger.insert(conn, "event", task_id="t-hook", claim_id=None,
-                          kind="abandoned", actor="human",
+                          kind="abandoned", actor="person",
                           payload={"why": "w" * 50}, created_at="2026")
             ledger.insert(conn, "task", id="t-now", request="r" * 80,
                           scope_globs=json.dumps(["b.py"]), base_commit="x",
@@ -324,7 +324,7 @@ class HookOutputMatchesWhatTheHostReads(unittest.TestCase):
                 str(Path(__file__).resolve().parents[1]))
             conn = ledger.connect(root)
             ledger.insert(conn, "event", task_id="t-hook", claim_id=None,
-                          kind="abandoned", actor="human",
+                          kind="abandoned", actor="person",
                           payload={"why": "w" * 50}, created_at="2026")
             ledger.insert(conn, "task", id="t-now", request="r" * 80,
                           scope_globs=json.dumps(["b.py"]), base_commit="x",
@@ -373,7 +373,7 @@ class HookOutputMatchesWhatTheHostReads(unittest.TestCase):
                 str(Path(__file__).resolve().parents[1]))
             conn = ledger.connect(root)
             ledger.insert(conn, "event", task_id="t-hook", claim_id=None,
-                          kind="abandoned", actor="human",
+                          kind="abandoned", actor="person",
                           payload={"why": "w" * 50}, created_at="2026")
             conn.close()
             env = dict(os.environ, V4_REPO=str(root), V4_TASK="t-hook",
@@ -403,7 +403,7 @@ class HookOutputMatchesWhatTheHostReads(unittest.TestCase):
                              "an open task has not been ended")
             conn = ledger.connect(root)
             ledger.insert(conn, "event", task_id="t-hook", claim_id=None,
-                          kind="abandoned", actor="human",
+                          kind="abandoned", actor="person",
                           payload={"why": "w" * 50}, created_at="2026")
             conn.close()
             self.assertTrue(
@@ -421,7 +421,7 @@ class HookOutputMatchesWhatTheHostReads(unittest.TestCase):
                 str(Path(__file__).resolve().parents[1]))
             conn = ledger.connect(root)
             ledger.insert(conn, "event", task_id="t-hook", claim_id=None,
-                          kind="abandoned", actor="human",
+                          kind="abandoned", actor="person",
                           payload={"why": "w" * 50}, created_at="2026")
             ledger.insert(conn, "task", id="t-live", request="r" * 80,
                           scope_globs=json.dumps(["b.py"]), base_commit="x",
@@ -430,7 +430,12 @@ class HookOutputMatchesWhatTheHostReads(unittest.TestCase):
             old = os.environ.get("V4_TASK")
             os.environ["V4_REPO"], os.environ["V4_TASK"] = str(root), "t-hook"
             try:
-                _, task = sg._repo_and_task()
+                # Three values. The third is the `V4_TASK` that was dropped for
+                # naming an ended task, and it is what this case is named
+                # after: it used to be discarded with no trace, so a session
+                # whose shell pointed at a finished task was accountable for
+                # its writes and not for its stops.
+                _, task, dropped = sg._repo_and_task()
             finally:
                 os.environ.pop("V4_REPO", None)
                 if old is None:
@@ -440,6 +445,10 @@ class HookOutputMatchesWhatTheHostReads(unittest.TestCase):
         self.assertEqual(
             task, "t-live",
             "a V4_TASK naming an ended task decided which claims hold the session")
+        self.assertEqual(
+            dropped, "t-hook",
+            "the ended task was dropped without a word, so a session pointing "
+            "at it is answerable for its writes and not for its stops")
 
     def test_a_v4_task_that_is_open_still_wins(self):
         """The other half: explicit still beats inferred while it is live."""
@@ -659,8 +668,12 @@ class TwoProcessesAppendingEventsDoNotForkTheChain(unittest.TestCase):
         conn = _l.connect(Path(root))
         for i in range(n):
             with _l.writing(conn):
+                # `hook`, not the writer's tag. `actor` is a gated vocabulary
+                # now -- `ledger.ACTORS` -- and which of four processes wrote a
+                # row is not a fact that column answers. The tag was already in
+                # the payload beside it, which is where this case reads it.
                 _l.insert(conn, "event", task_id="t", claim_id=None,
-                          kind="hook_seen", actor=tag,
+                          kind="hook_seen", actor="hook",
                           payload={"n": i, "who": tag}, created_at="2026")
         conn.close()
 
@@ -720,7 +733,7 @@ class AForkIsNotATamper(unittest.TestCase):
                       base_commit="", created_at="2026")
         for i in range(4):
             ledger.insert(conn, "event", task_id="t", claim_id=None,
-                          kind="hook_seen", actor="w",
+                          kind="hook_seen", actor="hook",
                           payload={"n": i}, created_at="2026")
         return root, conn
 

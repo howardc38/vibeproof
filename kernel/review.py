@@ -12,6 +12,8 @@ after the finding exists.
 
 import ast
 import json
+import sqlite3
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -237,7 +239,49 @@ def raise_finding(conn, cfg, *, task_id, file, symbol, note, lens=""):
     kept against `current_note`, not `claim.note`, so a corrected finding
     re-found is still one finding.
     """
+    # A finding needs somewhere to be. `resolve_symbol` refuses a `file` that
+    # is not in the repo, but it returns early on an empty `symbol` and never
+    # looks at the file at all -- so `file=None, symbol=None` walked past every
+    # check on this path and wrote a claim with no coordinates. It happened on
+    # an adopter, and `claim` is append-only: that finding is in their ledger
+    # for good, closable by no test (nothing to run against) and by no text
+    # closure (`--gone` is checked against a file).
+    #
+    # Here rather than in `resolve_symbol`, because the rule is about the
+    # finding and not about the symbol: a document finding legitimately has no
+    # symbol, and none of them may have no file.
+    if not (file or "").strip():
+        raise BadCoordinates(
+            "a finding needs --file. A claim with no coordinates cannot be "
+            "closed by a test (there is nothing to run it against) or by "
+            "--gone/--now (there is no file to look in), and `claim` is "
+            "append-only, so it stands open forever.")
     kind_cfg = cfg.kind(KIND)
+    # The lens slug reaches `variant` and, through it, the claim id -- and
+    # nothing on this path asked whether that lens exists. `lens_files()` was
+    # consulted in `kernel/cli.py`'s `add` branch only, so the rule belonged to
+    # argv rather than to the write: any other caller could file a finding
+    # under a lens nobody has, and its slug becomes part of the id forever,
+    # because `claim` is append-only. A finding under `securty-permission` is
+    # invisible to every query for `security-permission` and identical to one
+    # under a lens that was renamed.
+    #
+    # Refused here, where the row is written, for the reason `resolve_symbol`
+    # two lines down gives for the same choice: a refusal costs one retry at
+    # this command and a signature at the end of a task.
+    # Only against a corpus that exists. A repo with no `.v4/lenses/` has
+    # nothing to misspell against, and refusing every slug there would stop an
+    # adopter filing findings at all -- caught by
+    # `test_what_a_reviewer_is_handed_and_what_comes_back`, whose fixture repo
+    # ships no lenses and uses `lens="l"` to exercise the sibling slots. The
+    # rule is about a typo inside a corpus, so it needs one.
+    usable, _unusable = lens_files(cfg.root)
+    if lens and usable and lens not in usable:
+        raise BadCoordinates(
+            f"no lens named {lens!r}. The slug becomes part of the claim id "
+            f"and `claim` is append-only, so a finding filed under a lens "
+            f"nobody has cannot be found by anybody looking for that lens. "
+            f"This repo has: {', '.join(sorted(usable))}.")
     symbol = resolve_symbol(cfg.root, file, symbol)
     if task_id is None:
         task_id = ensure_review_task(conn)
@@ -298,7 +342,7 @@ def amend_note(conn, *, claim_id, note, actor=None):
     # value any caller could produce, so "who decided this finding says
     # something else now" was not a question anybody could ask of the record.
     if actor is None:
-        actor = "human" if sys.stdin.isatty() else "agent"
+        actor = ledger_mod.who_acted()
     insert(conn, "event", task_id=None, claim_id=claim_id, kind=AMENDED_KIND,
            actor=actor, payload={"was": was, "now": note, "actor": actor},
            created_at=_now())
@@ -341,9 +385,9 @@ HOW_TO_NAME_A_TEST = (
 )
 
 
-def bind_closing_test(conn, *, claim_id, test_path, command, parent_commit,
-                      root=None):
-    """Record which test is offered as closing this finding.
+def bind_closing_test(conn, *, claim_id, test_path, command, parent_commit=None,
+                      mutation=None, root=None):
+    """Record which test is offered as closing this finding, and how it goes red.
 
     An event rather than a column: the ledger takes no updates, and this is
     chosen after the claim exists. `lifecycle.check` reads the latest one.
@@ -351,16 +395,71 @@ def bind_closing_test(conn, *, claim_id, test_path, command, parent_commit,
     `root` is optional only because the ledger is append-only and this function
     already has callers whose events cannot be rewritten; given one, the value
     is checked before it is recorded.
+
+    `mutation` is `(file, gone, now)` and is the other way to be red -- see
+    `redgreen.verify`, which owns the reasoning. It is here rather than a second
+    `bind_*` function because what is being recorded is the same thing: this
+    test, this command, and what makes it fail.
     """
     if root is not None:
         why = why_not_a_test_file(root, test_path)
         if why:
             raise BadCoordinates(why)
+    if bool(parent_commit) == bool(mutation):
+        raise BadCoordinates(
+            "a closing test needs --parent (the tree before the repair) or a "
+            "--mutation (the thing to break), and not both. They are two ways "
+            "to make the same half red, and offering both leaves no answer to "
+            "which one counts.")
+    payload = {"closing_test": test_path, "test_one_file_command": command,
+               "parent_commit": parent_commit or ""}
+    if mutation:
+        rel, gone, now = mutation
+        if root is not None:
+            why = why_not_a_mutation(root, rel, gone, test_path)
+            if why:
+                raise BadCoordinates(why)
+        payload.update({"mutation_file": rel, "mutation_gone": gone,
+                        "mutation_now": now or ""})
     insert(conn, "event", task_id=None, claim_id=claim_id, kind="review_close",
-           actor="worker",
-           payload={"closing_test": test_path, "test_one_file_command": command,
-                    "parent_commit": parent_commit},
-           created_at=_now())
+           actor="worker", payload=payload, created_at=_now())
+
+
+def why_not_a_mutation(root, rel, gone, test_path) -> str:
+    """Why this mutation cannot serve as a red half, or `""`.
+
+    Three refusals, and each is a way the proof would be hollow:
+
+      the test itself   Breaking the test to make the test fail says nothing
+                        about the code. This is the one an author reaching for
+                        the easy answer would write, so it is refused by name.
+
+      not tracked       A mutation to a file git does not carry cannot be
+                        reproduced by anybody reading the record, and the red
+                        half runs in a worktree, which has only tracked files.
+
+      too short         The same floor the text closure uses, for the same
+                        reason: a marker short enough to match by accident
+                        proves nothing about what was broken.
+    """
+    rel = str(rel or "").replace("\\", "/").strip()
+    if not rel:
+        return "a mutation names the file to break."
+    if rel == str(test_path or "").replace("\\", "/").strip():
+        return (f"the mutation breaks {rel}, which is the closing test itself. "
+                f"A test made to fail by breaking that test says nothing about "
+                f"the code it is offered as covering.")
+    if len((gone or "").strip()) < MIN_MARKER:
+        return (f"the mutation text is {len((gone or '').strip())} characters "
+                f"and the floor is {MIN_MARKER}. A marker short enough to match "
+                f"by accident proves nothing about what was broken.")
+    out = subprocess.run(["git", "ls-files", "--error-unmatch", rel],
+                         cwd=str(root), capture_output=True, text=True)
+    if out.returncode != 0:
+        return (f"{rel} is not tracked by git. The red half runs in a worktree, "
+                f"which carries tracked files only -- and a mutation nobody "
+                f"else can check out is not a record of anything.")
+    return ""
 
 
 #: One fact, wrong in several places.  `v4 review group`.
@@ -722,9 +821,27 @@ def lens_brief(lens, slug=None, task=None):
     # printing the display name hands the reviewer a value with a space in it
     # that the shell splits and `raise_finding` would key on differently from
     # every other finding in that lens.
-    lines.append(f"    v4 --repo . review add --lens {slug or lens.get('name', '<lens>')} "
+    # `./bin/v4`, not `v4`. Nothing puts `bin/` on a PATH, so the one action
+    # this brief hands out exited 127 for every reviewer that ran it as
+    # printed -- `command -v v4` returns nothing in this repo. `USING.md` says
+    # every command goes through `./bin/v4`; the brief that dispatches thirteen
+    # agents was the place that did not.
+    lines.append(f"    ./bin/v4 --repo . review add --lens {slug or lens.get('name', '<lens>')} "
                  f"--file <path> --symbol <enclosing symbol> "
                  f"--note \"<what is wrong, one sentence>\"")
+    lines.append("")
+    # The command that makes a review distinguishable from a no-show, and the
+    # brief never named it. `record_lens_reviewed` writes the only
+    # `lens_reviewed` row there is, and `v4 ship` and `v4 sweep` read that row
+    # to tell "ran and found nothing" from "never ran" -- so a reviewer who
+    # followed this brief exactly recorded neither.
+    #
+    # `--findings 0` is spelled out because zero is the answer the row exists
+    # for: a lens that ran and found nothing is a fact, and it is the fact this
+    # framework has no other way to hold.
+    lines.append("When you are done, whatever you found, say so -- including nothing:")
+    lines.append(f"    ./bin/v4 --repo . review done "
+                 f"--lens {slug or lens.get('name', '<lens>')} --findings <n>")
     lines.append("")
     # Not a `V4-CLAIM:` line. Those are parsed from a detector's stdout and from
     # a fixture run, and nowhere else, so a reviewer printing one writes into its
@@ -784,8 +901,16 @@ def record_lens_run(conn, *, slug, lens, task_id=None):
     printed for a lens that did not resolve, so the argument is the proof.
     `record_lens_reviewed` has no such proof and validates its own.
     """
-    insert(conn, "event", task_id=task_id, claim_id=None, kind=LENS_RUN_KIND,
-           actor="reviewer",
+    # An empty `--task` is no task, and it was stored as one. The reviewer role
+    # is told to pass `--task $V4_TASK`, `V4_TASK` is set by nothing in this
+    # repo, so the shell expands it to `''` and this row landed with
+    # `task_id = ''` -- while `sweep._lens_events` selects `task_id IS NULL`.
+    # A lens that ran and reported recorded as a lens that never ran, which is
+    # the one distinction this row exists to make. One reviewer in the last
+    # sweep noticed and deviated from its own prompt to avoid it; the other
+    # twelve did not have to, because they were told to omit the flag.
+    insert(conn, "event", task_id=task_id or None, claim_id=None,
+           kind=LENS_RUN_KIND, actor="reviewer",
            payload={"lens": slug, "checks": len(lens["checks"])},
            created_at=_now())
 
@@ -810,7 +935,10 @@ def record_lens_reviewed(conn, root, *, slug, findings, task_id=None):
             "--findings is required, and 0 is an answer -- a review that "
             "reports nothing is what this exists to distinguish from one that "
             "never ran")
-    insert(conn, "event", task_id=task_id, claim_id=None,
+    # The same normalisation as its sibling, and this is the row that matters
+    # more: `sweep` reads `lens_reviewed` to answer "did anybody review", and an
+    # empty `--task` filed it where that query cannot see it.
+    insert(conn, "event", task_id=task_id or None, claim_id=None,
            kind=LENS_REVIEWED_KIND, actor="reviewer",
            payload={"lens": slug, "findings": findings}, created_at=_now())
 
@@ -885,20 +1013,31 @@ def defer(conn, root, *, claim_id, why, target, actor=None, cfg=None):
     # everyone, the difference is not askable". Same signal as `risk`: a tty
     # means somebody was there.
     if actor is None:
-        actor = "human" if sys.stdin.isatty() else "agent"
-    from .ledger import insert
-    insert(conn, "event", task_id=None, claim_id=claim_id, kind=DEFER_KIND,
-           actor=actor, payload={"why": why, "target": target, "actor": actor},
-           created_at=datetime.now(timezone.utc).isoformat())
+        actor = ledger_mod.who_acted()
 
     # In git, like a signature record, so it survives a clone and shows up in a
     # diff. The ledger lives in .git/ and a clone has none.
+    #
+    # Written *before* the row, and that order is the whole point. These two
+    # writes have no compensating action between them: the ledger is
+    # append-only and takes no deletes, so a row is permanent the moment it
+    # lands, while this file can be written again with the same content. The
+    # other order put the permanent half first, so an `OSError` here left a row
+    # asserting a deferral whose record does not exist -- which is exactly the
+    # state `ledger.reconcile_deferrals` was written to report, and no way to
+    # answer it. `risk.accept`, which the note above says this is modelled on,
+    # already writes its record at :376 and inserts at :406.
     p = Path(root) / DEFER_DIR / f"{claim_id}.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(
         {"claim": claim_id, "why": why, "target": target,
          "at": datetime.now(timezone.utc).isoformat()},
         indent=2, ensure_ascii=False) + "\n")
+
+    from .ledger import insert
+    insert(conn, "event", task_id=None, claim_id=claim_id, kind=DEFER_KIND,
+           actor=actor, payload={"why": why, "target": target, "actor": actor},
+           created_at=datetime.now(timezone.utc).isoformat())
     return p
 
 
@@ -931,7 +1070,11 @@ def withdraw_deferral(conn, root, *, claim_id, why, actor=None, cfg=None):
         raise CannotDefer(
             f"{len(why)} characters, and the floor is {floor}. Cancelling a "
             f"record of a decision is a decision.")
-    if not any(cid == claim_id for cid, _t in deferred(conn)):
+    # `_standing_deferrals`, not `deferred`: a closed finding drops out of
+    # the latter, and asking it here would refuse with "there is nothing to
+    # cancel" about a record that is plainly committed. The refusal this case
+    # deserves is the one below it, which says the claim is real.
+    if not any(cid == claim_id for cid, _t in _standing_deferrals(conn)):
         raise CannotDefer(
             f"no deferral names claim {claim_id}. There is nothing to cancel.")
     if conn.execute("SELECT 1 FROM claim WHERE id = ?", (claim_id,)).fetchone():
@@ -940,14 +1083,22 @@ def withdraw_deferral(conn, root, *, claim_id, why, actor=None, cfg=None):
             f"real finding. Close the finding instead -- a record is cancelled "
             f"when it was about nothing, not when somebody changed their mind.")
     if actor is None:
-        actor = "human" if sys.stdin.isatty() else "agent"
+        actor = ledger_mod.who_acted()
+
+    # Same order as `defer`, for the same reason. The file is git-tracked and
+    # this removal is retryable -- the guard above reads the ledger, not the
+    # disk, so a second run finds the deferral still recorded and `is_file()`
+    # makes the unlink a no-op. The row is not retryable: it is permanent the
+    # moment it lands, and putting it first meant a failed `unlink` left a row
+    # saying the deferral was withdrawn beside the record saying it stands.
+    p = Path(root) / DEFER_DIR / f"{claim_id}.json"
+    if p.is_file():
+        p.unlink()
+
     from .ledger import insert
     insert(conn, "event", task_id=None, claim_id=claim_id, kind=WITHDRAWN_KIND,
            actor=actor, payload={"why": why, "actor": actor},
            created_at=datetime.now(timezone.utc).isoformat())
-    p = Path(root) / DEFER_DIR / f"{claim_id}.json"
-    if p.is_file():
-        p.unlink()
     return p
 
 
@@ -964,12 +1115,38 @@ def withdrawn_deferrals(conn) -> set:
         "SELECT claim_id FROM event WHERE kind = ?", (WITHDRAWN_KIND,))}
 
 
-def deferred(conn):
-    """[(claim_id, target)] for every finding somebody put off.
+def settled_findings(conn) -> set:
+    """Claim ids whose finding has been closed, signed for, or retracted.
 
-    A cancelled one is not one: `withdraw_deferral` appends the correction and
-    this is where it takes effect, so `v4 ship`'s count and `doctor`'s
-    reconciliation both read the same set.
+    Not `claim_state`: that answers "is this question open now", and staleness
+    re-opens it whenever the tree moves. The question here is a different one
+    and has one answer forever -- was this finding ever closed. A repair that
+    landed and then had its file edited is still a repair that landed, and
+    nobody is putting it off any more.
+
+    The same three endings `UNSETTLED_FAILS_SQL` recognises, read the same way,
+    because a finding that stops `v4 ship` complaining in one row should stop it
+    complaining in the other.
+    """
+    return {r[0] for r in conn.execute("""
+        SELECT DISTINCT c.id FROM claim c
+        WHERE c.kind = ?
+          AND (EXISTS (SELECT 1 FROM attempt a
+                       WHERE a.claim_id = c.id AND a.exit_code = 0)
+            OR EXISTS (SELECT 1 FROM accepted_risk r WHERE r.claim_id = c.id)
+            OR EXISTS (SELECT 1 FROM event e WHERE e.claim_id = c.id
+                                               AND e.kind = 'retracted'))
+    """, (KIND,))}
+
+
+def _standing_deferrals(conn):
+    """[(claim_id, target)] -- every deferral record that has not been cancelled.
+
+    The record, not the accounting. `withdraw_deferral` asks this whether there
+    is a record to cancel; `deferred` below asks it what is still outstanding
+    and then takes the closed ones out. Splitting the two is what lets a closed
+    finding stop being counted without `withdraw_deferral` losing its ability to
+    say which refusal applies.
     """
     rows = conn.execute(
         "SELECT claim_id, payload FROM event WHERE kind = ? ORDER BY id",
@@ -984,3 +1161,135 @@ def deferred(conn):
         except (ValueError, TypeError, KeyError):
             continue
     return out
+
+
+def deferred(conn):
+    """[(claim_id, target)] for every finding somebody put off and has not done.
+
+    A cancelled one is not one: `withdraw_deferral` appends the correction and
+    `_standing_deferrals` is where that takes effect, so `v4 ship`'s count and
+    `doctor`'s reconciliation both read the same set.
+
+    **A closed one is not one either**, and that half was missing.
+    `withdraw_deferral`'s own docstring says a finding somebody genuinely put
+    off "is un-deferred by closing it" -- and no code implemented the sentence,
+    so `v4 ship` printed a repaired finding as outstanding on every ship after
+    the repair, and its committed record went on naming work that was finished.
+    The count is the whole mechanism here (this is printed, never gated), and a
+    count that only ever grows is one people stop reading.
+    """
+    settled = settled_findings(conn)
+    return [(cid, target) for cid, target in _standing_deferrals(conn)
+            if cid not in settled]
+
+
+def reconcile_deferrals(conn, root: Path):
+    """The same two directions for `.v4/deferred/`, and a weaker verdict.
+
+    `review.defer` writes a `finding_deferred` event and a git-tracked
+    `.v4/deferred/<claim>.json`, and says in its own comment that the file is
+    there "like a signature record, so it survives a clone and shows up in a
+    diff". The thing it is like was reconciled and this was not, so a
+    hand-written or deleted deferral was invisible to `v4 audit`, to staleness
+    and to `scope` -- `.v4/deferred/` is in KERNEL_WRITTEN, which is what makes
+    the third one true.
+
+    A deferral is weaker than a signature, and the difference decides where the
+    answer goes. A forged signature changes a verdict -- `RISK_ACCEPTED` is
+    terminal -- so `audit_chain` reports it and `ship` is held. A deferral makes
+    nothing terminal: losing the file loses the record of a decision, not the
+    decision's effect. So this is reported by `v4 doctor` and holds nothing.
+    Putting it in the chain would say a repo with a stale deferral file cannot
+    ship, which is not true and is the kind of overreach that gets a gate
+    routed around.
+    """
+    problems = []
+    try:
+        # A deferral somebody cancelled is not one. `review.withdraw_deferral`
+        # appends the correction rather than deleting the row, which is the
+        # same instrument `request_cover.withdraw` uses and for the same
+        # reason: the append-only rule exists so corrections are visible, not
+        # so mistakes are permanent.
+        # `withdrawn_deferrals`, whose own docstring is about this exact
+        # hazard: it was written, named, and then not called, and a second copy
+        # of one sentence "drifts on the day somebody changes the one that
+        # runs". This was that second copy -- the third reader of the deferral
+        # rows, and the one that would have kept the old answer.
+        gone = withdrawn_deferrals(conn)
+        rows = {}
+        when = {}
+        for r in conn.execute(
+                "SELECT claim_id, payload, created_at FROM event "
+                "WHERE kind = ? ORDER BY id", (DEFER_KIND,)):
+            if r["claim_id"] in gone:
+                continue
+            try:
+                rows[r["claim_id"]] = json.loads(r["payload"] or "{}")
+            except (ValueError, TypeError):
+                rows[r["claim_id"]] = {}
+            when[r["claim_id"]] = (r["created_at"] or "")[:10]
+    except sqlite3.Error as exc:
+        # Not `return problems`, which at this point is empty and is exactly
+        # what a clean reconciliation returns. `v4 doctor` prints "every
+        # deferral has a row and a committed record" from it, so a database
+        # this could not read said the thing it exists to check.
+        problems.append(f"the deferral rows could not be read "
+                        f"({type(exc).__name__}: {exc}), so whether every "
+                        f"deferral has both halves is unknown -- which is not "
+                        f"the same as yes")
+        return problems
+
+    d = Path(root) / DEFER_DIR
+    on_disk = {p.stem: p for p in d.glob("*.json")} if d.is_dir() else {}
+
+    for cid, payload in sorted(rows.items()):
+        path = on_disk.get(cid)
+        if path is None:
+            # An event naming a claim that does not exist is a different fault
+            # from a missing file, and this repo has one: `c1`, 2026-08-09,
+            # written while `defer` was being built, four days before the file
+            # half existed. Saying "the file is missing" about it would send
+            # somebody looking for a file that was never meant to be written.
+            known = conn.execute("SELECT 1 FROM claim WHERE id = ?",
+                                 (cid,)).fetchone()
+            if not known:
+                # With the date, because the ledger is append-only and this
+                # one cannot be repaired: a reader has to be able to tell a
+                # row written while `defer` was being built from one written
+                # today, and the row is the only place that says which.
+                problems.append(
+                    f"a deferral names claim {cid}, and no such claim is in the "
+                    f"ledger. The event is about nothing. Written "
+                    f"{when.get(cid) or 'at an unrecorded time'}; if that is "
+                    f"old, it is history an append-only ledger cannot drop.")
+            else:
+                problems.append(
+                    f"claim {cid} was deferred and .v4/deferred/{cid}.json is "
+                    f"not on disk. A clone carries the file and not the ledger, "
+                    f"so the decision reaches nobody.")
+            continue
+        try:
+            rec = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            problems.append(f"{DEFER_DIR}/{path.name} does not read: {exc}")
+            continue
+        for field in ("why", "target"):
+            if field in rec and rec[field] != payload.get(field):
+                problems.append(
+                    f"{DEFER_DIR}/{path.name} and the ledger disagree about "
+                    f"{field!r}. One of them was edited after the other.")
+        tracked = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", f"{DEFER_DIR}/{path.name}"],
+            cwd=root, capture_output=True, text=True)
+        if tracked.returncode != 0:
+            problems.append(
+                f"{DEFER_DIR}/{path.name} is not tracked by git, so the "
+                f"deferral does not survive a clone. Commit it.")
+
+    for cid, path in sorted(on_disk.items()):
+        if cid not in rows:
+            problems.append(
+                f"{DEFER_DIR}/{path.name} records a deferral the ledger never "
+                f"made. Either the event was removed, or the file was written "
+                f"by something other than `v4 review defer`.")
+    return problems

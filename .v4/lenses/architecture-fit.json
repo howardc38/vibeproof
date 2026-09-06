@@ -22,11 +22,11 @@
     },
     {
       "check": "Take every row in `.v4/facts.<repo>.json` under `auth_decision`, open the code at its `seen_at`, and say whether that symbol can refuse. Report the ones that carry an auth word and decide nothing.",
-      "why_not_a_checker": "A symbol named `has_brand_context` that reads a dict key and never raises is syntactically indistinguishable from one that gates. The table is the vocabulary 7 of 28 detectors read, so a row that decides nothing turns `route-auth` green for every handler that reaches it. Deciding whether a name is a decision is domain knowledge, not syntax."
+      "why_not_a_checker": "Whether a named symbol can actually refuse requires reading its callers and behavior. auth_decision remains facts vocabulary for review; this release has no active route-auth checker. fail-closed uses its separate Vocabulary configuration, not this table as an authorization oracle."
     },
     {
       "check": "Read the facts table against how this repo actually decides who may do what. Name one way permission is granted or refused here that has no row.",
-      "why_not_a_checker": "`v4 install` proposes rows by matching a dotted call against 30 verbs. Measured on the reference adopter: it proposed 2 of 16 `auth_decision` rows; the other 14 are enum members (`Permission.DENY`), module constants (`TOOL_PERMISSIONS`) and regexes. Re-running the scan today produces 540 candidates of which almost all are dict lookups. There is no scan that finds what is missing -- only a reader."
+      "why_not_a_checker": "Historical adopter measurements found that call-name matching missed enum-, constant- and regex-based permission decisions. Current facts discovery scans Python and Go calls; it does not establish completeness of authorization vocabulary."
     }
   ],
   "anti_patterns": [
@@ -45,5 +45,6 @@
     "Platform handbook style (tool-centric, not boundary-centric) — doc organized around tools/frameworks instead of responsibility boundaries and truth ownership",
     "Direct DB mutation in feature delivery code — state-changing feature code bypasses canonical orchestration path (e.g. `db.execute(\"UPDATE ...\")` in handler/entry layer instead of `service.update_state()`); violates ARCHITECTURE_GUIDELINES §7.5A; skips audit log / approval / cache invalidation / notification",
     "Read-back from projection in Step 5 runtime proof — runtime proof `read-back` queries cache / UI / app log / response body instead of truth owner (DB truth table / audit log / external sandbox API); violates ARCHITECTURE_GUIDELINES §7.5B; projection may be stale or agent-controlled"
-  ]
+  ],
+  "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n"
 }

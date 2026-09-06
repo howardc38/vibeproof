@@ -14,7 +14,6 @@ assert what came back.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 import subprocess
@@ -154,53 +153,27 @@ class NoCheckIsNamedByItsPosition(unittest.TestCase):
 
 
 class TheEvidenceALensCitesIsReal(unittest.TestCase):
-    """The public lens cites a reproducible demo, not unpublished history.
+    """A shipped lens must point to evidence available in every distribution.
 
-    A commit hash alone is insufficient: the cited snapshot must also contain
-    the measured source and evidence files, with matching implementation hashes.
+    The demo itself is executed by test_public_first_proof, which takes its
+    entrypoint from this descriptor and checks both positive and negative cases.
     """
 
     LENS = "near-miss"
-
-    #: Bounded to `commit`: claim IDs use the same alphabet but are not objects.
-    CITED = re.compile(r"commit\s+([0-9a-f]{7,40})")
 
     def setUp(self):
         good, _ = review.lens_files(ROOT)
         self.assertIn(self.LENS, good, "the lens is not loadable")
         self.lens = good[self.LENS]
 
-    def test_every_commit_it_cites_resolves(self):
-        blob = json.dumps(self.lens, ensure_ascii=False)
-        cited = sorted(set(self.CITED.findall(blob)))
-        self.assertTrue(cited, "the evidence cites no commit at all")
-
-        for sha in cited:
-            r = subprocess.run(["git", "cat-file", "-e", sha + "^{commit}"],
-                               cwd=ROOT, capture_output=True)
-            self.assertEqual(r.returncode, 0,
-                             f"{self.LENS} cites commit {sha}, which this repo "
-                             f"does not have")
-
-    def test_public_evidence_matches_the_cited_implementation(self):
-        evidence = self.lens["public_evidence"]
-        revision = evidence["commit"]
-
-        def at_revision(path):
-            result = subprocess.run(["git", "show", f"{revision}:{path}"],
-                                    cwd=ROOT, capture_output=True)
-            self.assertEqual(result.returncode, 0,
-                             f"the cited snapshot does not contain {path}")
-            return result.stdout
-
-        self.assertTrue(at_revision(evidence["source"]))
-        self.assertTrue(at_revision(evidence["transcript"]))
-        measured = json.loads(at_revision(evidence["manifest"]))
-        self.assertIs(measured["verified"], True)
-        self.assertIn(evidence["source"], measured["implementation_sha256"])
-        for path, expected in measured["implementation_sha256"].items():
-            self.assertEqual(hashlib.sha256(at_revision(path)).hexdigest(), expected,
-                             f"recorded evidence does not match {path}")
+    def test_its_evidence_is_portable_and_present(self):
+        evidence = self.lens["evidence"]
+        self.assertEqual(evidence["kind"], "executable-demo")
+        for key in ("path", "test", "historical_record"):
+            path = ROOT / evidence[key]
+            self.assertTrue(path.resolve().is_relative_to(ROOT.resolve()))
+            self.assertTrue(path.is_file(), f"missing evidence {path}")
+        self.assertEqual(evidence["test"], "tests/test_public_first_proof.py")
 
     def test_each_check_says_why_it_is_not_a_checker(self):
         """Same bar as request-fidelity: SPEC §4.7 forbids the checker, so a

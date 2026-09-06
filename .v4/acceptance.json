@@ -16,14 +16,6 @@
       "reference adopter, second secret store (same shape)"
     ]
   },
-  "kernel_sha": {
-    "ledger.py": "a457cdf4e867f65e",
-    "hashing.py": "dce5990717f9e145",
-    "runner.py": "44308c9579b7de52",
-    "register.py": "96b39789f4f6ca8d",
-    "state.py": "5db9f69115182050",
-    "cli.py": "9d48fad34e0c6f98"
-  },
   "amendment_rule": "A criterion may be amended only if its flaw can be stated without reference to any deliverable. If the argument needs 'because submission X failed', it is moving the goalposts wearing a correction's clothes. Amending invalidates every measurement taken under the old criterion -- they are re-run, never grandfathered. Reason is written before re-measuring, not after.",
   "amendments": [
     {
@@ -60,5 +52,16 @@
       "was": "(not previously stated)",
       "now": "The detector must reason about escape paths, not handler contents. Both known false positives are mandatory green fixtures."
     }
-  ]
+  ],
+  "kernel_sha_when_frozen": {
+    "note": "A record of the tree these criteria were measured against on frozen_at, not a pin. Nothing reads it -- `git grep kernel_sha` over the tracked tree returned this declaration and nothing else, and `register.assert_ruler_unmoved` compares `_acceptance_sha`, the sha256 of this whole file, without looking inside. All six values have moved since, which is what a record of a past tree does; it was named `kernel_sha`, which reads as something that still holds. Renamed rather than deleted: the date and the shas together say which kernel the criteria below were measured on, and that is a fact about this file's history that nothing else carries.",
+    "shas": {
+      "ledger.py": "a457cdf4e867f65e",
+      "hashing.py": "dce5990717f9e145",
+      "runner.py": "44308c9579b7de52",
+      "register.py": "96b39789f4f6ca8d",
+      "state.py": "5db9f69115182050",
+      "cli.py": "9d48fad34e0c6f98"
+    }
+  }
 }

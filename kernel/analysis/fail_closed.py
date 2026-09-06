@@ -187,9 +187,22 @@ class Vocabulary:
 #: The shipped table.  Every rule below defaults to it.
 SHIPPED = Vocabulary.of(_TABLE)
 
-#: Kept as module names because `checkers/facts_coverage.py` imports two of them
-#: by name and this module's own docstring cites four -- the names are the
-#: documentation, and the values now come from one place.
+#: Kept as module names, and the reason written here was not the reason.
+#:
+#: It said `checkers/facts_coverage.py` imports two of them by name and this
+#: docstring cites four. That checker is not in this repo -- SPEC records
+#: facts-coverage as removed on 2026-08-24 -- and the docstring cites exactly
+#: one, `OUTBOUND_PREFIXES`. Counted across `kernel/`, `checkers/`,
+#: `detectors/`, `tests/`, `docs/` and `.claude/`: `OUTBOUND_TAILS_WEAK` and
+#: `AUTH_DENY_ROOTS` appear nowhere but this file, and the rest are reached only
+#: by `test_a_repo_can_widen_the_rule_it_is_judged_by.py`, which asserts the
+#: names resolve to the table.
+#:
+#: They stay, and this is the reason that holds: they are the vocabulary this
+#: module is *about*, and a table whose rows have no names is one a reader has
+#: to reconstruct from `_TABLE` every time. The values come from one place --
+#: `SHIPPED` -- so the names cannot drift from the data; what they can do is go
+#: unused, and two have.
 OUTBOUND_ROOTS = SHIPPED.outbound_roots
 HTTP_VERB_TAILS = SHIPPED.http_verb_tails
 OUTBOUND_TAILS_STRONG = SHIPPED.outbound_tails_strong

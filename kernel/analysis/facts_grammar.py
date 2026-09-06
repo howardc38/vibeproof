@@ -25,7 +25,8 @@ from pathlib import PurePosixPath as Path
 SYMBOL_LISTS = ("outbound_write", "outbound_read", "auth_decision")
 PATH_LISTS = ("entrypoint_globs", "ui_globs", "config_files", "protected_paths")
 
-#: Keys a repo may declare that nothing requires.  Three, and each one is read:
+#: Keys a repo may declare that nothing requires.  Three; two are read, and
+#: the third says below why it is not:
 #:
 #:   `public_routes`    -- route handlers deliberately unauthenticated. It lives
 #:                         in the table rather than in a docstring the checker
@@ -34,11 +35,21 @@ PATH_LISTS = ("entrypoint_globs", "ui_globs", "config_files", "protected_paths")
 #:                         is a line in a diff with a name on the commit.
 #:   `dal_globs`        -- where the layer that owns the store lives. `dal-write`
 #:                         reports UNSUPPORTED without it rather than guessing.
-#:   `route_receivers`  -- what a route decorator hangs off here. `route_auth`
-#:                         falls back to eight built-in names, so a repo whose
-#:                         app object is `application` or `admin_api` finds zero
-#:                         routes, silently, while the ship report lists the
-#:                         detector as having run.
+#:   `route_receivers`  -- what a route decorator hangs off here. Nothing reads
+#:                         it. The sentence here described `route_auth` falling
+#:                         back to eight built-in names "while the ship report
+#:                         lists the detector as having run", and there is no
+#:                         such detector: `detectors/` has no `route_auth.py`,
+#:                         the registry has no entry, and `route_auth.py`'s own
+#:                         module docstring says its last importer went with the
+#:                         webhook-replay kind. The consequence was true of
+#:                         `route_auth.DEFAULT_RECEIVERS` before that kind was
+#:                         cut, and was copied here.
+#:
+#:                         Kept rather than dropped: a repo that declares it is
+#:                         saying something true about itself, and the key costs
+#:                         nothing until something asks again. What is not kept
+#:                         is the claim that something asks now.
 #:
 #: This comment named the first and stopped, and `docs/FACTS.md` -- the document
 #: README makes the owner of this file's format -- opened its Optional fields

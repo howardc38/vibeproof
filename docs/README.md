@@ -1,49 +1,58 @@
-# vibeproof — which document to read
+# Which document to read
 
-**8 documents, each owning a scope that does not overlap another's.** One fact is
-authoritative in exactly one place; everywhere else only points at it.
+The code and executable tests establish current implementation behavior. SPEC
+states the intended mechanisms and invariants with code links; a pin confirms a
+symbol exists, not that every sentence is correct. When they disagree, inspect
+the behavior and record whether code or explanation needs repair.
 
-| Document | What it owns | When to read it | What catches it when it goes stale |
-|---|---|---|---|
-| **[EVIDENCE.md](EVIDENCE.md)** | Every experiment that was actually run: method, numbers, and how firmly each conclusion stands (✅ measured / 📊 agent / ⚠️ judgement / ❌ retracted) | **Before citing any number** | No mechanical gate — it is a record, not a contract |
-| **[USING.md](USING.md)** | Operating order and judgement: a request from opening a task through to ship, and the trap at each step | **To actually run a task** | No mechanical gate — it deliberately restates no contract; flags and constraints all stay in SPEC |
-| **[SPEC.md](SPEC.md)** | The contract: every mechanism, every command, every constraint | **To build a kernel / checker / detector / hook** | `design_pins` (197 design pins) + `spec-coverage` (commands / hooks / agents / command rows / engaged kinds in both directions, a pin per section, dead cross-document references, numeric claims, the unbuilt list in reverse, command flags and their values) |
-| **[RATIONALE.md](RATIONALE.md)** | Why: measured numbers, proposals that were refuted, retractions one by one | **A human who wants to understand the design → start here** | `design_pins` (6 design pins) + `spec-coverage` dead references |
-| [DOGFOOD_LOG.md](DOGFOOD_LOG.md) | What building it forced out (the part no document could tell you) | To judge how firm a decision is | `spec-coverage` dead references |
-| [FACTS.md](FACTS.md) | The format, provenance and update procedure of `.v4/facts.*.json` | To build a facts table for a new repo | CI runs `./bin/v4 facts verify --gone-only` on the table itself; the prose has no gate beyond `spec-coverage`'s dead-reference and count checks |
-| [../CLAUDE.md](../CLAUDE.md) | **Generated** — layer ①'s standing rules (`SPEC.md` §14) | Never on purpose; it is already in your context | `registry-consistency` regenerates it and compares |
-| [../.github/monitor/](../.github/monitor/) | The monitor role: `PROMPT.md` is what gets pasted into a separate session, `SCOPE.md` says what it may and may not do | To run a lens sweep | `spec-coverage` reads it (commands / flags / whether `v4` runs). **Whether a sweep is overdue has no mechanical gate** — the kind that judged it was removed in `a9ae5fb` (2026-08-24), leaving `v4 sweep` and CI's cron to answer whether it is due, and neither stops anything |
+## Current reference and operating instructions
 
-**The code is the implementation authority.** Every `<!-- pinned: -->` in SPEC is
-verified by `checkers/design_pins.py` — rename a symbol and SPEC fails a check
-rather than quietly becoming a lie.
+| Document | Purpose | Verification |
+|---|---|---|
+| [SPEC.md](SPEC.md) | Mechanism/contract reference, with dated historical examples distinguished from current behavior | Implementation pins, command/flag checks, registry/count checks and semantic source review |
+| [USING.md](USING.md) | Operating sequence for a task | CLI examples and source review; examples do not become a second contract |
+| [FACTS.md](FACTS.md) | Facts format, provenance and updates | Executable grammar, citation checks and review of vocabulary completeness |
+| [REFERENCE.md](REFERENCE.md) | Derived summary of behavior and limits | Recheck against code/SPEC when relevant sources change |
+| [FEATURES.md](FEATURES.md) | Derived feature and command map | Source links and registry/CLI comparison |
+| [GETTING_STARTED.md](GETTING_STARTED.md), [繁體](GETTING_STARTED.zh-TW.md), [简体](GETTING_STARTED.zh-CN.md) | First adoption and one real task | Run the instructions in an isolated repo; preserve existing host settings |
+| [SYNC.md](SYNC.md) | Canonical private source and public release procedure | Export policy, distribution tests and public manifest checks |
+| [../README.md](../README.md), [繁體](../README.zh-TW.md), [简体](../README.zh-CN.md) | Derived introduction, supported fit, demo and limitations | Included in CLI documentation checks; claims still need semantic review |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | How public contributions reach canonical development | Release policy and maintainer practice |
+
+README, FEATURES and REFERENCE are derived summaries. They do not override the
+implementation or introduce separate schema/ship contracts. Update them in the
+same canonical source change when behavior moves.
+
+## Generated and host-facing instructions
+
+| Source | Purpose |
+|---|---|
+| [../CLAUDE.md](../CLAUDE.md) | Generated doctrine from `kernel/doctrine.py` and this repo's registries; `registry-consistency` compares the generated block |
+| [../.claude/agents/](../.claude/agents/), [../.claude/commands/](../.claude/commands/) | Host workflow prompts for the roles described in SPEC; their presence is not proof of execution or independence |
+| [../.github/monitor/](../.github/monitor/) | Monitor instructions and host permissions, with the specific enforced CLI guards distinguished from discipline |
+| [../AGENTS.md](../AGENTS.md) | Where maintainers edit and how they preserve the source/release boundary |
+
+## Historical evidence and design rationale
+
+[EVIDENCE.md](EVIDENCE.md), [RATIONALE.md](RATIONALE.md) and
+[DOGFOOD_LOG.md](DOGFOOD_LOG.md) retain the observations and decisions of their
+recorded revisions. They are not fresh measurements of the current checkout.
+Read the stated method, date, sample and caveats before reusing a number.
+Some cited development history is not present in the public distribution;
+current executable evidence must not require that private history.
+
+The runnable [first-proof example](../examples/first-proof/README.md) gives current
+behavioral checks. Saved demo/video evidence is versioned history; source hashes
+must match the declared snapshot before it is used as evidence for that version.
+Campaign plans and account handoff documents under `docs/launch/` are private
+operating material unless the publication policy explicitly selects a file.
 
 ```sh
-./bin/v4 --repo . run-checker --checker checkers/design_pins.py --subject <subject.json>
-./bin/v4 --repo . doctrine --check          # is CLAUDE.md still the generated artefact
-./bin/v4 --repo . audit --events .v4/ledger_export.jsonl   # the export exists only once something has shipped
+./bin/v4 --repo . accept --here --docs
+./bin/v4 --repo . doctrine --check
 ```
 
-## Which part is the contract and which is not
-
-Stated plainly, because "build from SPEC" is its only purpose:
-
-- **The four working roles are in `.claude/agents/`, and `/run` strings them
-  together.** The contract is `SPEC.md` §12.5 — that table is the contract, and
-  the files under `.claude/` (four agents, three commands, and the hook
-  settings) are prompts and configuration, which change.
-- **Prompts are not in SPEC, and that is deliberate.** They belong to
-  `.claude/agents/` and they change; the four things SPEC does state are
-  constraints a kernel or a hook can enforce.
-
-## Why SPEC and RATIONALE are separate
-
-Because mixing them was tried and did not work: an agent built a checker from the
-older document and 16 fixtures **all exited 2** — the document declared one CLI
-flag and the kernel passes three. Prose describing a contract is not a contract.
-
-And separating them has its own risk, which has already been paid once: the
-four-layer structure and the rule-placement table were left in RATIONALE, and
-engagement **shipped carrying zero rules**. So `spec-coverage` now requires every
-section describing a mechanism to pin at least one thing — a section with no pin
-is a section nobody wired.
+A successful mechanical check does not replace reading a changed explanation
+against the implementation. The document-review record for a maintenance pass
+states its actual coverage and distinguishes fixtures, historical records and
+current instructions.

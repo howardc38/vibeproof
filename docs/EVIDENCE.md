@@ -1,6 +1,6 @@
 # EVIDENCE — what has actually been measured, and what has not
 
-This file is the record of every real experiment run against this framework. It
+This file retains selected historical experiments run against this framework. It
 is written for a reader with no prior context: another model picking this repo
 up cold, or a person returning to it in six months.
 
@@ -40,9 +40,10 @@ document read before work — no gate. ② A **checker** is a Python program who
 exit code is the verdict, with no model in it. ③ A **lens** is an LLM reviewer
 holding a JSON checklist. ④ **Engagement** is one sentence a worker must write
 before a checker will run, judged by seven mechanical tests and no reviewer.
-Everything judgeable becomes a **claim** with an id; a claim is answered by one
-checker; `v4 ship` asks one question — is every claim answered against the bytes
-that are there now.
+Questions emitted by applicable detectors or raised through review become claims.
+Ship evaluates current answers and gate policy, so report-only findings can remain.
+The current implementation reference is SPEC; the measurements below retain their
+original dates and samples.
 
 ---
 
@@ -158,9 +159,10 @@ Verified mechanically ✅
 This retracts three "armY is clean" results: D4, D11 and D12 are vacuous for
 armY, because it never built the feature they are about.
 
-Causal chain ✅ armY's T1 commit reuses the doctrine's own word
+Observed text/citation chain ✅ armY's T1 commit reuses the doctrine's own word
 (*speculatively*) from `CLAUDE.md` scope rule 2, and T8 explicitly cites T1's
-decision. **One scope decision closed off two later tasks.** T5's gap is
+decision. **The recorded scope decision carried into two later tasks.** Its causal attribution
+to doctrine is an interpretation, not an isolated randomized effect. T5's gap is
 unrelated — a narrower reading of the brief.
 
 Structural cause ✅ `task.request` was written in two places and read in none;
@@ -487,21 +489,25 @@ scale               The longest run is five tasks. Ledger and chain behaviour
 
 ---
 
-## 8. How to re-run any of this
+## 8. Historical experiment pattern and current reproduction
 
-Every experiment above is a shell sequence against a scratch repo. The shape is
-always the same, and it is the shape to use for the next one:
+The historical experiments require their original private datasets and context;
+the following sketch is not a one-command reconstruction of all results. For an
+independently runnable current example, use `examples/first-proof/run.py`. In a
+scratch adopter, use the framework launcher explicitly as shown below:
 
 ```bash
 #-- step 1: a repo that does not know about this framework
-mkdir -p /tmp/probe/{app,tests} && cd /tmp/probe && git init -q .
+V4_PROBE_DIR=$(mktemp -d)
+mkdir -p "$V4_PROBE_DIR/app" "$V4_PROBE_DIR/tests"
+cd "$V4_PROBE_DIR" && git init -q .
 
 #-- step 2: plant a defect you can state in one sentence before you start
 #    (state it first — a defect found after the fact is a story, not a result)
 
 #-- step 3: adopt
-python3 -m kernel.cli --repo . init          # then fill test_command
-python3 -m kernel.cli --repo . install
+<framework>/bin/v4 --repo . init          # then fill test_command
+<framework>/bin/v4 --repo . install
 #    prune .v4/facts.<repo>.json.draft, rename it, replace every AUTO: line
 
 #-- step 4: run the loop and read every message

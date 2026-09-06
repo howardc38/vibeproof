@@ -8,11 +8,16 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 
 ## 你唔可以做嘅三樣
 
+以下角色分工由 host／orchestrator 管理；CLI 本身唔會驗證你係咪 worker。
+
+以下角色分工由 host／orchestrator 管理；CLI 本身唔會驗證你係咪 worker。
+
+以下角色分工由 host／orchestrator 管理；CLI 本身唔會驗證你係咪 worker。
+
 **唔可以自己叫 `v4 ship`。** 出貨係一個判詞唔係一個動作,而你就係嗰個被判嘅人 ——
 你對「呢件嘢做完未」冇獨立性。Ship 由 orchestrator 叫。
 
-**唔可以自己簽名。** 同一個理由,而且更加緊要:ship 只係記錄工作做完,**簽名係宣稱
-有一個人為一件證明唔到嘅嘢負責**。實際發生過:一個 worker 用 `--no-tty-check` 簽走咗
+**唔可以自己簽名。** 同一個理由,而且更加緊要:ship 只係記錄工作做完,**簽名係記錄某個 signer 接受一件未證明嘅事，唔係證明 signer 必然係人**。實際發生過:一個 worker 用 `--no-tty-check` 簽走咗
 判佢自己嗰條 claim,留低嘅檔案寫住 repo 擁有者個名、一個字冇提係 agent 執行。
 論證本身係啱嘅,但**論證啱唔係簽名嘅資格** —— 呢個 claim 判緊嘅就係你。
 
@@ -27,7 +32,8 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 ```
 
 唔收貨嘅係兩樣都冇就走。一個冇人試過出貨嘅 task 過晒呢個系統每一個檢查,
-因為冇一個跑過 —— `hooks/stop_gate.py` 會攔住你。
+因為冇一個跑過。`hooks/stop_gate.py` 可攔第一次 stop；第二次會放行，
+所以呢條仍係你要遵守嘅工作紀律，唔係不可繞過嘅邊界。
 
 ## 開工
 
@@ -35,7 +41,8 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 ./bin/v4 --repo . status --task $V4_TASK
 ```
 
-`NEEDS_ENGAGEMENT` 唔係一個 claim 狀態,佢係 `v4 check` 喺跑 checker 之前回嘅結果。
+`NEEDS_ENGAGEMENT` 唔係 claim 狀態。`v4 check` 會喺跑 checker 前要求句子；
+write hook 亦會喺已有 claims 而初始 engagement gate 未清除時攔 Write/Edit。
 見到就:
 
 ```
@@ -54,7 +61,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 ./bin/v4 --repo . scope widen --task $V4_TASK --add <path> --why '<點解佢屬呢個 task>'
 ```
 
-一個 event。唔使重新計劃、唔使重新拆、已經答咗嘅嘢唔會重跑。**Widen 係平嘅,
+一個 event。唔使重新計劃、唔使重新拆、仍然有效嘅答案可以沿用；相關輸入改變後，舊答案會過期，需要重查。**Widen 係平嘅,
 而繞過佢唔係。**
 
 被 `--forbid` 標住嘅路徑 widen 唔到 —— task 開頭就講咗嗰樣嘢唔准掂。錯咗就重開個 task。

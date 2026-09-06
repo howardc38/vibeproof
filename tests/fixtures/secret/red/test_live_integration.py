@@ -6,6 +6,10 @@ had exactly this leak -- ``runtime/gitleaks-review-redacted.json`` records
 "replace real Shopify token with fake in test fixture --
 tests/integrations/mcp/test_bridge.py:30 contained the user-provided real
 token". Location is never evidence; only the value is.
+
+Synthetic: generated for this fixture, never issued, never valid. Recorded
+because location is never evidence -- only the value is -- so a look-alike
+with no provenance leaves nobody able to say whether it needs rotating.
 """
 
 GITHUB_TOKEN_FOR_LIVE_RUN = "ghp_cpE1ckI4yZ9gQCuVrxjXZRF3Kk56s0jZ3tSj"

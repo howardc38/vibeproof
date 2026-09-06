@@ -255,11 +255,24 @@ def unresolved(root, ref: str):
 def fault(request, entry, min_chars=MIN_CHARS, root=None):
     """Why this entry does not account for anything, or None.
 
-    Shared with the checker on purpose. The first version validated only in
+    Shared with `measure()` on purpose. The first version validated only in
     `record()`, so the rules lived on the CLI path and anything that reached the
     ledger another way -- a fixture, a future writer, a hand-edited row --
     counted in full. A checker that trusts its own input is the hollow-scanner
     shape, and its three bypass cases were all really failing on coverage.
+
+    **There is no checker any more.** This said "shared with the checker", and
+    the request-coverage checker was removed -- `unresolved()` above says so in
+    as many words, and `checkers/` holds no such program and
+    `.v4/claim_kinds.json` no such kind. Both surviving callers, `record()` and
+    `measure()`, are reached only from `cli.cmd_cover`, so the state this
+    paragraph describes as repaired -- these rules living on the CLI path
+    alone -- is the state today.
+
+    The rules stay here rather than moving back into `record()`, because that
+    is the half of the repair that still holds: one function answers "why does
+    this entry account for nothing", and both readers ask it. What changed is
+    what asks; what was fixed was two answers to one question.
     """
     quote = (entry.get("quote") or "").strip()
     if not quote:

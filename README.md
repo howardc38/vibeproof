@@ -14,6 +14,8 @@ vibeproof adds executable checks to Claude Code tasks and keeps the results tied
 
 [Watch the narrated demo](docs/launch/assets/v4/demo-en.mp4) · [Try it locally](#try-it-locally) · [Use it in your repo](docs/GETTING_STARTED.md)
 
+The video was recorded for the 2026-09-05 demo baseline. Run the command below to verify the current checkout.
+
 ## Three familiar problems
 
 | What happened | What vibeproof adds |
@@ -26,7 +28,7 @@ These checks have limits. A file being imported is not a behavior test. A test-c
 
 ## Try it locally
 
-You need **Git and Python 3.12+**. This demo needs no packages, API key or coding-agent subscription.
+You need **Git and Python 3.12+**. Use macOS or Linux; native Windows is not validated. This demo needs no packages, API key or coding-agent subscription.
 
 ```sh
 git clone https://github.com/howardc38/vibeproof.git
@@ -131,5 +133,7 @@ To run the framework's own tests:
 ```sh
 python3 tests/run_without_silent_skips.py
 ```
+
+Maintaining vibeproof itself? Work in the canonical development repository; see [contributing](CONTRIBUTING.md) and [release synchronization](docs/SYNC.md).
 
 MIT licensed. [License](LICENSE) · [Implementation specification](docs/SPEC.md)

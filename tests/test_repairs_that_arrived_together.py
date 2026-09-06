@@ -90,10 +90,10 @@ class ADeferralIsReconciledAgainstItsCommittedRecord(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root, conn = _repo(td)
             self._deferred_claim(conn, root)
-            self.assertEqual(ledger.reconcile_deferrals(conn, root), [],
+            self.assertEqual(review.reconcile_deferrals(conn, root), [],
                              "a freshly written deferral should reconcile")
             (root / ".v4" / "deferred" / "cx.json").unlink()
-            problems = ledger.reconcile_deferrals(conn, root)
+            problems = review.reconcile_deferrals(conn, root)
             self.assertTrue(problems, "the record was deleted and nothing said so")
             self.assertIn("cx", problems[0])
             conn.close()
@@ -106,7 +106,7 @@ class ADeferralIsReconciledAgainstItsCommittedRecord(unittest.TestCase):
             rec = json.loads(p.read_text())
             rec["target"] = "somewhere else entirely"
             p.write_text(json.dumps(rec))
-            problems = ledger.reconcile_deferrals(conn, root)
+            problems = review.reconcile_deferrals(conn, root)
             self.assertTrue(any("target" in x for x in problems),
                             f"the file and the ledger disagree and nothing "
                             f"noticed: {problems}")
@@ -119,7 +119,7 @@ class ADeferralIsReconciledAgainstItsCommittedRecord(unittest.TestCase):
             d.mkdir(parents=True)
             (d / "invented.json").write_text(json.dumps(
                 {"claim": "invented", "why": "w", "target": "t"}))
-            problems = ledger.reconcile_deferrals(conn, root)
+            problems = review.reconcile_deferrals(conn, root)
             self.assertTrue(any("invented" in x for x in problems))
             conn.close()
 
@@ -135,7 +135,7 @@ class ADeferralIsReconciledAgainstItsCommittedRecord(unittest.TestCase):
             self._deferred_claim(conn, root)
             (root / ".v4" / "deferred" / "cx.json").unlink()
             ok, problems = ledger.audit_chain(conn, root)
-            self.assertTrue(ledger.reconcile_deferrals(conn, root))
+            self.assertTrue(review.reconcile_deferrals(conn, root))
             self.assertNotIn("cx", " ".join(problems),
                              "a missing deferral record reached the chain verdict")
             conn.close()
@@ -192,7 +192,7 @@ class TheContinuationEdgeIsQueryable(unittest.TestCase):
                           scope_globs=json.dumps(["**"]), base_commit="x",
                           created_at="2026-01-02T00:00:00+00:00")
             ledger.insert(conn, "event", task_id="t2", claim_id=None,
-                          kind=lifecycle.CONTINUES_KIND, actor="human",
+                          kind=lifecycle.CONTINUES_KIND, actor="person",
                           payload={"after": "t"}, created_at="2026")
             self.assertEqual(lifecycle.continues(conn, "t2"), "t")
             self.assertEqual(lifecycle.continued_by(conn, "t"), ["t2"])

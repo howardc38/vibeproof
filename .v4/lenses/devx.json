@@ -1,7 +1,7 @@
 {
   "name": "Developer experience",
   "source": "V3 devx-auditor.md · CODE_HEALTH_REVIEW_GUIDELINE.md",
-  "why": "三條問題,而唔係一張規則表。呢個 lens 曾經被判「唔需要」——理由係「主觀,冇 oracle」,而嗰個判斷係錯嘅:冇 oracle 正正係佢屬層 ③ 嘅原因,唔係佢應該消失嘅原因。\n佢係 debt 嘅上游。一個難理解嘅檔案唔會即刻壞,佢係下一個人改嗰陣先壞,而嗰陣冇人記得係邊個決定造成。\n**兩邊都要講。** 全部評低分係一個 pessimism trap —— 一份只有摩擦點嘅報告,同一份只有優點嘅一樣冇資訊。",
+  "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n三條問題,而唔係一張規則表。呢個 lens 曾經被判「唔需要」——理由係「主觀,冇 oracle」,而嗰個判斷係錯嘅:冇 oracle 正正係佢屬層 ③ 嘅原因,唔係佢應該消失嘅原因。\n佢係 debt 嘅上游。一個難理解嘅檔案唔會即刻壞,佢係下一個人改嗰陣先壞,而嗰陣冇人記得係邊個決定造成。\n**兩邊都要講。** 全部評低分係一個 pessimism trap —— 一份只有摩擦點嘅報告,同一份只有優點嘅一樣冇資訊。",
   "checks": [
     {
       "check": "理解:一個新人打開呢個檔,幾耐先明個 intent?邊樣嘢阻住?"

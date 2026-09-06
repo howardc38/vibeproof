@@ -69,9 +69,14 @@ TASK, REPO = "task", "repo"
 
 #: What `signed_by` says, in the committed record and in the ledger row.
 #:
-#: Named here because five texts and two reports spell these, and the day a
-#: third value was added the reports still had two buckets.
-PERSON, AGENT, MONITOR = "person", "agent", "monitor"
+#: Named because five texts and two reports spell these, and the day a third
+#: value was added the reports still had two buckets. Now taken from
+#: `kernel/ledger.py` rather than declared again here: `signed_by` and the
+#: `event.actor` column answer the same question -- who did this -- and the two
+#: spellings that grew apart (`person` here, `human` in `review` and
+#: `lifecycle`) were two declarations of one vocabulary with nothing holding
+#: them together. The names stay where readers of this module expect them.
+from .ledger import PERSON, AGENT, MONITOR  # noqa: F401
 
 #: A signature row written before `accepted_risk.signed_by` existed. It cannot
 #: be filled in later -- the ledger refuses UPDATE -- and it must not be guessed

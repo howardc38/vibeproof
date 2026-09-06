@@ -721,8 +721,22 @@ def _check_reads_covers_the_paths_a_checker_names(root, out):
     try:
         registry = json.loads((root / config_mod.CHECKERS).read_text())
         dishonest = _reads_are_honest(root, registry.get("kinds", registry))
-    except Exception:                                           # noqa: BLE001
-        dishonest = []
+    except Exception as exc:                                    # noqa: BLE001
+        # An unread registry is not a clean one. This swallowed and then printed
+        # `every checker's reads covers the paths it names` -- the strongest
+        # sentence this row has -- from no data at all, which is the shape
+        # `_reports`'s own docstring in this file says was already fixed once.
+        # Measured: a traced full-suite run enters this function and enters
+        # neither `_reads_are_honest` nor `_path_literals`, which is only
+        # possible if the read raised every time.
+        out.append(_c(WARN, "reads",
+                      f"could not read {config_mod.CHECKERS} "
+                      f"({type(exc).__name__}: {exc})",
+                      "so whether each checker's `reads` covers the paths its "
+                      "own source names is unknown -- which is not the same as "
+                      "yes, and `readable()` uses that declaration to decide "
+                      "whether a checker runs at all"))
+        return
     if dishonest:
         out.append(_c(
             WARN, "reads",
@@ -749,10 +763,25 @@ def _check_kinds_this_repo_keeps_failing_to_answer(root, out):
     try:
         from . import ledger, state
         conn = _reader(root)
+        # `NOT EXISTS ... accepted_risk` is the yardstick `unsettled_fails`
+        # already uses, copied here because the two were measuring different
+        # things about the same signature. `v4 ship` lets a claim-scoped
+        # signature settle a claim; this line only ever looked at
+        # `scope = 'repo'`, so the same signed claim was settled on the way out
+        # and still "blocked" in the report -- and the remedy printed below then
+        # told the reader to sign a thing they had signed. Any scope settles the
+        # claim it names, in both places.
         stuck = conn.execute("""
             SELECT c.kind, c.task_id FROM claim c
             JOIN attempt a ON a.id = (SELECT MAX(id) FROM attempt WHERE claim_id = c.id)
-            WHERE a.exit_code = 4""").fetchall()
+            WHERE a.exit_code = 4
+              AND NOT EXISTS (SELECT 1 FROM accepted_risk r
+                              WHERE r.claim_id = c.id)""").fetchall()
+        # Still repo-scoped, and deliberately: this set is what the `ok` line
+        # reports as signed off *for the repo*, which is the claim
+        # `cover_key`'s docstring describes -- that this repo structurally has
+        # no subject for the kind. A claim-scoped signature settles its claim
+        # above; it does not say that about the repo.
         signed = {json.loads(r["cover_key"])["kind"]
                   for r in state.repo_risks(conn) if r["cover_key"]}
         # Tasks that have neither shipped nor been abandoned. It was the newest
@@ -844,10 +873,12 @@ def _check_a_registered_checker_that_has_never_executed(root, out):
         engaged = {v.get("checker") for v in kinds.values() if v.get("engagement")}
         # A claim on an abandoned task was never going to be checked, and
         # counting it as a checker nobody has ever pointed at is the third
-        # thing this row was saying at once.
-        dropped = {r[0] for r in conn5.execute(
-            "SELECT DISTINCT task_id FROM event WHERE kind = 'abandoned' "
-            "AND task_id IS NOT NULL")}
+        # thing this row was saying at once. The exclusion is the subquery in
+        # `live` below; it was also computed into a `dropped` set here that
+        # nothing read, so a query ran on every `v4 doctor` and was thrown away
+        # under five lines explaining what it decided. A dead local under a
+        # comment that explains it is the version a reader cannot tell from
+        # live code.
         live = [r for r in conn5.execute(
             "SELECT DISTINCT c.checker FROM claim c WHERE c.checker != '' "
             "AND c.task_id NOT IN (SELECT DISTINCT task_id FROM event "
@@ -905,13 +936,28 @@ def _check_hooks_are_called_and_not_merely_present(root, out):
         # eight days of Edit/Write traffic. The sweep check forty lines below
         # already consults the ledger through `sweep_mod.last`; the pattern was
         # in the same function and was not applied.
-        fired, unread = None, ""
+        # Per hook, not "any hook". One arbitrary `hook_seen` row said all three
+        # were alive, and the row carried no hook name to say otherwise -- so
+        # the Stop gate, the only one of the three that can block a turn and the
+        # only one that recorded nothing at all, was reported alive on the
+        # strength of its filename being a substring of a JSON file. It now
+        # names itself on the rows it writes, like its two siblings, and this
+        # asks each of them separately.
+        fired, unread, silent = None, "", []
         try:
-            from . import ledger as _lh
             _c_h = _reader(root)
             fired = _c_h.execute(
                 "SELECT created_at FROM event WHERE kind = 'hook_seen' "
                 "ORDER BY id DESC LIMIT 1").fetchone()
+            seen = {r[0] for r in _c_h.execute(
+                "SELECT DISTINCT json_extract(payload, '$.hook') FROM event "
+                "WHERE kind = 'hook_seen'") if r[0]}
+            # Rows written before the payload carried a name are not evidence
+            # about any particular hook, so a repo whose whole history predates
+            # this is reported as "none of them named itself" rather than as
+            # three dead hooks.
+            silent = ([h[:-3] for h in hooks if h[:-3] not in seen]
+                      if seen else [])
         except Exception as exc:                                # noqa: BLE001
             unread = f"{type(exc).__name__}: {exc}"
         if unwired:
@@ -925,9 +971,32 @@ def _check_hooks_are_called_and_not_merely_present(root, out):
         elif fired is None:
             status, detail = WARN, (f"{len(hooks)} hook(s) wired and none has "
                                     f"ever fired")
+        elif fired is not None and not seen:
+            # The comment above says a history older than the `hook` field is
+            # "reported as none of them named itself rather than as three dead
+            # hooks" -- and then `seen` empty made `silent` empty, which fell
+            # through to the strongest green this row has. Intent and code
+            # disagreed, and the code was the half that printed. Measured by an
+            # adopter before upgrading: 1,823 `hook_seen` rows, every
+            # `payload.hook` null, and `ok  3 hook(s) wired, each has fired`.
+            # The one of the three least entitled to that line is `stop_gate`,
+            # which had no `record_seen` call at all and could not have written
+            # a row if it tried.
+            status, detail = WARN, (
+                f"{len(hooks)} hook(s) wired, last fired "
+                f"{str(fired[0])[:19]}, and none of them named itself -- every "
+                f"row here predates the `hook` field, so which of them has "
+                f"fired is not answerable from this ledger")
+        elif silent:
+            # The finding this row exists for: wired, something fired, and one
+            # of them has never once said so.
+            status, detail = WARN, (
+                f"{len(hooks)} hook(s) wired, last fired "
+                f"{str(fired[0])[:19]}, and {', '.join(sorted(silent))} "
+                f"{'has' if len(silent) == 1 else 'have'} never left a mark")
         else:
-            status, detail = OK, (f"{len(hooks)} hook(s) wired, last fired "
-                                  f"{str(fired[0])[:19]}")
+            status, detail = OK, (f"{len(hooks)} hook(s) wired, each has fired, "
+                                  f"last {str(fired[0])[:19]}")
         out.append(_c(status, "hooks", detail,
                       "wiring is configuration; firing is a fact, and `v4 ship` "
                       "reports DEGRADED off the second one"
@@ -991,11 +1060,50 @@ def _check_the_after_gate_is_called_and_not_merely_present(root, out):
 
 
 
+def _run_lines(yaml_text: str) -> str:
+    """The shell a workflow actually executes, with the prose left out.
+
+    A YAML comment starts at a `#` that is not inside quotes, and a `run:`
+    block carries shell where `#` is a comment too -- so the same rule serves
+    both, and this does not need a YAML parser to answer "what would run".
+    Nothing here interprets the document: it strips comments and keeps the rest,
+    which is strictly less text than before and never more.
+    """
+    kept = []
+    for line in yaml_text.splitlines():
+        out, quote = [], ""
+        for ch in line:
+            if quote:
+                out.append(ch)
+                if ch == quote:
+                    quote = ""
+                continue
+            if ch in "\"'":
+                quote = ch
+                out.append(ch)
+                continue
+            if ch == "#":
+                break
+            out.append(ch)
+        kept.append("".join(out))
+    return "\n".join(kept)
+
+
 def _check_ci_can_actually_walk_the_chain(root, out):
     """Does a CI job walk the exported chain, and does the export walk clean?"""
     wf = list((root / ".github" / "workflows").glob("*.yml")) \
         if (root / ".github" / "workflows").is_dir() else []
-    text = "".join(p.read_text() for p in wf)
+    # What a workflow *runs*, not what it says. This read the whole file,
+    # comments included, so a paragraph explaining why there is no chain job --
+    # which naturally quotes the command -- flipped this row from `not wired` to
+    # `wired` without a job existing. It happened here on 2026-09-05, in this
+    # repo, to somebody who knew they had changed nothing.
+    #
+    # The same shape, pointed the other way, is already in this project's own
+    # history: a guard scanning for `DROP DATABASE` matched four files that
+    # were explaining it, and the repair there was to stop reading prose rather
+    # than to tell people not to write the words.
+    text = "\n".join(_run_lines(p.read_text()) for p in wf)
     if not wf:
         out.append(_c(WARN, "CI", "no workflows"))
     elif "audit --events" not in text:
@@ -1230,9 +1338,13 @@ def _check_findings_a_review_raised_and_nobody_closed(root, out):
 def _check_deferrals_the_event_and_the_file_agree(root, out):
     """Do a deferral's ledger event and its committed file agree?"""
     with _reports(out, "deferrals"):
-        from . import ledger as _led4
+        # `review`, not `ledger`. This reconciles the review domain -- the two
+        # event kinds, the `.v4/deferred/` layout and the `why`/`target`
+        # contract -- and all four of those are named in `review`, which was
+        # spelling them a second time one layer down in the store adapter.
+        from . import review as _rev4
         _conn4 = _reader(root)
-        bad_defer = _led4.reconcile_deferrals(_conn4, root)
+        bad_defer = _rev4.reconcile_deferrals(_conn4, root)
         out.append(_c(
             WARN if bad_defer else OK, "deferrals",
             (f"{len(bad_defer)} disagreement(s): {bad_defer[0]}"

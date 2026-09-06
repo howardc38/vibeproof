@@ -99,6 +99,36 @@ READERS = frozenset(
 #: delete the files that judge the work, through the one route this guard
 #: exists to watch. Listing `git` under `ALL_ARGS` would report `git status
 #: .v4` as a write, so the subcommand is read.
+#: Writers whose target is never in the argv, so no reading of it can say what
+#: they touch.
+#:
+#: Being on `WRITERS` or `SUBCOMMAND_WRITERS` sets `known`, and `known`
+#: suppresses the "cannot tell -> deny" branch. That trade is right for `rm` or
+#: `cp`, whose branch walks every operand: "no hit" from them is a finding.
+#: These three name nothing. `patch` reads its diff from stdin or `-i`,
+#: `git apply` from a file, and `git stash pop` from the stash -- and each
+#: writes whatever that input names, `checkers/*.py` and `.v4/config.json`
+#: included. Measured against this repo's protected set before this existed:
+#: `patch -p1 < /tmp/p.diff`, `patch -p1 -i /tmp/p.diff`,
+#: `git apply /tmp/p.diff`, `git apply --3way /tmp/p.diff` and
+#: `git stash pop` all returned ALLOW.
+#:
+#: Refused outright rather than "refused when a protected word is visible",
+#: which is the calibration the unknown-command branch uses: here the path is
+#: never visible, so that rule can only ever allow. The way through is the one
+#: the guard already names -- make the writes where the scope hook can see each
+#: file.
+OPAQUE_WRITERS = {"patch"}
+OPAQUE_SUBCOMMANDS = {"git": {"apply", "stash", "am", "cherry-pick", "revert"}}
+
+#: The verbs of an opaque subcommand that only read, so the refusal stays aimed
+#: at what it is about. `git stash list` and `git stash show` write nothing;
+#: bare `git stash` does -- it takes the working tree away, protected files
+#: included -- so absence of a verb is not absence of a write. Measured while
+#: writing this: the first spelling refused `git stash list`, which is the
+#: shape this project's own rule calls a targeted obligation turned blanket.
+OPAQUE_VERB_READS = {("git", "stash"): {"list", "show"}}
+
 SUBCOMMAND_WRITERS = {
     "git": {"checkout", "restore", "rm", "mv", "apply", "clean", "stash"},
     # `v4 export --out <path>` writes the path it is handed, and it is the only
@@ -292,10 +322,27 @@ def _spellings(word: str):
     return out
 
 
+#: Operands that name a directory containing everything below it.
+#:
+#: `rm -rf .` measured ALLOW against this repo's four protected globs while
+#: `rm -rf checkers` measured DENY -- the guard recognised the name and not the
+#: directory holding it, so the widest form of the write it exists to stop was
+#: the one form it passed. `..` and `/` are the same shape one and two levels
+#: out; `~` is not here because a writer handed `~` is not writing this repo
+#: unless the repo is the home directory, and that case is `/`'s.
+ANCESTORS = frozenset({".", "..", "/", "./", "../"})
+
+
 def _protected(path: str, globs) -> bool:
     """Could this argv word name a protected path?  `subject_files.matches`
     decides, once per spelling `_spellings` can read out of the word.
+
+    An ancestor operand is answered before the spellings are read, because it
+    names no path for `matches` to compare: it is a stand-in for every path
+    under it, and every protected glob is under it by construction.
     """
+    if str(path).strip() in ANCESTORS:
+        return bool(globs)
     from .subject_files import matches
     return any(matches(s, globs) for s in _spellings(path))
 
@@ -426,6 +473,20 @@ def writes_to_protected(cmd: str, protected):
             for t in args:
                 if not t.startswith("-") and _protected(t, protected):
                     hits.append((t, f"`{cmdname} -i` edits in place"))
+        # Before the `known` test below, because these are on the roll call and
+        # `known` is exactly what they must not buy: their target is not in the
+        # argv at all, so "no protected word here" says nothing about what they
+        # write.
+        if cmdname in OPAQUE_WRITERS:
+            unreadable = True
+        elif cmdname in OPAQUE_SUBCOMMANDS:
+            sub = _subcommand(cmdname, args)
+            if sub in OPAQUE_SUBCOMMANDS[cmdname]:
+                reads = OPAQUE_VERB_READS.get((cmdname, sub), ())
+                after = [a for a in args[args.index(sub) + 1:]
+                         if not a.startswith("-")]
+                if not (reads and after and after[0] in reads):
+                    unreadable = True
         if not known and any(_protected(w, protected) for w in words):
             unreadable = True
     # `dd if=/dev/zero of=.v4/config.json` reaches both the `of=` branch and

@@ -630,13 +630,13 @@ def _cfg(args):
 
 def cmd_task(args):
     conn = ledger.connect(_repo(args))
-    forbid = [g.strip() for g in args.forbid.split(",") if g.strip()]
-    # The same treatment `forbid` has had one line up. `--scope 'a/**, b/**'`
-    # is how a person writes a list, and the raw split stored ' b/**' with the
-    # space, which matches nothing -- so the task ran with a glob that silently
-    # covered no file, and the write hook refused writes the scope was meant to
-    # allow. Two lists parsed two ways in one call was the defect.
-    scope = [g.strip() for g in args.scope.split(",") if g.strip()]
+    # Two lists parsed two ways in one call was the first defect here: the raw
+    # split stored ' b/**' with the space, which matches nothing, so the task
+    # ran with a glob that silently covered no file. They were made to agree
+    # with each other and still disagreed with `--add`/`--drop` next door, so
+    # both go through `_list_arg` now and the CLI has one answer.
+    forbid = _list_arg(args.forbid)
+    scope = _list_arg(args.scope)
     if not scope:
         print("REFUSED: --scope named no glob. A task with no scope can write "
               "nothing, which is not a task.")
@@ -668,36 +668,17 @@ def cmd_abandon(args):
     a way to say out loud that this one is over.
     """
     conn, cfg = ledger.connect(_repo(args)), _cfg(args)
-    row = conn.execute("SELECT id FROM task WHERE id = ?", (args.task,)).fetchone()
-    if row is None:
-        print(f"no such task: {args.task}", file=sys.stderr)
+    # `lifecycle.abandon`, which is where the other ending lives. Every refusal
+    # and the terminal event itself used to be built here, on the entry
+    # surface, while `shipped` is written by `lifecycle.ship` -- so one of a
+    # task's two endings answered to the rules this layer enforces and the
+    # other did not, and nothing but argv could reach it.
+    try:
+        unsettled = lifecycle.abandon(conn, cfg, args.task, args.why)
+    except lifecycle.CannotAbandon as exc:
+        prefix = "" if str(exc).startswith("no such task") else "REFUSED: "
+        print(f"{prefix}{exc}", file=sys.stderr)
         return 2
-    already = conn.execute(
-        "SELECT kind FROM event WHERE task_id = ? AND kind IN ('shipped', 'abandoned')",
-        (args.task,)).fetchone()
-    if already:
-        print(f"REFUSED: {args.task} already {already['kind']}", file=sys.stderr)
-        return 2
-    floor = cfg.thresholds["min_chars"]
-    why = (args.why or "").strip()
-    if len(why) < floor:
-        print(f"REFUSED: abandoning a task is allowed and is often right, but it "
-              f"is not allowed to be silent. {len(why)} characters, and the floor "
-              f"is {floor}.", file=sys.stderr)
-        return 2
-    # What this task found and never settled, in the row rather than in prose.
-    #
-    # "Its claims stay in the ledger" was true and unreadable: the next task
-    # starts from a new base, the delta gates find no delta, and a finding that
-    # was FAILing becomes a question nobody asks. Somebody noticing that had to
-    # write it into three prose fields by hand. A list of ids in the event is
-    # what `doctor` can count.
-    unsettled = ledger.unsettled_fails(conn, args.task)
-    ledger.insert(conn, "event", task_id=args.task, claim_id=None,
-                  kind="abandoned", actor="worker",
-                  payload={"why": why,
-                           "unsettled_fails": [c[0] for c in unsettled]},
-                  created_at=datetime.now(timezone.utc).isoformat())
     print(f"{args.task} abandoned. Its claims stay in the ledger -- what was "
           f"found does not stop being true.")
     if unsettled:
@@ -744,6 +725,20 @@ def inherited_claims(root, rows, changed, lines):
     return on_file, on_symbol
 
 
+def _retraction_lines(retracted):
+    """`["  - <id>  retracted: <why>", ...]` for what a derive withdrew.
+
+    One reader for a shape one function produces. `derive._retract_orphans`
+    always returns a four-tuple, and both call sites decoded it by index behind
+    `isinstance` guards that cannot fire -- `cmd_derive` and `cmd_scope`, four
+    lines each, word for word. The dead fallback also named only one of the two
+    real reasons ("the code it was about is gone"), so the copy that ran and
+    the copy that could not both said something the producer contradicts.
+    """
+    return [f"  - {cid}  retracted: {why}"
+            for cid, _kind, _files, why in retracted]
+
+
 def cmd_derive(args):
     conn, cfg = ledger.connect(_repo(args)), _cfg(args)
     res = lifecycle.derive(conn, cfg, args.task, phase=args.phase)
@@ -756,15 +751,12 @@ def cmd_derive(args):
     # RETRACTED is in TERMINAL -- so claims stop being owed and nothing said
     # so, here or afterwards. The counts on the next line are unaffected by it,
     # so a derive that retracted six looked exactly like one that retracted none.
-    for entry in res.get("retracted") or []:
-        # The reason the retraction itself recorded. There are two now -- a
-        # subject that is gone, and a rule that was narrowed after the claim it
-        # raised had already passed -- and one sentence for both would say the
-        # wrong thing about half of them.
-        cid = entry[0] if isinstance(entry, (tuple, list)) else entry
-        why = (entry[3] if isinstance(entry, (tuple, list)) and len(entry) > 3
-               else "the code it was about is gone")
-        print(f"  - {cid}  retracted: {why}")
+    # The reason the retraction itself recorded. There are two -- a subject
+    # that is gone, and a rule that was narrowed after the claim it raised had
+    # already passed -- and one sentence for both would say the wrong thing
+    # about half of them. `_retraction_lines` is the one reader of that shape.
+    for line in _retraction_lines(res.get("retracted") or []):
+        print(line)
     print(f"{len(res['created'])} claim(s) from {len(res['detectors_ran'])} detector(s)"
           + (f", {len(res['retracted'])} retracted" if res.get("retracted") else ""))
 
@@ -865,12 +857,17 @@ def cmd_derive(args):
 
 def cmd_check(args):
     conn, cfg = ledger.connect(_repo(args)), _cfg(args)
-    only = set(args.claim) if args.claim else None
+    # `--claim` is `append` + `nargs="*"`, so both `--claim a b` and
+    # `--claim a --claim b` arrive, and neither loses the other.
+    only = set(_list_arg(args.claim)) or None
     held = []
     for row, cached, res in lifecycle.check(conn, cfg, args.task, only=only,
                                             run_expensive=args.all):
         if cached == "SKIPPED_EXPENSIVE":
-            held.append(row)
+            # `res` carries the cheap kinds that held it back. The list was
+            # built in `lifecycle.check` and read nowhere, so this printed
+            # "something cheaper is still failing" and named none of them.
+            held.append((row, res or []))
             continue
         if res is None:
             # `(unchanged)` was printed for every `res is None` row, including
@@ -918,9 +915,10 @@ def cmd_check(args):
                 if len(lines) > 6:
                     print(f"        … {len(lines) - 6} more line(s) -- "
                           f"`v4 status --task {args.task} --detail`")
-    for row in held:
+    for row, by in held:
         secs = lifecycle.kind_cost(conn, row["kind"]) / 1000
-        print(f"  --   {row['id']}  {row['kind']:<14} not run ({secs:.0f}s)")
+        print(f"  --   {row['id']}  {row['kind']:<14} not run ({secs:.0f}s)"
+              + (f" -- held by {', '.join(by)}" if by else ""))
     if held:
         print(f"\n{len(held)} expensive claim(s) not run: something cheaper is "
               f"still failing.\n"
@@ -1674,12 +1672,69 @@ def cmd_engage(args):
     return 0 if ok else 1
 
 
+#: Which `review` action reads which flag, as the branches below actually read
+#: them. `--withdraw` is the one that was measured: it is honoured in `defer`
+#: only, and `v4 review add --withdraw` took it, ignored it, and filed the
+#: finding -- so somebody who meant to cancel a deferral opened a claim instead
+#: and read `raised <id>` as confirmation. argparse cannot know this; the
+#: parser has one flag set for seven actions.
+#:
+#: A table rather than seven `if args.withdraw` lines, because the fact is not
+#: about `--withdraw`. Every other flag here has the same shape: `--why` is read
+#: by `defer` and `group`, `--gone` by `close`, `--findings` by `done`, and each
+#: of them was silently dropped by the other six. Fixing the one that was
+#: reported would have left five.
+_REVIEW_FLAGS = {
+    "add":    {"task", "file", "symbol", "note", "lens"},
+    "amend":  {"claim", "note"},
+    "close":  {"claim", "test", "command", "parent", "gone", "now",
+               "mutation_file", "mutation_gone", "mutation_now"},
+    "defer":  {"claim", "why", "target", "withdraw"},
+    "done":   {"lens", "findings", "task"},
+    "group":  {"name", "claim", "why"},
+    "lens":   {"lens", "task"},
+}
+
+#: Where each flag *is* read, for the refusal to name. Derived from the table so
+#: the two cannot drift.
+_REVIEW_FLAG_HOMES = {
+    flag: sorted(a for a, fs in _REVIEW_FLAGS.items() if flag in fs)
+    for flag in set().union(*_REVIEW_FLAGS.values())
+}
+
+
+def _stray_review_flags(args) -> list:
+    """[(flag, actions that read it)] -- what was typed and would be dropped."""
+    allowed = _REVIEW_FLAGS.get(args.action, set())
+    stray = []
+    for flag, homes in sorted(_REVIEW_FLAG_HOMES.items()):
+        if flag in allowed:
+            continue
+        value = getattr(args, flag, None)
+        # `--findings 0` is a value and the reason `done` exists; `if value`
+        # would drop exactly the one that carries the meaning.
+        if value is None or value == [] or value is False or value == "":
+            continue
+        stray.append((flag, homes))
+    return stray
+
+
 def cmd_review(args):
     conn, cfg = ledger.connect(_repo(args)), _cfg(args)
     # `--claim` repeats, because `group` names several and everything else
     # names one. The one-claim actions take the last, which is what a person
     # who typed it twice meant and what argparse gave them before this changed.
     claim = (args.claim or [None])[-1]
+    stray = _stray_review_flags(args)
+    if stray:
+        print("REFUSED: `review " + args.action + "` does not read "
+              + ", ".join(f"--{f}" for f, _ in stray) + ".\n\n"
+              + "\n".join(f"  --{f} is read by: {', '.join(homes)}"
+                           for f, homes in stray)
+              + "\n\nTaking a flag and dropping it is how "
+                "`review add --withdraw` filed a finding for somebody who "
+                "meant to cancel a deferral.", file=sys.stderr)
+        return 2
     if args.action == "defer":
         if not claim:
             print("defer needs --claim", file=sys.stderr)
@@ -1828,11 +1883,25 @@ def cmd_review(args):
         # table has none by construction -- `resolve_symbol` refuses one --
         # and telling its author to write a red-green test names a route that
         # does not exist for them.
+        # Addressed, because the session reading this is the one forbidden to
+        # act on it. `.github/monitor/SCOPE.md` lists `./bin/v4 review close`
+        # under refused with the reason "closing your own finding", `PROMPT.md`
+        # repeats it, and `.claude/agents/reviewer.md` says the same for the
+        # reviewer role -- and nothing enforces any of it: `review close` has
+        # no origin or session check at all. So the one actor holding the claim
+        # id at this moment was being handed the command in the imperative.
+        #
+        # Naming the addressee is not enforcement; it is the difference between
+        # an output that states the separation and one that invites crossing it.
+        print("this finding is closed by the session that repairs it, not this "
+              "one. What that session runs:")
         if args.symbol:
-            print("close it with: v4 review close --claim <id> --test <path> "
+            print("  v4 review close --claim <id> --test <path> "
                   "--command '<cmd with {path}>' --parent <commit>")
+            print("  ... or --mutation-file with --mutation-gone, when the "
+                  "repair *is* the test")
         else:
-            print("close it with: v4 review close --claim <id> "
+            print("  v4 review close --claim <id> "
                   "--gone '<the sentence that has to go>' "
                   "--now '<what replaces it>' --parent <commit>")
         return 0
@@ -1907,28 +1976,40 @@ def cmd_review(args):
     if args.action != "close":
         print(f"REFUSED: unknown action {args.action!r}", file=sys.stderr)
         return 2
+    mutation = None
+    if args.mutation_file or args.mutation_gone:
+        mutation = (args.mutation_file or "", args.mutation_gone or "",
+                    args.mutation_now or "")
     missing = [name for name, value in (("--claim", claim),
                                         ("--test", args.test),
-                                        ("--command", args.command),
-                                        ("--parent", args.parent)) if not value]
+                                        ("--command", args.command)) if not value]
+    if not args.parent and not mutation:
+        missing.append("--parent or --mutation-file/--mutation-gone")
     if missing:
         print(f"REFUSED: `review close` needs {', '.join(missing)}.\n\n"
               f"  v4 --repo . review close --claim <id> --test <path> "
               f"--command '<cmd with {{path}}>' --parent <commit>\n\n"
-              f"The test has to fail at --parent, pass at HEAD, and enter the "
-              f"symbol the finding names. Without all four there is nothing to "
-              f"run and nothing to run it against.", file=sys.stderr)
+              f"The test has to pass at HEAD, enter the symbol the finding "
+              f"names, and be red one of two ways: at --parent, the tree before "
+              f"the repair; or with --mutation-file/--mutation-gone, which "
+              f"breaks what the test covers. The second is for a finding whose "
+              f"repair *is* the test -- there the code was always right, so no "
+              f"parent exists where the test fails.", file=sys.stderr)
         return 2
     try:
         review.bind_closing_test(conn, claim_id=claim, test_path=args.test,
                                  command=args.command, parent_commit=args.parent,
-                                 root=cfg.root)
+                                 mutation=mutation, root=cfg.root)
     except review.BadCoordinates as exc:
         print(f"REFUSED: --test {args.test} -- {exc}.\n\n"
               f"{review.HOW_TO_NAME_A_TEST}", file=sys.stderr)
         return 2
     print(f"{args.test} offered as closing {claim}")
-    print("it has to fail at the parent, pass at HEAD, and run the symbol")
+    if mutation:
+        print(f"it has to pass at HEAD, run the symbol, and fail with "
+              f"{mutation[0]} broken")
+    else:
+        print("it has to fail at the parent, pass at HEAD, and run the symbol")
     # Recorded, not accepted, and the difference was left to be inferred from
     # two lines that describe a condition without saying who checks it. Exit 0
     # is right -- the offer was written, which is this command's whole job --
@@ -1942,24 +2023,47 @@ def cmd_review(args):
     return 0
 
 
-def _globs(values):
-    """One list of globs, however the caller wrote it.
+def _list_arg(values):
+    """One list, however the caller wrote it.  Every repeatable flag in this CLI.
 
     `--add` and `--drop` take `nargs="*"`, so `--add a b` was the only form
     that worked, while `v4 task --scope` in this same CLI splits on commas.
     Writing `--add 'a/**,b/**'` therefore stored a single glob with a comma in
     it, which matches no path -- a widen that reported success and widened
     nothing. Accepting both forms is what makes the two commands agree.
+
+    That fixed one pair and left the fact standing everywhere else: this CLI had
+    four spellings of "split a list" -- here, and three hand-written
+    comprehensions in `cmd_task` and `cmd_foresee` -- across two argparse shapes
+    that both drop what you typed. Measured 2026-09-06 on this repo:
+    `v4 task --scope kernel/redgreen.py --scope 'tests/**'` opened a task scoped
+    to `tests/**` alone, and `v4 scope widen --add A --add B` widened to B. Both
+    printed what they stored, and neither said anything was gone. A scope that
+    is half of what was meant fails nothing -- it makes the checkers skip files,
+    and "not checked" reads exactly like "checked and clean".
+
+    So: every one of them is `action="append"` now, which cannot drop a value,
+    and every one of them arrives here. Named `_list_arg` rather than `_globs`
+    because `check --claim` is on it too and claim ids are not globs -- the
+    splitting is the same operation either way, and one name for it is the
+    point.
+
+    A nested list is flattened one level: `action="append"` with `nargs="*"`
+    hands back a list of lists, which is what keeps `--add a b` working
+    alongside `--add a --add b`.
     """
     out = []
     for value in values or []:
+        if isinstance(value, (list, tuple)):
+            out.extend(_list_arg(value))
+            continue
         out.extend(g.strip() for g in str(value).split(",") if g.strip())
     return out
 
 
 def cmd_scope(args):
     conn, cfg = ledger.connect(_repo(args)), _cfg(args)
-    args.add, args.drop = _globs(args.add), _globs(args.drop)
+    args.add, args.drop = _list_arg(args.add), _list_arg(args.drop)
     if args.action == "show":
         u = scope_mod.usage(conn, cfg, args.task)
         print(f"scope   : {scope_mod.current_scope(conn, args.task)}")
@@ -1992,11 +2096,8 @@ def cmd_scope(args):
               "-- narrowing says what this task will not touch, it does not "
               "unask a question. A re-derive stops raising new ones there.")
         res = lifecycle.derive(conn, cfg, args.task, phase="widen")
-        for entry in res.get("retracted") or []:
-            cid = entry[0] if isinstance(entry, (tuple, list)) else entry
-            why = (entry[3] if isinstance(entry, (tuple, list)) and len(entry) > 3
-                   else "the code it was about is gone")
-            print(f"  - {cid}  retracted: {why}")
+        for line in _retraction_lines(res.get("retracted") or []):
+            print(line)
         return 0
 
     try:
@@ -2090,7 +2191,7 @@ def cmd_foresee(args):
     """Which files outside a proposed scope name what is inside it.  PL-6."""
     from . import foresee as foresee_mod
     cfg = _cfg(args)
-    globs = [g.strip() for chunk in args.scope for g in chunk.split(",") if g.strip()]
+    globs = _list_arg(args.scope)
     hits = foresee_mod.foresee(cfg.root, globs,
                                exclude=cfg.config.get("derive_exclude", []),
                                min_name=args.min_name)
@@ -2390,11 +2491,11 @@ def cmd_audit(args):
     if getattr(args, "events", None):
         n, problems = ledger.verify_exported(args.events)
         if problems:
-            print(f"FAIL: {len(problems)} problem(s) across {n} attempt(s).\n")
+            print(f"FAIL: {len(problems)} problem(s) across {n} chained row(s).\n")
             for pr in problems:
                 print(f"  {pr}")
             return 1
-        print(f"chain intact across {n} attempt(s) in {args.events}")
+        print(f"chain intact across {n} chained row(s) in {args.events}")
         return 0
 
     conn = ledger.connect(_repo(args))
@@ -2544,12 +2645,15 @@ def main(argv=None):
                         "the request cannot be paraphrased, and the "
                         "request-fidelity lens judges the diff against it. A "
                         "restatement passes both and is worth neither")
-    t.add_argument("--scope", required=True)
+    t.add_argument("--scope", action="append", required=True,
+                   help="comma-separated, or repeated -- the globs this task "
+                        "may write")
     t.add_argument("--base", help="what the delta gates diff against. HEAD by "
                                   "default; an older commit only ever means a "
                                   "bigger diff")
-    t.add_argument("--forbid", default="",
-                   help="comma-separated globs this task must not touch")
+    t.add_argument("--forbid", action="append", default=None,
+                   help="comma-separated, or repeated -- globs this task must "
+                        "not touch")
     t.add_argument("--after", help="the task this continues. Its request, scope "
                                    "and answered claims are carried into this "
                                    "one's request, so the next worker does not "
@@ -2568,7 +2672,8 @@ def main(argv=None):
     d.set_defaults(fn=cmd_derive)
 
     ck = sub.add_parser("check", help="run checkers for a task's open claims")
-    ck.add_argument("--task", required=True); ck.add_argument("--claim", nargs="*")
+    ck.add_argument("--task", required=True)
+    ck.add_argument("--claim", action="append", nargs="*")
     ck.add_argument("--all", action="store_true",
                     help="run expensive claims even while something cheaper is "
                          "failing. Off by default because the edit that answers "
@@ -2644,11 +2749,11 @@ def main(argv=None):
                                       "how much it has")
     sc.add_argument("action", choices=["widen", "narrow", "show"])
     sc.add_argument("--task", required=True)
-    sc.add_argument("--add", nargs="*", default=[])
+    sc.add_argument("--add", action="append", nargs="*", default=None)
     #: `narrow` takes back part of a declaration. A path this task has already
     #: changed cannot be dropped, which is what keeps this from being a way to
     #: put work out of sight.
-    sc.add_argument("--drop", nargs="*", default=[])
+    sc.add_argument("--drop", action="append", nargs="*", default=None)
     sc.add_argument("--why")
     sc.set_defaults(fn=cmd_scope)
 
@@ -2726,6 +2831,17 @@ def main(argv=None):
                     help="cancel a deferral that was written about nothing "
                          "(defer only; refused when the claim exists)")
     rv.add_argument("--command"); rv.add_argument("--parent")
+    rv.add_argument("--mutation-file",
+                    help="close: the file to break, as the other way to be red. "
+                         "For a finding whose repair is a test, there is no "
+                         "parent the test fails at -- the code was always "
+                         "right and nobody was looking. Break what it covers "
+                         "instead")
+    rv.add_argument("--mutation-gone",
+                    help="close: the text to take out of --mutation-file. It "
+                         "has to appear there exactly once")
+    rv.add_argument("--mutation-now", default="",
+                    help="close: what replaces it. Empty deletes the line")
     rv.add_argument("--gone", help="close a finding whose repair has no behaviour "
                                    "to test: quote the text that was in the file "
                                    "at --parent and is not there now")

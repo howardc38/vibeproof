@@ -14,10 +14,10 @@
     "Log event names are specific and stable (no `something happened`)",
     "Debuggability does not depend on local reproduction only — production issues can be diagnosed from logs/traces/metrics without requiring local environment recreation",
     "Upstream observability plan items have corresponding literal emit calls — events / trace identifiers declared in Step 1 Observability Plan are grep-verifiable in implementation code as literal `logger.*(<event_name>, ...)` / equivalent emit calls (see DEBUGGING_OBSERVABILITY_GUIDELINE §6A.5 Plan Literal-Match Rule)",
-    "High-risk flows have alert rules — critical paths (auth failure spikes, payment errors, data mutation failures) trigger automated alerts [SHOULD",
-    "Key operations have Span recording — important operations emit distributed tracing spans with timing and metadata [SHOULD",
-    "Cross-service requests are traceable end-to-end — trace IDs propagate across service boundaries for full request lifecycle visibility [SHOULD",
-    "Log drain configured to external platform — logs shipped to external aggregation platform (not only local disk) [SHOULD",
+    "High-risk flows have alert rules — critical paths (auth failure spikes, payment errors, data mutation failures) trigger automated alerts [SHOULD]",
+    "Key operations have Span recording — important operations emit distributed tracing spans with timing and metadata [SHOULD]",
+    "Cross-service requests are traceable end-to-end — trace IDs propagate across service boundaries for full request lifecycle visibility [SHOULD]",
+    "Log drain configured to external platform — logs shipped to external aggregation platform (not only local disk) [SHOULD]",
     "Frontend Real User Monitoring (RUM) — when project has user-facing frontend",
     "External dependency monitoring — when project depends on third-party services",
     "Health check endpoint — when project is a deployed service",
@@ -49,5 +49,6 @@
     "Errors silently caught and ignored (catch-and-swallow)",
     "Stub-as-proof: Step 5 commands_run 經 stub / placeholder ID / signature inspection / harness probe / low-level helper 旁路 production entrypoint，取代 truth-owner read-back → flag P1",
     "Surface validation schema compliance gap: surface validation evidence commands_run 缺 schema validation script invocation；驗證 exit=0 與 PASS marker；空結果 → flag P1"
-  ]
+  ],
+  "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n"
 }

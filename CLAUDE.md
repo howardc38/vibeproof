@@ -39,8 +39,8 @@ bytes 讀了 14.2 次，而它改變不了任何事。這裡下的賭注是：�
 - 「沒有東西要報告」是一個正當的結果。不要為了顯得有產出而製造發現。
 - 缺少一份治理文件，不會免除那項義務。照做該步驟，並說明缺少了什麼。
 - 逐行閱讀規格與合約，並在判斷任何片段之前讀完整節。不要略讀然後總結。
-- 每一份你讀過的文件都必須被使用。絕不在讀完之後仍按原本的計劃行事。
-- 新增一個對外寫入、一個授權決定或一個入口，同一次改動要把它寫進 facts 表。沒有寫進去的東西，不會有任何檢查問起它——而那和乾淨長得一模一樣。
+- 用讀過的文件核對計劃與實作；它可以確認原計劃，也可以要求修正。不要把讀取次數當成理解。
+- 新增一個對外寫入、一個授權決定或一個入口，同一次改動要把它寫進 facts 表。若既有 pattern 未涵蓋它，缺少詞彙可能令依賴 facts 的檢查漏看；先核對現有涵蓋面。
 
 ### 範圍
 
@@ -81,12 +81,12 @@ bytes 讀了 14.2 次，而它改變不了任何事。這裡下的賭注是：�
 
 ### 權威
 
-- 架構與現狀文件高於技術棧權威文件，高於專案指示，高於支援性指引，高於參考資料與範例集。
+- 遵守使用者與宿主的授權；實作事實對照 code 和測試，文件分工看 docs/README.md。不要用參考資料另立平行權威。
 - 參考資料、比較和範例集屬於資訊。它們不是合約，也不是範本。
 - 舊系統或來源 repo 的文件，不是現況的證據。先對照現行權威解決。
 - 預設更新既有文件。絕不為方便而新增一份平行的權威文件。
 - 絕不保留一份可執行 schema 的第二個散文副本。
-- `.v4/facts.<repo>.json` 是偵測器的詞彙表，由這個 repo 自報。框架不猜，檢查器也不得把這個 repo 的符號寫死進自己裡面。
+- `.v4/facts.<repo>.json` 是偵測器的詞彙表，由這個 repo 自報。框架可以提出標示為 proposed 的草稿，由 repo 核實；檢查器不得把 adopter 的符號寫死進自己裡面。
 
 ### 設計姿態
 
@@ -128,7 +128,7 @@ bytes 讀了 14.2 次，而它改變不了任何事。這裡下的賭注是：�
 - 預設使用較少、較大的工作單位；兩三個檔案的改動很少自成一個單位。只在脈絡上限、需要人作決定、失敗隔離或分開部署時才拆。
 - 不要直接在受保護分支上工作，亦不要在沒有明確許可下執行破壞性的 git 指令。
 - Commit message 必須對得上它的 diff，並說明為何，不是說明做了什麼。
-- AI 撰寫的改動經人手審查才進入受保護分支。
+- 改動按 repo 已批准的審查與合併政策進入受保護分支；不得把自動檢查或 agent 自述冒稱成人手審查。
 - 已經有一條日誌或紀錄路徑時，不要再發明一條平行的。
 - 框架與工具本身的失敗要連同根本原因記錄下來，不得靜靜繞過。
 
@@ -148,13 +148,13 @@ bytes 讀了 14.2 次，而它改變不了任何事。這裡下的賭注是：�
 
 以下由這個 repo 現時註冊了什麼生成。
 
-**20 個 claim kind 會自動提出 claim。**你不需要記住它們 —— detector 自己找，checker 自己判。
+**20 個 claim kind 配置了 detector。**是否提出 claim 取決於 scope、facts、註冊狀態和實際掃描；配置存在不等於已經執行。
 
 `review-finding` 唔會自動出現 —— 佢由 `v4 review add` 提出。
 
-### 會擋住你開工的
+### 需要 engagement 的
 
-這幾個 kind 提出 claim 之後，`v4 check` 不會執行，直到你寫下一句「這條規則對這段程式碼意味著什麼」。**不是覆述那條規則** —— 規則已經印在螢幕上。
+這幾個 kind 提出 claim 之後，`v4 check` 不會執行，直到你寫下一句「這條規則對這段程式碼意味著什麼」。**不是覆述那條規則** —— 規則已經印在螢幕上。支援的 Write/Edit hook 亦會在初始 gate 未清除、claims 已可見時要求句子；這不是所有寫入路徑的安全邊界。
 
 - **`external-write`** — 處理前做 state check 防重複副作用;atomic claim/update(一個工作單位一個 owner);duplicate-suppression / replay-detection 要用 stable identifier 做 key —— 唔可以用每次 call 新生成嘅值。
 - **`external-write`** — Read-back 要嚟自 truth owner。UI render、cache、application log、console 輸出、個 write 自己個 response body —— 全部唔算。截圖同 operator 一句「睇落冇事」都唔算。
@@ -176,7 +176,7 @@ bytes 讀了 14.2 次，而它改變不了任何事。這裡下的賭注是：�
 - **`secret`** — 環境變數注入係平台要求,定係方便?
 - **`secret`** — 呢個 suppression 係因為真係要定義一個 pattern,定係喺度冚住一個真憑證?
 - **`signature-change`** — 對每一個冇跟住傳嗰個新必填參數嘅 caller,講出點解個 default 係啱。一個解釋唔到嘅 caller,代表呢個改動未做完。
-- **`test`** — `test_command` 係 `test` claim 唯一嘅 oracle,而佢帶住 marker filter。一個冇 marker 嘅 network test 會靜靜咁入咗嗰個 oracle,令一條要真環境先驗到嘅嘢喺冇環境嘅時候變綠。講出你加嘅 test 屬邊一類,同埋 CI 會唔會真係跑佢。
+- **`test`** — 讀取這個 repo 真正的 test_command，說明它收集哪些測試、是否帶 filter、遇到缺少環境時會失敗、skip 還是錯誤地變綠。不要預設每個 adopter 都使用 pytest、marker 或框架自己的 unittest runner。說明你新增的測試在乾淨 checkout 和 CI 能實際驗證什麼。
 - **`test`** — 今次掂到嘅高風險路徑(auth/permission、錢、idempotency)同佢哋嘅失敗同邊界路徑有冇覆蓋 —— 包括 worker claim/lock、cleanup、checkpoint recovery、concurrency guard?
 - **`test`** — Test setup 係咪對得住 production 個 caller?定係加咗一層 production 從來冇提供嘅 context manager / fixture stack / DI scope?
 - **`test`** — 一個檢查要算數要三樣:自動觸發、喺一個唔繼承任何本地嘢嘅環境跑過、而且至少 fire 過一次。**寫喺文件入面嘅一句指令唔係接線,本地綠唔係證據。**
@@ -186,15 +186,17 @@ bytes 讀了 14.2 次，而它改變不了任何事。這裡下的賭注是：�
 - **`test-weakened`** — 刪走一條 test 之後 suite 會綠,而嗰個綠冇意思。test_command 係 test claim 唯一嘅 oracle,而 tests/** 唔受保護 —— 即係「令佢收聲」比「修佢釘住嘅嘢」平。講出你移走咗咩覆蓋面,同埋點解嗰個覆蓋面唔再需要。
 - **`test-weakened`** — 你喺度刪一個裁判。講出邊個機制接手佢守嗰條路,同埋「佢從來冇 fire 過」係證據定係假設。
 
-### 寫不進去的路徑
+### 受保護的路徑
 
-要改這些必須經 `v4 scope widen`，而 widen 需要一句理由寫進 ledger：
+修改要符合已授權 scope 及必要的 protected-path risk 決定；超出 scope 時用 `v4 scope widen` 記錄理由。這不是 OS 層面的禁止寫入：
 
 ```
+.claude/settings.json
 .github/**
 .v4/**
 checkers/**
 detectors/**
+hooks/**
 ```
 
 ### 唯一的 test oracle
@@ -203,7 +205,7 @@ detectors/**
 python3 tests/run_without_silent_skips.py
 ```
 
-**它帶著什麼 filter，就是 `test` claim 看不見什麼。** 一條需要真實環境才驗證得到的測試，如果沒有 marker，會靜靜地進入這個 oracle，並在沒有那個環境時變綠。
+核對這條實際命令包含的 filter、測試收集範圍和 skip 行為。缺少真實環境時，應區分沒有驗證、測試失敗和通過；不要假設每個 repo 都用 pytest markers。
 
 ---
 

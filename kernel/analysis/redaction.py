@@ -16,11 +16,42 @@ module does not need one.
 import re
 import sys
 
+#: `(pattern, replacement)`, because the replacement is a property of the
+#: pattern and was being guessed from `pat.groups`. Two rules with the same
+#: group count would silently take each other's substitution -- and the
+#: bare-credential rule added below has two groups, exactly like the URL rule
+#: whose replacement keeps the host. Guessing worked while no two rules
+#: collided, which is the state a table is in right up until it is not.
 _REDACTIONS = (
-    re.compile(r"(://[^:/@\s]+):([^@/\s]+)@"),                  # userinfo in a URL
-    re.compile(r"\b(sk-|ghp_|gho_|github_pat_|xox[baprs]-|AIza)[A-Za-z0-9_\-]{12,}"),
-    re.compile(r"(?i)\b(api[_-]?key|secret|token|password|passwd)"
-               r"([\"\'\s:=]+)([A-Za-z0-9/+_\-]{12,})"),
+    (re.compile(r"(://[^:/@\s]+):([^@/\s]+)@"), r"\1:[redacted]@"),   # userinfo in a URL
+    (re.compile(r"\b(sk-|ghp_|gho_|github_pat_|xox[baprs]-|AIza)[A-Za-z0-9_\-]{12,}"),
+     "[redacted]"),
+    # Keyed on the shape of the value, not on what sits beside it. The
+    # separator has to be one an assignment uses -- `:`, `=`, quotes -- and the
+    # value has to look like a credential rather than merely be long enough.
+    #
+    # It read `[\"'\s:=]+` followed by twelve or more of `[A-Za-z0-9/+_-]`, so
+    # a plain space qualified and any long English word did too. Measured:
+    # `check the token specifically.` came out as `check the token [redacted].`
+    # -- "specifically" is exactly twelve letters -- and a reviewer chasing the
+    # blanked word finds a word. `redact`'s own docstring calls itself "a floor,
+    # not a boundary", and a floor that eats prose is one people route around.
+    (re.compile(r"(?i)\b(api[_-]?key|secret|token|password|passwd)"
+                r"([\"\'\s]*[:=][\"\'\s]*)"
+                r"([A-Za-z0-9/+_\-]*(?:[0-9][A-Za-z0-9/+_\-]*[A-Za-z]"
+                r"|[A-Za-z][A-Za-z0-9/+_\-]*[0-9])[A-Za-z0-9/+_\-]*)"),
+     r"\1\2[redacted]"),
+    # The other direction, and the one the keyword rule could never reach: a
+    # credential-shaped literal with nothing in front of it. Measured on an
+    # adopter's own engagement sentence,
+    # `1234567:synthetic-not-a-real-bot-token` survived every pattern above,
+    # because they all require a keyword immediately before the value.
+    #
+    # Narrow on purpose: digits, a colon, then a long run with a hyphen or an
+    # underscore in it. A bare hex string or a UUID is not matched -- those are
+    # commit hashes and ids, which this ledger is full of, and blanking them
+    # would make the record unreadable to buy nothing.
+    (re.compile(r"\b(\d{6,}):([A-Za-z0-9_\-]{20,})\b"), r"\1:[redacted]"),
 )
 
 
@@ -31,7 +62,7 @@ _SECRET_KEY = re.compile(
     r"(?i)\b(api[_-]?key|secret|token|password|passwd|credential|private[_-]?key)")
 
 
-def redact_json(value, key=None):
+def redact_json(value, key=None, root=None):
     """`redact`, applied to every string inside a parsed `--out` payload.
 
     Public, unlike the regex tables beside it: `runner` calls this one on the
@@ -43,15 +74,23 @@ def redact_json(value, key=None):
     be recorded as broken rather than answered. Parsing first cannot change the
     shape -- and the key is carried down, because splitting `"secret": "AKIA..."`
     into two values leaves neither of them looking like a credential.
+
+    `root` is carried down for the same reason the key is. It had no parameter
+    at all, so `redact(value)` ran with none and the adopter-declared credential
+    families -- the half of this table a repo supplies about itself -- were
+    applied to a checker's stdout and never to its `--out` payload, which lands
+    in the same append-only row. `ledger._redact`'s own docstring already said
+    "`runner.py` and `derive.py` already thread the root through their own
+    calls"; that was true of two of the three calls in `runner.py`.
     """
     if isinstance(value, str):
         if key is not None and _SECRET_KEY.search(str(key)):
             return "[redacted]"
-        return redact(value)
+        return redact(value, root)
     if isinstance(value, list):
-        return [redact_json(v, key) for v in value]
+        return [redact_json(v, key, root) for v in value]
     if isinstance(value, dict):
-        return {k: redact_json(v, k) for k, v in value.items()}
+        return {k: redact_json(v, k, root) for k, v in value.items()}
     return value
 
 
@@ -70,13 +109,8 @@ def redact(text: str, root=None) -> str:
     """
     if not text:
         return text
-    for pat in _REDACTIONS:
-        if pat.groups == 2:
-            text = pat.sub(r"\1:[redacted]@", text)
-        elif pat.groups == 3:
-            text = pat.sub(r"\1\2[redacted]", text)
-        else:
-            text = pat.sub("[redacted]", text)
+    for pat, replacement in _REDACTIONS:
+        text = pat.sub(replacement, text)
     # Then the detection table. `_REDACTIONS` carried five vendor prefixes
     # while `kernel/analysis/secret_patterns.json` ships twelve patterns for the
     # same question, and the five did not include `AKIA`, `shpat_`, `shpss_`,

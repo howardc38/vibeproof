@@ -84,7 +84,16 @@ from .analysis import spec_pins
 # so that a tree where `kernel` is unreachable fails here and loudly rather than
 # inside `_facts_rows`, where the honest empty result and the broken one look
 # the same.
-from .config import facts_path_for
+# The three registry paths, from the layer that owns them rather than spelled
+# again here. `kernel/layout.py` exists for exactly this -- its docstring
+# records that `config` declared these four and nothing imported them while
+# twelve modules wrote `.v4/config.json` as a literal -- and this module was
+# still opening all three registries by hand at six sites. `config`
+# re-exports them, and this file already imported `config`, so the owner was
+# one name away the whole time. `kernel/register.py` carried the same two and
+# was repaired; these six were not, which is what "fix the fact everywhere it
+# appears, not where it was reported" means when it is skipped.
+from .config import CHECKERS, CLAIM_KINDS, DETECTORS, facts_path_for
 
 CMD = re.compile(r"`v4 ([a-z][a-z-]*)")
 #: A path this repo owns, named in backticks.
@@ -701,7 +710,7 @@ def engaged_kinds_explained(root: Path, spec_text: str):
     written -- and the marker check passed, because the marker line was right.
     """
     try:
-        kinds = json.loads((root / ".v4/claim_kinds.json").read_text())
+        kinds = json.loads((root / CLAIM_KINDS).read_text())
     except (OSError, json.JSONDecodeError):
         return []
     engaged = {k for k, v in kinds.items() if v.get("engagement")}
@@ -909,8 +918,8 @@ def _reality(root: Path):
     import sys as _sys
     counts = {}
     try:
-        counts["checker"] = len(json.loads((root / ".v4/checkers.json").read_text()))
-        kinds = json.loads((root / ".v4/claim_kinds.json").read_text())
+        counts["checker"] = len(json.loads((root / CHECKERS).read_text()))
+        kinds = json.loads((root / CLAIM_KINDS).read_text())
         counts["kind"] = len(kinds)
         # Settled rather than exempted. Every line mentioning `engagement` used
         # to be skipped, on the reading that `15 個帶 engagement 嘅 kind` is not
@@ -1018,7 +1027,7 @@ def _reality(root: Path):
                                            if p.name.startswith("always_")])
     try:
         counts["conditional detector"] = len(json.loads(
-            (root / ".v4/detectors.json").read_text()))
+            (root / DETECTORS).read_text()))
     except (OSError, json.JSONDecodeError):
         pass
     if (root / "hooks").is_dir():
@@ -1253,6 +1262,24 @@ def user_facing_docs(root: Path):
     out += sorted((root / ".github" / "monitor").glob("*.md"))
     for sub in ("agents", "commands"):
         out += sorted((root / ".claude" / sub).glob("*.md"))
+    # The front door, left out for as long as the roles were. `README.md` and
+    # its two translations are 58 KB of user-facing document that show `v4 …`
+    # as something to type, and this function's own sentence above says what
+    # that costs: what it does not read is unchecked by anything.
+    #
+    # Measured before adding them: `launcher_is_reachable` and `flags_resolve`
+    # both return zero problems with all three included, so this is coverage at
+    # no cost -- and coverage that would have caught a command in the first
+    # document a newcomer opens.
+    #
+    # This is half of finding f41271c8fbffdd01. The other half is a decision
+    # nobody here can make: `docs/README.md`'s authority table asks each
+    # document for a scope that does not overlap another, and these three
+    # restate contracts SPEC owns -- the exit-code table, the staleness key, the
+    # hook table, protected paths and eight counted claims. Either they stop
+    # restating, or the table records them as a derived summary with SPEC as the
+    # authority. That is a decision about what this repo's front door is.
+    out += sorted(root.glob("README*.md"))
     return [d for d in out if d.is_file()]
 
 
@@ -1392,8 +1419,8 @@ def unbuilt_list_is_honest(root: Path):
     block = "\n".join(l.split("|")[1] for l in m.group(1).splitlines()
                        if l.strip().startswith("|") and l.count("|") >= 3)
     try:
-        reg = set(json.loads((root / ".v4/checkers.json").read_text()))
-        kinds = set(json.loads((root / ".v4/claim_kinds.json").read_text()))
+        reg = set(json.loads((root / CHECKERS).read_text()))
+        kinds = set(json.loads((root / CLAIM_KINDS).read_text()))
     except (OSError, json.JSONDecodeError):
         reg, kinds = set(), set()
     problems = []
@@ -1448,13 +1475,42 @@ def dead_references(root: Path):
     # git is what tells the two apart without a hardcoded list.
     gone = set()
     try:
+        # Asked first, because `git log` answers 128 to two different
+        # questions and only one of them is a failure. Measured: outside a work
+        # tree every one of these exits 128; inside a repository with no
+        # commits `git log` still exits 128 ("does not have any commits yet")
+        # while `rev-parse --verify -q HEAD` exits 1 and `ls-files` exits 0. A
+        # history with no commits has deleted no document, so an empty `gone`
+        # is that repo's correct answer rather than an unread one -- and
+        # reporting it would put a line in front of every adopter on their
+        # first day.
+        head = subprocess.run(["git", "rev-parse", "--verify", "-q", "HEAD"],
+                              cwd=root, capture_output=True, text=True,
+                              timeout=30)
         out = subprocess.run(["git", "log", "--diff-filter=D", "--name-only",
                               "--pretty=format:", "--", "docs/"],
                              cwd=root, capture_output=True, text=True, timeout=30)
-        gone = {Path(l).name for l in out.stdout.split() if l.endswith(".md")}
-        gone -= present
-    except Exception:                                           # noqa: BLE001
-        pass
+        if head.returncode == 1:
+            pass                # a repository with no history: nothing deleted
+        elif out.returncode != 0:
+            # Not `pass`. A non-zero exit here empties `gone`, and an empty
+            # `gone` says "no document points at one this project deleted" --
+            # the same sentence a clean repo produces. Whether git could be
+            # read is this half's own answer, so it is reported rather than
+            # assumed.
+            problems.append(
+                f"the deleted-document half of this check did not run: "
+                f"`git log --diff-filter=D` exited {out.returncode}, so a "
+                f"reference to a document this project removed would not be "
+                f"seen here" + (f" ({out.stderr.strip()[:200]})"
+                                if out.stderr.strip() else ""))
+        else:
+            gone = {Path(l).name for l in out.stdout.split() if l.endswith(".md")}
+            gone -= present
+    except Exception as exc:                                    # noqa: BLE001
+        problems.append(
+            f"the deleted-document half of this check did not run "
+            f"({type(exc).__name__}: {exc})")
 
     for p in files:
         text = p.read_text(encoding="utf-8")
@@ -1494,12 +1550,29 @@ def dead_references(root: Path):
     # Only sections are judged here. A source file naming a document this repo
     # does not have may be citing a predecessor on purpose, and the git test
     # above cannot tell those apart outside `docs/`.
+    sources = []
     try:
         tracked = subprocess.run(["git", "ls-files", "*.py"], cwd=root,
                                  capture_output=True, text=True, timeout=30)
-        sources = [root / f for f in tracked.stdout.split() if f.strip()]
-    except Exception:                                           # noqa: BLE001
-        sources = []
+        if tracked.returncode != 0:
+            # The larger of the two silences. This half is where the findings
+            # were -- ten kernel modules opening with sections the document
+            # does not have -- and an empty `sources` means the loop below
+            # examines no file at all while the function still returns a list
+            # that reads as clean.
+            problems.append(
+                f"the source-citation half of this check did not run: "
+                f"`git ls-files` exited {tracked.returncode}, so no Python "
+                f"file was read and a docstring citing a section that does "
+                f"not exist would not be seen here"
+                + (f" ({tracked.stderr.strip()[:200]})"
+                   if tracked.stderr.strip() else ""))
+        else:
+            sources = [root / f for f in tracked.stdout.split() if f.strip()]
+    except Exception as exc:                                    # noqa: BLE001
+        problems.append(
+            f"the source-citation half of this check did not run "
+            f"({type(exc).__name__}: {exc})")
     for p in sources:
         try:
             text = p.read_text(encoding="utf-8", errors="replace")

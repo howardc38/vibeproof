@@ -45,6 +45,7 @@ each hook keeping its own. Before this, `stop_gate` held four copies of it and
 from __future__ import annotations
 
 import os
+import sqlite3
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -208,6 +209,79 @@ def config(repo_root: Path):
     return _module(repo_root, "config")
 
 
+def ended_kinds(repo_root: Path):
+    """The kinds that end a task, from the module that owns them.
+
+    `stop_gate` asked `getattr(ledger, "ENDED_KINDS", ("shipped", "abandoned"))`
+    -- and the default is a second copy, in the function whose own docstring
+    says asking the owner "keeps this from being a fourth copy that drifts".
+    The day a third ending is added, `ledger.ENDED_TASKS_SQL` and `risk` follow
+    and a hook holding its own tuple does not.
+
+    `None` when the kernel is out of reach, so the caller decides what an
+    unanswerable question means rather than being handed a guess. Every other
+    bootstrap here answers that way.
+    """
+    mod = ledger(repo_root)
+    return None if mod is None else tuple(mod.ENDED_KINDS)
+
+
+def task_id(repo_root: Path):
+    """`(task, dropped)` -- which task this session is about, and what was
+    discarded to get there.
+
+    `V4_TASK` was read straight out of the environment in three places, and the
+    rule is not trivial: a variable naming a task that has ended is dropped, the
+    dropped value is worth recording, and the answer falls back to the ledger.
+    Two of the three implemented that and disagreed about the last part; the
+    third asked only whether the variable was set.
+
+    Both files record the same incident above their own copy: a shell still
+    exported `V4_TASK=t-e2e-green` a day after that task was abandoned, and
+    every write in the new task was judged against the old task's scope and
+    denied. This module exists so a hook does not pick its own answer to a
+    bootstrap question -- it owns `home`, `repo_root`, `on_path`, `db_path`,
+    `ledger`, `config`, `is_open`, `why` and `record_seen`, and this was the
+    one it had not been given.
+
+    `dropped` is `""` when nothing was: a caller that reports it unconditionally
+    would say "your shell pointed at a finished task" on every run.
+    """
+    named = os.environ.get("V4_TASK") or ""
+    if named and not is_open(repo_root, named):
+        return "", named
+    return named, ""
+
+
+def is_open(repo_root: Path, task_id: str) -> bool:
+    """Is `task_id` a task this ledger still has open?  `True` when unreadable.
+
+    One owner for a rule both hooks state and spelled differently. Each carried
+    its own `_is_open` with the same docstring -- "a hook that cannot tell must
+    not start ignoring what it was told" -- and the two disagreed about the one
+    case that sentence is about: `write_block` opened the connection *outside*
+    its `try`, so a database that will not open at all raised `sqlite3.Error`
+    out of the hook instead of answering `True`, while `stop_gate` wrapped the
+    connect and answered.
+
+    An unreadable ledger is the case, not the exception: `sqlite3.connect` with
+    `mode=ro` raises for a file that is missing, locked, or not a database, and
+    a hook is handed whatever the repo has.
+    """
+    db = db_path(repo_root)
+    led = ledger(repo_root)
+    if db is None or led is None:
+        return True
+    try:
+        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        try:
+            return task_id in led.open_task_ids(conn)
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return True
+
+
 #: Why a `_module` call came back `None` after the path had already resolved.
 #: Keyed by `(repo root, module name)`: `why` is asked by a later call than the
 #: one that failed, and keying on the root alone would let `config` importing
@@ -261,7 +335,8 @@ def _module(repo_root: Path, name: str):
 
 def record_seen(repo_root: Path, task_id, rel: str, *, allowed: bool = True,
                 reason: str = "", basis: str = "", note: str = "",
-                session: str = "", scattered: bool = False) -> str:
+                session: str = "", scattered: bool = False,
+                hook: str = "") -> str:
     """Leave a mark that a hook ran, and what it decided.  `""` on success.
 
     Whether a hook is installed is configuration; whether it fired is a fact,
@@ -307,7 +382,13 @@ def record_seen(repo_root: Path, task_id, rel: str, *, allowed: bool = True,
         conn = mod.connect(repo_root)
     except Exception as exc:                                    # noqa: BLE001
         return f"{type(exc).__name__}: {exc}"
-    payload = {"path": rel, "allowed": bool(allowed)}
+    # Which hook. Every row said `actor="hook"` and nothing said *which* one,
+    # so "has any hook fired" was answerable and "has the Stop gate fired" was
+    # not -- and the Stop gate is the one of the three that can block a turn.
+    # `doctor` reported all three alive off their filenames appearing in a JSON
+    # file, which is the environment question answered from source that its own
+    # heading says it exists to stop.
+    payload = {"path": rel, "allowed": bool(allowed), "hook": hook or ""}
     if reason:
         payload["reason"] = reason
     if basis:

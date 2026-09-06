@@ -28,6 +28,7 @@ because the repair to the documents is half of the repair.
 
 import ast
 import json
+import subprocess
 import sys
 import textwrap
 import unittest
@@ -44,6 +45,14 @@ from kernel.config import facts_path_for                  # noqa: E402
 #: The smallest tree `spec_coverage.check` will read without complaining about
 #: something else. Every case here differs from it in one file.
 def _mini_repo(tmp: Path, *, commands=("audit",), rows=("audit",), extra=""):
+    # A repository, because that is what it stands in for. It was a bare
+    # directory, and `dead_references` -- which `check` calls -- used to take
+    # git's 128 for an empty answer, so nothing here noticed. Now that the
+    # unreadable half says so, a fixture that is not a work tree would report
+    # two lines about itself in every case built on it. `init` and no commit:
+    # a repository with no history has deleted no document, which is the state
+    # this tree actually is in.
+    subprocess.run(["git", "init", "-q"], cwd=tmp, capture_output=True)
     (tmp / ".v4").mkdir(parents=True, exist_ok=True)
     (tmp / "kernel").mkdir(parents=True, exist_ok=True)
     (tmp / "docs").mkdir(parents=True, exist_ok=True)

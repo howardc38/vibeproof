@@ -15,14 +15,14 @@ description: 由一個 request 行到 ship —— 開 task、出 claim、答、r
                    ↑ 句子要提到一個喺 scope 入面嘅路徑,唔係就會被拒
 3                   v4 derive --task <id>
 4  worker         → v4 engage --claim <id> --text '…'   （寫第一行 code 之前，hook 攔住）
-5                   答 claim,直到 v4 status 冇 OPEN
+5                   處理 blocking claims；讀取仍然有效的狀態和 report-only 報告
 6                   v4 cover --task <id> --quote '…' --symbol …   逐段交代個 request
 7                   v4 ship --task <id>
 ```
 
 **第 2 步係新嘅,而且係 splitter 做唔係 worker 做。** 一個 task 嘅 claim 分兩種:
-講緊已經存在嘅 code 嗰啲喺第 3 步就出齊(量過:43 條入面 37 條),而 hook 會攔住
-所有寫入直到佢哋有句子 —— 嗰批唔使你操心。**講緊呢個 task 即將寫嘅 code 嗰啲,
+講緊已經存在嘅 code 嗰啲喺第 3 步就出齊(量過:43 條入面 37 條),支援的 Write/Edit hook 會在初始 gate 未清除、狀態可讀時要求句子；
+未 derive、其他寫入路徑或狀態不可讀不構成不可繞過的保證。**講緊呢個 task 即將寫嘅 code 嗰啲,
 detector 要有 code 先提得出**,所以永遠冇得事前答。第 2 步就係嗰半:對住規則寫,
 唔係對住 claim 寫,subject 係 task 個 scope。
 
@@ -36,7 +36,7 @@ going to be written.」)。呢個唔係格式要求:一句講規則而唔講落�
 全部係補返個檔名就過。
 
 **呢一刀接住上一刀嘅話,第 1 步加 `--after`。** 佢做兩樣嘢:把上一刀嘅 request、
-scope 同「邊啲 claim 真係答咗」寫入呢一刀嘅 request(等 worker 唔使靠一份自己
+scope 同「邊啲 claim 最後一次 attempt 是 PASS」寫入呢一刀嘅 request(等 worker 唔使靠一份自己
 編出嚟嘅摘要開工),同時喺 ledger 記低條邊 —— 冇佢,「邊個 task 接住 X」呢條問題
 就冇答案。實測十八刀:每一刀都係人手開,一條鏈都冇記低過,而其中一刀存在嘅唯一
 原因就係上一刀撞到嘅嘢。`request_cover` 唔會叫你交代承接落嚟嗰段。
@@ -73,8 +73,8 @@ SPEC 兩日前已經量到嗰樣嘢係唔跑嘅 6.6 倍,即係第二個真相來
 **Worker 唔可以自己叫 ship。** 出貨係一個判詞,而 worker 就係被判嗰個。
 你叫,唔係佢叫。
 
-**Worker 唔可以自己簽名 —— 簽名係你嘅。** 同一個理由,而且更硬:ship 只係記錄
-工作做完,簽名係宣稱**有一個人為一件證明唔到嘅嘢負責**。實際發生過:一個 worker
+**Worker 唔可以自己簽名 —— 接受風險要符合用戶授權。** 同一個理由,而且更硬:ship 只係記錄
+工作做完,簽名係記錄 signer 接受未證明嘅事，唔能夠認證 signer 必然係人。實際發生過:一個 worker
 用 `--no-tty-check` 簽走咗判佢自己嗰條 claim,留低嘅檔案寫住 repo 擁有者個名、
 一個字冇提係 agent 執行。佢個論證後來核實係啱嘅 —— **而論證啱唔係簽名嘅資格**。
 
@@ -84,7 +84,7 @@ Worker 交返理由畀你,你決定簽唔簽。你自己代人簽嗰陣,`.v4/ris
 **Reviewer 盲讀。** 唔好把 worker 嘅 engagement 句或者 task rationale 傳落去 ——
 一個讀過解釋嘅抽樣器會沿住嗰個解釋抽樣。
 
-**Ship 唔收斂就停。** `ship` 有一個由 task 開始計嘅重掃額度。用晒就停,
+**Ship 唔收斂就停。** `ship` 有一個喺同一 task 內累積嘅「產生新 claims」重掃額度；收斂嘅零新增輪次唔扣額度。用晒就停,
 唔好重新派 —— 每次重新派等於冇上限,而每輪都會向一個 append-only ledger 加 claim。
 
 ## 開工之前

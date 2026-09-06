@@ -22,6 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from kernel import accept
 from kernel import config, redgreen, runner  # noqa: E402
 
 
@@ -185,10 +186,57 @@ class ATestCommandRunsOnce(unittest.TestCase):
         self.assertIn("mod.py", ran)
 
     def test_the_default_timeout_has_one_owner(self):
-        """`executed_files` defaulted to a literal 1800 and its production
-        caller read the same literal again from an undeclared config key."""
+        """The number a suite is given, observed rather than inspected.
+
+        This asserted `hasattr(config, "DEFAULT_TEST_TIMEOUT")` and that
+        `executed_files`'s `timeout` parameter defaults to `None` -- two things
+        that cannot fail together with the bug. A second literal anywhere keeps
+        the constant present and keeps the signature `None`-defaulted, which is
+        the signature-inspection shape this test's own subject was about.
+
+        So: move the constant and watch the answer move. `accept._suite_timeout`
+        is the one production reader, and a repo that declares nothing gets
+        whatever `config.DEFAULT_TEST_TIMEOUT` says at that moment.
+
+        The finding that prompted this named `kernel/redgreen.py:145` as
+        carrying a second read. Measured: it does not, and has not since the
+        default there became `None`. The substance -- two assertions that
+        cannot fail with the bug -- was true, and is what is repaired.
+        """
+        from types import SimpleNamespace
+        from unittest import mock
+
+        cfg = SimpleNamespace(config={})
+        with mock.patch.object(config, "DEFAULT_TEST_TIMEOUT", 4321):
+            self.assertEqual(accept._suite_timeout(cfg), 4321,
+                             "a second literal would not have moved")
+        with mock.patch.object(config, "DEFAULT_TEST_TIMEOUT", 1234):
+            self.assertEqual(accept._suite_timeout(cfg), 1234)
+
+    def test_and_a_repo_that_declares_one_gets_its_own(self):
+        """The other half of "one owner": the repo's declaration wins, and
+        `declared` is what reads it -- a `TODO` there has not said anything."""
+        from types import SimpleNamespace
+
+        self.assertEqual(
+            accept._suite_timeout(SimpleNamespace(
+                config={"test_timeout_sec": 90})), 90)
+        self.assertEqual(
+            accept._suite_timeout(SimpleNamespace(
+                config={"test_timeout_sec": "TODO"})),
+            config.DEFAULT_TEST_TIMEOUT)
+
+    def test_executed_files_imposes_no_wall_of_its_own(self):
+        """`timeout=None` is the contract that leaves the wall to the caller.
+
+        A signature check, and said as one. The first version of this also
+        grepped the source for `1800` -- which is present, in the docstring
+        explaining the history, so the assertion was about prose. That is the
+        shape this whole cut is removing; the behavioural half of "one owner"
+        is the two cases above, where moving the constant moves the answer.
+        """
         import inspect
-        self.assertTrue(hasattr(config, "DEFAULT_TEST_TIMEOUT"))
+
         sig = inspect.signature(redgreen.executed_files)
         self.assertIsNone(sig.parameters["timeout"].default)
 

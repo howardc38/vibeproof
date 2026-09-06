@@ -132,7 +132,14 @@ def main():
         print(f"\n{bpath.name} has no `ceiling`")
         return 5
     if total > ceiling:
-        print(f"\nFAIL: the control plane is {total - ceiling} line(s) over its "
+        # `statement(s)`, which is what `measure` counts. These two lines said
+        # `line(s)`, and lines are the unit this checker was changed *away*
+        # from -- a bypass fixture put two hundred statements on one of them. A
+        # worker over the ceiling and told to remove lines removes comments,
+        # which moves this number by nothing: the unit confusion the change to
+        # statements was made to end, reintroduced by the two sentences a
+        # worker actually reads.
+        print(f"\nFAIL: the control plane is {total - ceiling} statement(s) over its "
               f"own ceiling.\n\n"
               f"Raising it is allowed and is a one-line diff. What is not "
               f"allowed is nobody noticing: every rule in here is paid by every "
@@ -140,7 +147,7 @@ def main():
               f"nobody argues about.\n"
               f"  reason on record: {budget.get('why', '(none)')}")
         return 1
-    print(f"\nwithin the ceiling, {ceiling - total} line(s) of room")
+    print(f"\nwithin the ceiling, {ceiling - total} statement(s) of room")
     return 0
 
 

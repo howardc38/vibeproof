@@ -1,6 +1,7 @@
 # `.v4/facts.<repo>.json` — the table detectors read
 
-> **One per repo, named after it.** The loader takes `.v4/facts.<root-name>.json`
+> **One per repo, named after it.** The loader first uses the repo name declared in `.v4/config.json`
+> (falling back to the checkout name) to select `.v4/facts.<repo-name>.json`
 > and, when that file is absent, falls back to the one other `.v4/facts*.json`
 > present — only when there is exactly one; two candidates and no match load
 > nothing, and `v4 doctor` says so. The fallback is a
@@ -29,6 +30,10 @@ is true of a commit, so line numbers move on any commit that adds an import, and
 a job that failed on drift is a job nobody wires. Drift prints; gone fails.
 
 ---
+
+The adopter-specific counts and provider judgments below are a historical
+census of the pinned revision, not a measurement of the current framework or
+every adopter. The matching/CLI sections describe current behavior.
 
 ## Field by field
 
@@ -118,8 +123,9 @@ requests.post     matches  requests.post          and  core.requests.post
 
 Symbol matching runs over the AST, which buys four things a grep cannot:
 
-1. **Bare references count.** `asyncio.to_thread(self.client.send_message, ...)`
-   is a send. A `\.send_message\s*\(` regex found 3 sites in adopter_a; the
+1. **Bare references are candidate sites.** This can recognize callbacks such as
+   `asyncio.to_thread(self.client.send_message, ...)`, but seeing a reference is
+   not proof that it executes. A `\.send_message\s*\(` regex found 3 sites in adopter_a; the
    AST form finds 19. The 16 it missed were all real chat sends in
    `app/chat/poller/`.
 2. **Definitions and imports do not.** `def bootstrap_launch_agent(...)` and
@@ -158,10 +164,11 @@ evidence lives:
 
 `kind` must be one of the closed set in `kernel/facts.py` (`http`, `db`, `fs`,
 `secret`, `system`, `authz`, and `proposed` for a row the installer guessed and
-nobody has confirmed yet). The set is small on purpose, and only one
-distinction in it is read: `external_write` asks `kind not in LOCAL_KINDS` —
+nobody has confirmed yet). The set is small on purpose, `proposed` is also read when reporting unconfirmed rows. The verdict-related
+local/remote distinction is `external_write` asking `kind not in LOCAL_KINDS` —
 is this a local write, whose failure reports itself, or a remote one, where a
-2xx can mean nothing. Everything else about a kind is printed and never read.
+2xx can mean nothing. Do not confuse this vocabulary category with a framework claim kind or an
+independent verification of provider semantics.
 
 > Six vendor names used to sit in that set. None was ever read; they were the
 > stack of the repo this framework was built against, written into the schema
@@ -187,8 +194,9 @@ mutations both. Conservatively a write; the operation-header rows recover the
 split.
 
 **LLM inference → write.** `models.generate_content`, `responses.create`,
-`chat.completions.create`, `images.generate/edit` change nothing on a server,
-but they are billable and non-idempotent: a blind retry is a second charge.
+`chat.completions.create`, `images.generate/edit` can be billable and can create
+new results on retry. Their exact persistence and idempotency depend on the
+provider and request; do not assume they change no remote state.
 That is exactly the `replay` half of the external-write claim. adopter_a
 already agrees with itself here — `openai_image.py:328` calls image create/edit
 "a non-resumable external write" and sets `max_retries=0` because of it.
@@ -242,9 +250,10 @@ quietly tolerated.
 3. **ffmpeg output files.** `core/flow_engine/handlers/video*.py` writes video
    through `subprocess.run(ffmpeg_cmd)`; the output path is an argv element.
    Not patternable without matching every subprocess call in the repo.
-4. **Non-Python files are not scanned.** `db_migrations/*.sql` is 79 files of
-   DDL and DML; `web/ui/src/**` is TypeScript. The reference scanner is Python
-   only. Migrations are covered as a review surface, not as call sites.
+4. **The recorded census was Python-only.** The current facts CLI scans
+   tracked `.py` and `.go` call sites (`SOURCE_SUFFIXES`). TS/JS structural
+   checkers and UI-directory proposal exist, but they do not make the facts
+   call-site census a TS/JS or SQL scanner. Those surfaces need explicit review.
 5. **`json.dump` to an open handle** (`core/intake/geonames_installer.py:72`)
    is a real file write with no row. The file is flagged by its `.unlink` and
    `.rmtree` sites, so it costs granularity only.
@@ -253,7 +262,9 @@ quietly tolerated.
 
 ## How to verify
 
-Everything below is stdlib-only and takes a few seconds.
+These commands run from the framework checkout against the named fixture or
+actual adopter table. Python dependencies are stdlib-only; Go extraction needs
+the host Go toolchain. Runtime depends on the tree and environment.
 
 ```sh
 # Every command goes through the launcher, which puts the framework on
@@ -280,7 +291,8 @@ Everything below is stdlib-only and takes a few seconds.
 python3 tests/run_without_silent_skips.py
 ```
 
-`scan` covers git-tracked `*.py`, excluding tests and excluding
+`scan` covers git-tracked `.py` and `.go` source, using its documented test
+path/name filters and excluding
 `protected_paths`. Tracked-only matters: counting untracked scratch would make
 the same table measure differently on two machines. **It is not the same as
 "excluding `runtime/`"** -- adopter_a ignores that directory and then
@@ -363,13 +375,15 @@ unnamed while `validate` accepted it.
 
 | Field | Read by | What declaring it means |
 |---|---|---|
-| `public_routes` | **nothing, since 2026-08-24** | It meant: this handler is deliberately unauthenticated, and the exemption lives here rather than in a docstring because a rule whose exemption is invisible is a rule people route around. The kind that read it was cut at `a9ae5fb`, so the rule it exempted a handler from is not running. |
-| `dal_globs` | **nothing, since 2026-08-24** | It meant: where the layer that owns the store lives, which cannot be guessed -- using `entrypoint_globs` as the key returns zero findings in the reference repo, because that list does not include the directory the real violation is in. The kind that read it was cut at `a9ae5fb` for raising no claim in 113 tasks, because no repo ever declared this. |
+| `public_routes` | `doctor` checks referenced files; no active route-auth verdict | It meant: this handler is deliberately unauthenticated, and the exemption lives here rather than in a docstring because a rule whose exemption is invisible is a rule people route around. The kind that read it was cut at `a9ae5fb`, so the rule it exempted a handler from is not running. |
+| `dal_globs` | `kernel/install.py::write_layers` -> `analysis/layers.propose`, and `derive.FILTER_KEYS` | It reads again, and this row said it did not. The kind that read it was cut at `a9ae5fb` for raising no claim in 113 tasks, and the row was written then; `v4 install` later grew a layer draft, and a data layer is the one boundary that cannot be guessed -- the first draft looked for DML literals per directory and made all of `kernel/**` the data layer because `ledger.py` holds the schema. So it is taken from `dal_globs` when the table declares one and left out otherwise. Declaring it today buys a drawn boundary; not declaring it leaves that layer undrafted rather than drafted wrong. |
 | `route_receivers` | **nothing live** | It means: what a route decorator hangs off in this repo -- the names in `@app.get(...)`. It is declared in `facts_grammar.OPTIONAL_LISTS` and was described in neither of the two documents that describe this file, which is the gap that put it here. Its one reader is `route_auth.receivers`, called only from `kernel/analysis/webhook_replay.py::scan`, which has no live caller -- `kernel/facts.py` imports that module for `go_handlers`, a different function. So declaring it buys what the two rows above buy, by a longer path: without it `receivers` falls back to eight built-in names, and a repo whose app object is `application` or `admin_api` would find no routes -- if anything asked. |
 
-**Declaring either today buys nothing, and this table said the opposite for
-three days.** `validate` still accepts both keys, so a table carrying them is
-inert rather than invalid; the cost is on the reader, who was told that
+`public_routes` and `route_receivers` no longer drive the removed authorization
+verdict. `dal_globs` has the live layer-drafting use described above. `doctor`
+also checks that declared `file::symbol` references name tracked files; a
+reference can therefore have diagnostics without being an authorization gate.
+`validate` still accepts these optional keys; the cost is on the reader, who was told that
 declaring an exemption is what keeps the rule visible and would have been
 declaring an exemption from a rule with no program behind it. If your table has
 a `public_routes` row, the handler it names is unchecked either way -- by this
@@ -457,7 +471,7 @@ refused. What changed is that a repo which looked can now say so, in a line with
 an author, in a diff, that the next reader can re-run.
 
 `v4 install` writes these too, prefixed `AUTO:`, saying what its scan searched --
-a verb-ending sweep of tracked Python, which misses a write behind `subprocess`
+a verb-ending sweep of tracked Python/Go, which can miss a write behind `subprocess`
 or a client wrapper. `doctor` reports every `AUTO:` row that is still there, and
 `v4 ship` refuses while any remain. **The forcing function moved from the gate
 that blocked the wrong repo to the one that blocks the wrong ship.**
@@ -477,7 +491,11 @@ makes a declaration of absence indistinguishable from a table nobody wrote.
 # from the repository root. Redirect only a command that has already been seen
 # to succeed: a shell `>` truncates the target before the command runs, so a
 # failing propose leaves an empty draft behind.
-./bin/v4 facts propose . > .v4/facts.<repo>.json.draft
+V4_FACTS_DRAFT=$(mktemp)
+./bin/v4 facts propose . > "$V4_FACTS_DRAFT" && \
+  ./bin/v4 facts validate "$V4_FACTS_DRAFT"
+# Inspect the successful output before replacing a reviewed facts file.
+# Move it to your chosen .v4/facts.<repo>.json.draft only after validation.
 ```
 
 Every call site whose dotted name ends in a writing verb, a reading verb or an
@@ -499,19 +517,23 @@ A write pattern that also matches a read pattern is dropped from the proposal,
 because `validate()` refuses that pair and a proposal that cannot be edited into
 a valid table is a proposal nobody can use.
 
-## Narrowing is refused
+## Narrowing diagnostics and their limits
 
-**Facts may widen what a detector sees. They may never narrow it.** Without
+**A facts edit can change what a detector sees; the kernel does not prove that
+every narrowing is legitimate or reject every narrowing.** Without
 this, pointing `ui_globs` at a directory that does not exist turns a detector off
 permanently while the ship report keeps printing that it ran -- the failure the
 spec names about changing a suffix set, arriving through the table instead of
 through the code, and invisible to the fixture gate because a fixture case brings
 its own facts.
 
-**The mechanism is `derive`'s, so it is specified in `SPEC.md` §4** — the
-double run, what "refused" does, and how a detector is judged to read the table.
-This section says only what it means for a table author: **a narrowing edit to
-your table is refused with your name on it, not applied quietly.**
+**The mechanism is `derive`'s, so it is specified in `SPEC.md` §4** — the empty-glob diagnostic and how a detector is judged to read the table.
+For facts-reading detectors, a configured filter glob matching no tracked file
+is recorded as narrowed detection and not counted as a healthy run; this also
+prevents retracting its claims from that run. It does not itself hold ship.
+The older double-run comparison was removed because it rejected legitimate
+customization. A smaller but still matching vocabulary can escape this check,
+so review the table diff rather than treating the diagnostic as completeness proof.
 
 ⚠️ **Which detectors it covers is worth knowing, because it was nearly none.**
 "Conditional" used to be decided by scanning the detector's own text for

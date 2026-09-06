@@ -297,7 +297,7 @@ class ADetectorThatHangsIsARowNotATraceback(unittest.TestCase):
 
     def test_a_hang_comes_back_as_an_exit_code(self):
         root, det = self._detector("import time\ntime.sleep(30)\n")
-        rc, _out, err, _payload = detector_protocol.run_detector(
+        rc, _out, err, _payload, _ms = detector_protocol.run_detector(
             root, det, ["a.py"], timeout=2)
         self.assertEqual(rc, runner.TIMEOUT)
         self.assertTrue((err or "").strip(), "a timeout with no sentence is a "
@@ -311,7 +311,7 @@ class ADetectorThatHangsIsARowNotATraceback(unittest.TestCase):
             "p.add_argument('--out')\n"
             "a = p.parse_args()\n"
             "pathlib.Path(a.out).write_text(json.dumps({'looked_at': 7}))\n")
-        rc, _out, _err, payload = detector_protocol.run_detector(
+        rc, _out, _err, payload, _ms = detector_protocol.run_detector(
             root, det, ["a.py"], timeout=30)
         self.assertEqual(rc, 0)
         self.assertEqual(payload, {"looked_at": 7},

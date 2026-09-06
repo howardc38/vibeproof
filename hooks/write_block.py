@@ -58,9 +58,15 @@ except ImportError:                                             # noqa: E402
     # better guess than the caller's cwd -- which is the value this whole
     # repair is removing. The hook stands down either way; it should stand
     # down naming the right tree.
+    # `record_seen` and `is_open` for the same reason as in `bash_guard`: this
+    # hook reaches both on the path this fallback is for, and a stand-in that
+    # is missing them fails a second time while reporting the first.
     _framework = SimpleNamespace(on_path=lambda r: _WHY, ledger=lambda r: None,
                                  config=lambda r: None, why=lambda r: _WHY,
-                                 home=lambda r: None, db_path=lambda r: None, repo_root=lambda: Path(__file__).resolve().parent.parent)
+                                 home=lambda r: None, db_path=lambda r: None,
+                                 record_seen=lambda *a, **k: _WHY,
+                                 is_open=lambda r, t: True,
+                                 repo_root=lambda: Path(__file__).resolve().parent.parent)
 
 WRITE_TOOLS = {"Write", "Edit", "NotebookEdit", "MultiEdit"}
 
@@ -151,7 +157,7 @@ def current_scope(repo_root: Path, task_id: str):
         conn.close()
 
 
-def in_scope(rel: str, globs) -> bool:
+def in_scope(rel: str, globs, repo_root=None) -> bool:
     """`subject_files.matches`, or the hook's own two spellings if the
     framework is out of reach.
 
@@ -160,8 +166,15 @@ def in_scope(rel: str, globs) -> bool:
     when it is. The fallback is the pair this file used to carry alone,
     and it is narrower: `**/*.py` reaches `x.py` through the owner and
     not through the fallback.
+
+    `repo_root` rather than `Path(".")`. `on_path` resolves the home marker
+    under whatever it is handed, so a hardcoded `.` made *which of the two
+    matchers runs* depend on the shell's working directory -- which is the cwd
+    dependency `_framework.repo_root` says it exists to remove. Both call sites
+    already hold the resolved root. `None` keeps the old reading for a caller
+    that has none, and there is no longer one in this file.
     """
-    if _framework.on_path(Path(".")) is None:
+    if _framework.on_path(Path(repo_root) if repo_root else Path(".")) is None:
         from kernel.analysis.subject_files import matches
         return matches(rel, globs)
     return any(fnmatch.fnmatch(rel, g) or
@@ -205,13 +218,18 @@ def protected(repo_root: Path):
         return None
 
 
-def is_protected(rel: str, globs) -> bool:
-    """`subject_files.matches`, or this file's own two spellings without it."""
-    if _framework.on_path(Path(".")) is None:
-        from kernel.analysis.subject_files import matches
-        return matches(rel, globs)
-    return any(fnmatch.fnmatch(rel, g) or
-               fnmatch.fnmatch(rel, g.rstrip("/") + "/*") for g in globs)
+def is_protected(rel: str, globs, repo_root=None) -> bool:
+    """Does this path match one of the globs that judge the work.
+
+    One question, one implementation. This was three lines byte-identical to
+    `in_scope` under a different name, with a one-line docstring in place of
+    the four-line one recording that the fallback is narrower -- so the known
+    divergence was documented at one copy and invisible at the other. Which
+    matcher a repo gets is a fact about the kernel being importable, and it
+    cannot be allowed to differ between "is this in scope" and "is this
+    protected" when both are asked of the same path in the same call.
+    """
+    return in_scope(rel, globs, repo_root)
 
 
 def _protected_text(rel: str, globs) -> str:
@@ -350,17 +368,12 @@ def _is_open(repo_root: Path, task_id: str):
     `None` when the ledger cannot be read, and the caller treats that as open --
     a hook that cannot tell must not start ignoring what it was told.
     """
-    db = _framework.db_path(repo_root)
-    ledger = _framework.ledger(repo_root)
-    if db is None or ledger is None:
-        return True
-    conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
-    try:
-        return task_id in ledger.open_task_ids(conn)
-    except sqlite3.Error:
-        return True
-    finally:
-        conn.close()
+    # `_framework.is_open`, not a copy. This function and its twin in
+    # `stop_gate` said the same sentence and did two different things with it:
+    # the connect was outside the `try` here, so a database that will not open
+    # raised out of the hook rather than answering `True` -- the one case the
+    # docstring above is about.
+    return _framework.is_open(repo_root, task_id)
 
 
 def open_task(repo_root: Path):
@@ -413,9 +426,16 @@ def open_task(repo_root: Path):
     """
     db = _framework.db_path(repo_root)
     ledger = _framework.ledger(repo_root)
-    if db is None or ledger is None:
+    # The two conditions answer two different questions and were tested as one.
+    # `db is None or ledger is None -> return None` came first, so the branch
+    # below re-asked `ledger is None` after it had already been ruled out: the
+    # import failure could never reach `UNREADABLE`, `main` took the `if not
+    # task_id` path, checked protected paths only, and allowed the write with no
+    # `hook_seen` row. That is the exact state the docstring above is built
+    # around distinguishing, and a reader trusting it would debug the wrong
+    # branch.
+    if db is None:
         return None
-    ledger = _framework.ledger(repo_root)
     if ledger is None:
         print(f"v4: the kernel could not be reached "
               f"({_framework.why(repo_root) or 'no reason given'}), so the "
@@ -450,10 +470,18 @@ def _record_seen(repo_root: Path, task_id, rel: str,
 
     A record that cannot be written is not a weaker record; it is the same
     output as a hook that was never installed, which is what `ship` reads.
+
+    Except in a repo that never adopted v4: `record_seen` opens the writable
+    door because it is a write, so marking there creates a ledger in a tree
+    that has no `.v4/` and never asked for one. The same fact as in
+    `bash_guard._mark`, and the same test measured it in both.
     """
+    if not (Path(repo_root) / ".v4").is_dir():
+        return
     why = _framework.record_seen(repo_root, task_id, rel, allowed=allowed,
                                  reason=reason, basis=basis, note=note,
-                                 session=session, scattered=scattered)
+                                 session=session, scattered=scattered,
+                                 hook="write_block")
     if why:
         print(f"v4 write_block: no mark written -- {why}", file=sys.stderr)
 
@@ -516,10 +544,39 @@ def _engagement_text(owed, task_id) -> str:
     )
 
 
+def refuse_the_write(reason: str) -> int:
+    """Refuse this write, in the one shape a PreToolUse hook is read by.
+
+    The decision this file makes, with a name on it. Three call sites in `main`
+    built the same JSON inline -- the ambiguous-task refusal, the protected-path
+    refusal, and the one that carries this hook's actual job, "outside the task
+    scope" or "an engagement sentence is still owed". `stop_gate.refuse_the_stop`
+    was extracted for exactly this reason and its docstring says both sibling
+    hooks are covered by `auth_decision` rows; that was true of the protected
+    branch and of nothing else here, so the repair was made at the site it was
+    reported at and not at the other place the same fact lives.
+
+    Keeping the shape in one function is what lets the facts table name a symbol
+    for "who may write here": a fourth refusal added later reaches the declared
+    decision by calling it, rather than by printing the same dict somewhere new.
+    """
+    print(json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PreToolUse", "permissionDecision": "deny",
+        "permissionDecisionReason": reason}}))
+    return 0
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
-    except Exception:                                           # noqa: BLE001
+    except Exception as exc:                                    # noqa: BLE001
+        # Allowing is right -- a payload this hook cannot read is not evidence
+        # of a bad write. Allowing *silently* is not: it makes a dead guard and
+        # a clean write look the same, which is the state `bash_guard` was
+        # repaired out of and which this file still carried. The same
+        # `json.load` with the same silence sat in all three hooks.
+        print(f"v4 write_block: allowed without checking -- the payload did "
+              f"not read ({type(exc).__name__}: {exc})", file=sys.stderr)
         print("{}")
         return 0
 
@@ -547,13 +604,12 @@ def main():
         print("{}")            # outside the repo entirely; not this hook's business
         return 0
 
-    named = os.environ.get("V4_TASK")
-    stale = ""
-    if named and not _is_open(repo_root, named):
-        # Dropped, not obeyed, and not silently: the mark below carries it so
-        # that "the hook used the ledger because your shell was pointing at a
-        # finished task" is answerable afterwards.
-        stale, named = named, None
+    # Dropped, not obeyed, and not silently: the mark below carries the value
+    # so that "the hook used the ledger because your shell was pointing at a
+    # finished task" is answerable afterwards. `_framework` owns the rule now,
+    # because it was written here and in `stop_gate` and the two disagreed
+    # about what happens to the value that was dropped.
+    named, stale = _framework.task_id(repo_root)
     task_id = named or open_task(repo_root)
     if task_id is AMBIGUOUS:
         # Two tasks open and nothing saying which this write is for. Picking the
@@ -573,7 +629,11 @@ def main():
         # recorded against each of the candidates rather than guessed at.
         try:
             ledger = _framework.ledger(repo_root)
-            conn = ledger.connect(repo_root) if ledger else None
+            # `connect_readonly`: one read, through the door that matches it.
+            # Same repair as `bash_guard._mark`, and the same fact -- `connect`
+            # creates the file, runs the schema and the triggers, commits and
+            # migrates, all to answer `open_task_ids`.
+            conn = ledger.connect_readonly(repo_root) if ledger else None
             ids = ledger.open_task_ids(conn) if conn else []
             if conn:
                 conn.close()
@@ -583,10 +643,7 @@ def main():
             _record_seen(repo_root, tid, rel, allowed=False,
                          reason="ambiguous task", basis="two tasks open",
                          session=session, scattered=True)
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "PreToolUse", "permissionDecision": "deny",
-            "permissionDecisionReason": _ambiguous_text(repo_root)}}))
-        return 0
+        return refuse_the_write(_ambiguous_text(repo_root))
     if task_id is UNREADABLE:
         # `open_task` has already said on stderr what it could not read. There
         # is no task id to check a scope against and none to record a mark
@@ -620,11 +677,8 @@ def main():
             print(f"v4 write_block: protected paths not checked -- "
                   f"{_framework.why(repo_root) or 'the repo config was unreadable'}",
                   file=sys.stderr)
-        elif is_protected(rel, guarded):
-            print(json.dumps({"hookSpecificOutput": {
-                "hookEventName": "PreToolUse", "permissionDecision": "deny",
-                "permissionDecisionReason": _protected_text(rel, guarded)}}))
-            return 0
+        elif is_protected(rel, guarded, repo_root):
+            return refuse_the_write(_protected_text(rel, guarded))
         print("{}")
         return 0
 
@@ -642,7 +696,7 @@ def main():
 
     # Decided before the mark is written, so the mark can say which it was.
     refusal, basis = None, ""
-    if not in_scope(rel, globs):
+    if not in_scope(rel, globs, repo_root):
         # The engagement gate is not consulted, so it is not spent either: a
         # write that never happened cannot be the one that cleared the claims.
         refusal = ("outside scope", _outside_scope_text(rel, globs, task_id))
@@ -670,14 +724,7 @@ def main():
     # The predecessor knew: its spec says "rebuilding them with `exit 1 = block`
     # is incorrect and unsafe" and pins this exact shape. That sentence was in a
     # document nobody carried across.
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": "PreToolUse",
-            "permissionDecision": "deny",
-            "permissionDecisionReason": refusal[1],
-        }
-    }))
-    return 0
+    return refuse_the_write(refusal[1])
 
 
 if __name__ == "__main__":

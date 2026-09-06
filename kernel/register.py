@@ -845,7 +845,7 @@ def verify_detector(*, repo_root, detector_path, fixtures_dir, facts=None,
             # `HEAD`, the same base `verify_checker` passes. `parent_content`
             # commits the previous state and leaves the new one in the tree, so
             # `git diff HEAD` is exactly the change under test.
-            rc, stdout, stderr, _out = detector_protocol.run_detector(
+            rc, stdout, stderr, _out, _ms = detector_protocol.run_detector(
                 root, detector_path, rel,
                 case_facts(fixtures_dir, colour, name, facts),
                 timeout=timeout_sec, diff_base="HEAD")
@@ -1040,7 +1040,7 @@ def self_trigger(*, repo_root, detector_path, fixtures_dir, facts=None,
                 continue
             files = sorted(p for p in d.rglob("*") if p.is_file())
             with _Case(d, Path(repo_root), files) as c:
-                rc, stdout, _, _out = detector_protocol.run_detector(
+                rc, stdout, _, _out, _ms = detector_protocol.run_detector(
                     c.root, Path(detector_path), c.rel(), facts,
                     timeout=timeout_sec, diff_base="HEAD")
             claims = detector_protocol.parse_claim_lines(stdout) if rc == 0 else []

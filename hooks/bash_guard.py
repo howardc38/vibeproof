@@ -23,6 +23,7 @@ on: the way out is to put the path on a command that only reads.
 """
 
 import json
+import re
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -42,10 +43,50 @@ except ImportError:                                             # noqa: E402
     # better guess than the caller's cwd -- which is the value this whole
     # repair is removing. The hook stands down either way; it should stand
     # down naming the right tree.
+    # `record_seen` and `is_open` are in here because this hook calls them on
+    # exactly the path this fallback exists for. Omitting them turned an import
+    # failure -- the case the fallback is *for* -- into an `AttributeError`
+    # inside the handler that was reporting it, and the reason never reached
+    # anybody. A stand-in that records nothing is honest; one that does not
+    # exist is a second failure on top of the first.
     _framework = SimpleNamespace(on_path=lambda r: _WHY, ledger=lambda r: None,
                                  config=lambda r: None, why=lambda r: _WHY,
+                                 home=lambda r: None, db_path=lambda r: None,
+                                 record_seen=lambda *a, **k: _WHY,
+                                 is_open=lambda r, t: True,
                                  repo_root=lambda: Path(__file__).resolve().parent.parent)
 
+
+
+#: `NAME=value` in front of a command. POSIX allows zero or more of them.
+_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+
+def _program_name(cmd: str) -> str:
+    """What this command runs, for the row that says the guard saw it.
+
+    `cmd.split()[0]` is not the program when the shell was handed assignments
+    first: `PGPASSWORD=hunter2 psql …` gives `PGPASSWORD=hunter2`, and that
+    string then goes into an append-only table that is exported to a committed
+    file. Not hypothetical -- an adopter's committed export already carries nine
+    `hook_seen` rows whose "program name" is an assignment (`V4_HOME=…`,
+    `PYTHONPATH=…`, `SP=…`). Those are paths; the next one is a password.
+
+    `secret` cannot catch it afterwards: it reads changed files, and a value
+    this hook wrote into the ledger is not one. This is a route around this
+    repo's own secret gate, and the repair is to not take the wrong word in the
+    first place.
+
+    A command that is nothing but assignments has no program, and says so
+    rather than reporting the last assignment as one.
+    """
+    words = cmd.split()
+    i = 0
+    while i < len(words) and _ASSIGNMENT.match(words[i]):
+        i += 1
+    if i >= len(words):
+        return "(no command)" if not words else "(assignments only)"
+    return words[i][:80]
 
 
 def _mark(root: Path, cmd: str, *, allowed: bool, reason: str = "",
@@ -68,29 +109,87 @@ def _mark(root: Path, cmd: str, *, allowed: bool, reason: str = "",
     for a credential to be sitting.
     """
     ledger = _framework.ledger(root)
+    # A repo that has never adopted v4 has nothing to be accountable to, and
+    # writing the mark anyway is what created a ledger where there was none:
+    # `record_seen` opens the writable door, correctly, because it *is* a
+    # write -- so the repair for "a read through the writing door" fixes the
+    # read and leaves the write, and the measured symptom stands. Measured
+    # again after fixing only the read: still a 65,536-byte `.git/v4/ledger.db`
+    # in a fresh `git init` tree. `.v4/` is the adoption, and its absence is
+    # not a failure this guard reports -- it is a repo this guard is not for.
+    if not (Path(root) / ".v4").is_dir():
+        return
+
     ids = []
     if ledger is not None:
         try:
-            conn = ledger.connect(root)
+            # `connect_readonly`, not `connect`. One read -- `open_task_ids` --
+            # went through the door that runs `executescript(SCHEMA)`, the
+            # append-only triggers, `commit()` and `_migrate()`. Measured: with
+            # `V4_REPO` pointed at a fresh `git init` tree holding no `.v4/`,
+            # this guard printed "allowed without checking", exited 0, and left
+            # a 65,536-byte `.git/v4/ledger.db` behind in a repo that has never
+            # adopted v4. `connect_readonly`'s own docstring names this shape as
+            # the defect it exists for.
+            conn = ledger.connect_readonly(root)
             ids = ledger.open_task_ids(conn)
             conn.close()
         except Exception:                                       # noqa: BLE001
             ids = []
+    # `cmd.split()[0]` on an empty command raises `IndexError` before
+    # `record_seen` is reached, which is precisely the case the unreadable-payload
+    # paths hand it: they know there is no command, that is what they are
+    # reporting. So the repair that made those paths loud left them still
+    # unrecorded, and the caller's `except` swallowed the reason. A command
+    # nobody could read has a name for the row -- it is what happened.
+    head = _program_name(cmd)
     for tid in ids or [None]:
-        failed = _framework.record_seen(root, tid, cmd.split()[0][:80],
+        failed = _framework.record_seen(root, tid, head,
                                         allowed=allowed, reason=reason,
                                         basis=basis, session=session,
-                                        scattered=True)
+                                        scattered=True, hook="bash_guard")
         if failed:
             print(f"v4 bash_guard: no mark written -- {failed}", file=sys.stderr)
             return
 
 
+def _allowed_without_checking(why: str, basis: str, session: str = ""):
+    """Say the allow out loud, record it if the ledger is reachable, answer.
+
+    The answer comes first and unconditionally. A guard that cannot write its
+    own mark still has to reply -- writing the mark before printing left the
+    hook exiting 1 with an empty stdout on exactly the inputs it could not
+    read, which is worse than the silence it was repairing: the caller then has
+    no verdict at all rather than an allow it can see.
+    """
+    print(f"v4 bash_guard: allowed without checking -- {why}", file=sys.stderr)
+    print("{}")
+    sys.stdout.flush()
+    try:
+        _mark(_framework.repo_root(), "", allowed=True, basis=basis,
+              session=session)
+    except Exception as exc:                                    # noqa: BLE001
+        print(f"v4 bash_guard: and the mark did not land either "
+              f"({type(exc).__name__}: {exc})", file=sys.stderr)
+
+
 def main():
+    # The rule this file states forty lines down, applied to its own first
+    # branch: allowing on failure is right, allowing *silently* is not. These
+    # two returns printed `{}` and exited 0 with no stderr and no `hook_seen`
+    # row -- measured by piping in an empty body, `{not json`, and
+    # `{"tool_input": {}}`: three ways for the guard to be handed nothing it
+    # can read, and three allows indistinguishable from a clean command.
+    #
+    # A payload for another tool stays quiet, because that is not a failure to
+    # read: it is an event this hook is not about, and one line per tool call
+    # would drown the record it is trying to keep.
     try:
         payload = json.load(sys.stdin)
-    except Exception:                                           # noqa: BLE001
-        print("{}")
+    except Exception as exc:                                    # noqa: BLE001
+        _allowed_without_checking(
+            f"the payload did not read ({type(exc).__name__}: {exc})",
+            "unreadable payload")
         return 0
     if payload.get("tool_name") != "Bash":
         print("{}")
@@ -98,7 +197,8 @@ def main():
     cmd = (payload.get("tool_input") or {}).get("command") or ""
     session = str(payload.get("session_id") or "")
     if not cmd.strip():
-        print("{}")
+        _allowed_without_checking("a Bash event carrying no command",
+                                  "no command in payload", session)
         return 0
 
     # Allowing on failure is right -- a guard that crashes must not block every

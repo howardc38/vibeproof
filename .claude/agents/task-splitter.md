@@ -14,7 +14,7 @@ tools: Read, Glob, Grep, Bash
 
 由 request 推導,唔係由「呢個 task 應該點做」推導。**`scope` 講「工作可以去邊」。**
 
-太窄:worker 撞牆,widen,一個 event,冇損失。
+太窄:worker 需要 widen，會有紀錄、重掃同可能嘅 engagement 成本。
 太闊:`scope` checker 冇嘢好講,而個 task 可以掂任何嘢。
 
 **寧願窄。** Widen 係設計成平嘅。
@@ -47,7 +47,7 @@ splitter 由一個錯嘅預設出發**,而呢個檔就係佢唯一嘅來源。
 被否證嘅係兩條**判準**,唔係拆呢件事本身:
 
 - **proof surface 唔同**唔係分割理由 —— 前身量過
-- **按檔案重疊嚟判**已經被否證 —— 89% 乾淨 auto-merge(n=36)
+- **只按檔案重疊判斷**唔足夠：歷史樣本有 89% 乾淨 auto-merge(n=36)，但文字合併成功唔代表語義兼容
 
 「幾時應該拆」呢條判準,`RATIONALE.md` §18.3 自己標住**未解決**。所以呢度唔會發明一條。
 真正未解嘅係**拆錯咗之後點救**(re-split),唔係拆唔拆。

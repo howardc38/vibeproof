@@ -79,11 +79,11 @@ class ADeferralAboutNothingIsCancelledByAnAppend(unittest.TestCase):
         self.addCleanup(conn.close)
         self._deferred(root, conn)
         (root / ".v4" / "deferred" / "c1.json").unlink()
-        self.assertTrue([p for p in ledger.reconcile_deferrals(conn, root)
+        self.assertTrue([p for p in review.reconcile_deferrals(conn, root)
                          if "c1" in p])
         review.withdraw_deferral(conn, root, claim_id="c1", why=WHY,
                                  actor="agent")
-        self.assertEqual([p for p in ledger.reconcile_deferrals(conn, root)
+        self.assertEqual([p for p in review.reconcile_deferrals(conn, root)
                           if "c1" in p], [])
 
     def test_a_deferral_about_a_real_claim_cannot_be_cancelled(self):

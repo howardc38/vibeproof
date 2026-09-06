@@ -41,6 +41,21 @@ def required_params(fn) -> int:
     return positional + keyword_only
 
 
+def _required_kwonly(fn) -> set:
+    """The names of the keyword-only parameters a call has to supply.
+
+    Names, not a count, because the call site is compared by name. `required_params`
+    counts them and that was enough while both sides counted; the call site
+    added `len(node.args) + len(node.keywords)` -- a *total* -- so a
+    keyword-only requirement was satisfied by any other keyword. Measured:
+    `def f(a, *, verbose=False)` becoming `def f(a, *, token, verbose=False)`
+    with a caller at `f(1, verbose=True)` reported nothing, and that call raises
+    `TypeError: f() missing 1 required keyword-only argument: 'token'`.
+    """
+    return {a.arg for a, d in zip(fn.args.kwonlyargs, fn.args.kw_defaults)
+            if d is None}
+
+
 def _defs(src: str):
     try:
         tree = ast.parse(src)
@@ -51,6 +66,16 @@ def _defs(src: str):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             out[node.name] = required_params(node)
     return out
+
+
+def _defs_kwonly(src: str):
+    """`{name: {required keyword-only parameter names}}`, beside `_defs`."""
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return {}
+    return {node.name: _required_kwonly(node) for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
 
 def _imported_here(tree, root: Path, target_rel: str):
@@ -92,10 +117,17 @@ def scan(root: Path, before_of, changed_files, subject=None):
         now_path = root / rel
         if not now_path.is_file():
             continue
-        was, now = _defs(before), _defs(now_path.read_text(encoding="utf-8",
-                                                           errors="replace"))
-        grew = {n: (was[n], now[n]) for n in now
-                if n in was and now[n] > was[n]}
+        now_src = now_path.read_text(encoding="utf-8", errors="replace")
+        was, now = _defs(before), _defs(now_src)
+        was_kw, now_kw = _defs_kwonly(before), _defs_kwonly(now_src)
+        # Two ways a signature can tighten, and only one of them moves the
+        # count: a new required keyword-only parameter leaves the positional
+        # arity alone, which is exactly why a careful author reaches for it.
+        grew = {n: (was[n], now[n], now_kw.get(n, set()) - was_kw.get(n, set()))
+                for n in now
+                if n in was and (now[n] > was[n]
+                                 or (now_kw.get(n, set())
+                                     - was_kw.get(n, set())))}
         if grew:
             tightened[rel] = grew
     if not tightened:
@@ -139,12 +171,22 @@ def scan(root: Path, before_of, changed_files, subject=None):
                     name = f.attr
                 if name not in grew:
                     continue
-                was, now = grew[name]
-                given = len(node.args) + len(node.keywords)
+                was, now, new_kw = grew[name]
                 if any(k.arg is None for k in node.keywords) or \
                         any(isinstance(a, ast.Starred) for a in node.args):
                     continue             # *args/**kwargs: arity is not knowable here
-                if given < now:
+                given = len(node.args) + len(node.keywords)
+                # By name for the keyword-only half. A total count let
+                # `f(1, verbose=True)` satisfy a newly required `token`, and
+                # that call raises. `required_params` was repaired to count
+                # keyword-only on the definition side and the call site was
+                # left counting the old way, so `grew` fired and the stale
+                # caller stayed invisible.
+                named = {k.arg for k in node.keywords}
+                missing = sorted(new_kw - named)
+                if missing:
+                    out.append((crel, node.lineno, name, given, now))
+                elif given < now:
                     out.append((crel, node.lineno, name, given, now))
     return out
 

@@ -23,7 +23,8 @@ description: 把 N 件唔相干嘅工作,同時開 N 個 worktree、N 個 task�
 8  合          git merge wave/<id>  ×N,  git worktree remove ../wt-<id>
 ```
 
-第 1 至 4 步係 `task-splitter` 嘅嘢,一組一次;第 5 步之後係 `/run` 嘅第 4 至 7 步,
+第 1 至 4 步係 `task-splitter` 嘅嘢，一組一次；每個 worker 先 derive，
+再跟 `/run` 的 engagement、修改、檢查、request accounting 和 ship 流程，
 喺各自嗰棵樹入面行。呢個檔只負責「同時」嗰部分。
 
 ## 第 5 步:一個 message 一次過開晒
@@ -33,14 +34,14 @@ description: 把 N 件唔相干嘅工作,同時開 N 個 worktree、N 個 task�
     cd ../wt-<id> && export V4_TASK=t-<id>
 ```
 
-**分開幾個 message 開,就係順序執行,唔係並行。** 要並行就要喺同一個 message
-入面 N 個 tool call。
+用 host 支援嘅並行 dispatch；唔好等一個 worker 完成先開下一個。
+Message 數目本身唔決定並行，亦要遵守 host 的 concurrency 上限。
 
 **`export V4_TASK` 係呢個 command 存在嘅一半理由。** ledger 係成個 repo 共用嘅
 (`ledger_path` 行 `git rev-parse --git-common-dir`,SPEC.md §1),所以幾棵樹嘅
 task 全部喺同一張表度開住。write hook 冇咗 `V4_TASK` 就冇得知呢次寫入屬於邊個,
-佢會攞**最新**嗰個 open task 個 scope 去判 —— 實測喺 reference adopter,一日兩次,
-而兩次都冇任何嘢講過佢揀咗邊個。
+舊版本會靜默揀最新嗰個；現行 `open_task` 發現多於一個 open task 會回
+`AMBIGUOUS`，hook 會拒絕呢次寫入。每個 worker 必須帶自己嘅 task ID。
 
 `hooks/write_block.py` 自己寫住:「Two tasks open and no `V4_TASK`: the guard has
 no way to know which one this is.」
@@ -58,7 +59,7 @@ no way to know which one this is.」
 
 ```
 2026-08-19:  224 條 finding → 209 條真 → 26 個真實組
-             一個組平均 7.4 條,最多嗰組 13 條
+             原紀錄另報平均 7.4 條、最多 13 條；平均值的分母不清，不能由 209/26 推出，勿作目前成效數字
 ```
 
 一條一刀,即係同一個事實喺 12 個地方修 209 次。呢個 repo 自己嘅 doctrine 就係反面:
@@ -110,17 +111,17 @@ no way to know which one this is.」
 **唔好用本機 `python3 -m unittest` 當驗收。** 實測:1,285 個 test 本機全綠,push 上去
 CI 紅 —— `spec-coverage` 捉到兩個新 command 冇入 SPEC。跑 test 唔等於跑閘。
 
-## Scope 重疊唔係問題,合埋先係
+## Scope 重疊與合併後驗證
 
-每棵樹只 diff 自己,所以 A 棵樹嘅寫入喺 B 棵樹嘅 `scope` claim 度睇唔見。重疊嘅
-代價係 git merge conflict,唔係假 finding。
+每棵樹只 diff 自己,所以 A 棵樹嘅寫入喺 B 棵樹嘅 `scope` claim 度睇唔見。合併時仍可能有文字衝突或冇文字衝突的語義錯誤。合併後要重驗測試及
+用 `v4 remerge`／status 檢查舊證據，不能把各自綠燈當成整合後已通過。
 
 `task-splitter` 已經量過:**按檔案重疊嚟判要唔要拆,係被否證嘅 —— 89% 乾淨
 auto-merge(n=36)。** 所以分組跟住 request 分,唔好為咗避開重疊而砌一個唔自然嘅切法。
 
 ## 幾多刀
 
-冇上限,但每一刀都要有自己嘅 request。**一刀一個 request** —— `task-splitter`
+Kernel 沒有在這份流程定工作數上限；host、資源和可安全合併的範圍仍有限。每刀都要有自己的 request。**一刀一個 request** —— `task-splitter`
 嗰句唔係叫你唔好拆,實測兩輪:一個計劃拆咗六刀,一次 61 條 finding 嘅 sweep 拆咗
 二十刀,每一刀有自己嘅 request、scope、claim。
 
@@ -128,7 +129,7 @@ auto-merge(n=36)。** 所以分組跟住 request 分,唔好為咗避開重疊而
 
 一棵冇 ship 嘅 worktree 係一個永遠開住嘅 task,而一個開住嘅 task 會:
 
-- 令 `v4 sweep` 永遠唔到期(`sweep.due()` 見到未答嘅 claim 就 return False)
+- 在其仍屬活躍工作且有 blocking claims 時令 `v4 sweep` 等待；只有 report-only 問題不一定算 busy
 - 令 write hook 喺下一次冇 `V4_TASK` 嘅寫入度揀錯人
 
 `v4 doctor` 嗰行 `open tasks` 會逐個名咁報返出嚟,連埋佢喺邊棵樹。收唔到就

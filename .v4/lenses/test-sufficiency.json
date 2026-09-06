@@ -3,9 +3,9 @@
   "source": "UNIT_TEST_GENERATION_GUIDELINE.md",
   "checks": [
     "Core high-risk paths have tests: auth/permission, billing/payment/webhook, data consistency/idempotency",
-    "Tests are repeatable and deterministic (no real external service dependency)",
-    "External I/O (DB, network, storage, auth provider) is mocked/stubbed",
-    "Test naming follows: `it('should [behavior] when [condition]')`",
+    "Unit tests isolate external dependencies; integration tests exercise real boundaries with controlled environments and explicit prerequisites.",
+    "Mock external I/O in unit tests when appropriate; do not replace the real boundary in a test whose purpose is integration, persistence or read-back.",
+    "Test names communicate behavior and condition in the project’s test-runner convention.",
     "Pure logic / domain layer tests have minimal or no mocks",
     "Mocks are placed at module boundaries only, not on internal implementation details",
     "Tests assert contracts (input/output), NOT internal implementation steps",
@@ -15,11 +15,11 @@
     "Test failures are locatable and reproducible — when a test fails, the failure message and test structure make it possible to identify the exact cause without re-running in debug mode",
     "Cleanup/rollback behavior is tested — features that create resources, open connections, or write state have tests verifying proper cleanup on success and rollback on failure",
     "Thread-through invariants use positive end-state assertions — when Plan invariant says \"X threads through Y to downstream Z\", tests assert `downstream.X == expected` (end-state equality), NOT signature inspection (`inspect.signature` / `typeof` / reflection); signature-only tests pass but cannot catch dead param (see UNIT_TEST_GENERATION_GUIDELINE §7B Thread-Through Positive-Assertion Rule)",
-    "PR has automated test feedback — CI runs tests on PR and results are visible before merge [SHOULD",
-    "Test file names reflect module/contract, not phase/cycle artifacts — no `test_worker_phase15.py`-style names; rename via git mv at first commit opportunity (see UNIT_TEST_GENERATION_GUIDELINE §20.1) [SHOULD",
-    "No low-cohesion test files (test_helpers/test_misc/test_infrastructure) — each test file maps to one concern (see UNIT_TEST_GENERATION_GUIDELINE §20.2) [SHOULD",
-    "Superseded tests removed in same commit as replacement — no stale passing tests shadowing newer stronger coverage (see UNIT_TEST_GENERATION_GUIDELINE §20.3) [SHOULD",
-    "Shared fixtures placed in scope-aware shared location (conftest.py/BaseTest/beforeAll/TestMain), not duplicated per-directory (see UNIT_TEST_GENERATION_GUIDELINE §20.4) [SHOULD",
+    "PR has automated test feedback — CI runs tests on PR and results are visible before merge [SHOULD]",
+    "Test file names reflect module/contract, not phase/cycle artifacts — no `test_worker_phase15.py`-style names; rename via git mv at first commit opportunity (see UNIT_TEST_GENERATION_GUIDELINE §20.1) [SHOULD]",
+    "No low-cohesion test files (test_helpers/test_misc/test_infrastructure) — each test file maps to one concern (see UNIT_TEST_GENERATION_GUIDELINE §20.2) [SHOULD]",
+    "Superseded tests removed in same commit as replacement — no stale passing tests shadowing newer stronger coverage (see UNIT_TEST_GENERATION_GUIDELINE §20.3) [SHOULD]",
+    "Shared fixtures placed in scope-aware shared location (conftest.py/BaseTest/beforeAll/TestMain), not duplicated per-directory (see UNIT_TEST_GENERATION_GUIDELINE §20.4) [SHOULD]",
     {
       "check": "Every reachable decision branch introduced by the change has a test, and loop boundaries cover zero, one and many.",
       "from": "R-ca90245d"
@@ -75,5 +75,6 @@
     "Duplicate count-tripwire sites — same count invariant (e.g. \"tool count = N\") hardcoded in multiple test files; every addition/removal requires multi-file edits and risks partial update; should have single canonical assertion site with shared constant (E6) [P3 note]",
     "Worker happy-path-only coverage — worker/daemon/scheduler has tests only for normal execution success, with no tests for claim/lock, cleanup/artifact lifecycle, checkpoint recovery, concurrency guard, or external write safety; flag as coverage gap even if all existing tests pass (E9) [P2 should-fix]",
     "Test caller pattern fidelity gap — test setup 引入 production caller 不存在之 synthetic outer wrap（context manager / fixture stack / DI scope），測得 synthetic-mode behaviour 而非 production behaviour；對比 production caller invocation 上下文與 test setup → flag P1（per UNIT_TEST_GENERATION_GUIDELINE §10A）"
-  ]
+  ],
+  "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n"
 }

@@ -24,7 +24,7 @@ from . import pysource, subject_files
 KIND = "test-shape"
 
 
-def findings(rel: str, src: str, tree, variant: str = ""):
+def findings(rel: str, src: str, tree, variant: str = "", is_test=None):
     """`[(file, symbol, line, why, variant)]` -- one finding, spelled once.
 
     Both the checker and the detector need this list and both need the id
@@ -38,9 +38,23 @@ def findings(rel: str, src: str, tree, variant: str = ""):
     The enclosing function is part of it. Without it the id is (file, reason),
     so forgiving one read in a file forgives every later one added to it -- 32
     findings in this repo collapsed to 9 ids when that was tried.
+
+    `is_test` is asked of `subject_files` when it is `None`, which is what both
+    the checker and the detector want: they are walking a tree and the file's
+    name and contents are all they know. `go_findings` and `ts_findings` next to
+    this have taken it as an argument since they were written; this is the third
+    one agreeing with them.
+
+    A caller passes it when the question is already settled by something the
+    filename cannot see. `redgreen.verify` is that caller: the file it holds is
+    the `--test` of a closure, so it is a test by construction whatever it is
+    named -- and `subject_files.is_test` answers on the name outside a declared
+    test root, so leaving the decision here would have let a closing test named
+    `t_mod.py` walk past the source-assertion rule entirely.
     """
     out = []
-    is_test = subject_files.is_test(rel, src)
+    if is_test is None:
+        is_test = subject_files.is_test(rel, src)
     enclosing = {}
     for fn in ast.walk(tree):
         if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):

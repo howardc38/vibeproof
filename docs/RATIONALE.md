@@ -13,6 +13,8 @@ deletes its own mistakes teaches nothing about how much to trust the rest.
 
 # vibeproof
 
+> **2026-09-06 閱讀範圍：** 本文件保留 rev 1–3 設計、歷史實驗、被推翻的主張與後續更正。未另標日期的「今日／而家」屬於原記錄時點，不代表目前 checkout。操作與支援範圍以 code、[SPEC](SPEC.md)、[USING](USING.md) 為準；歷史數字沒有在本次同步重新量度。當前差異見末尾 §22。
+
 **一個 task = 一堆問題。每條問題有一個程式去答。Kernel 親自跑嗰個程式、自己讀 exit code、寫低答案。全部答完就出貨。**
 
 冇 step、冇 cycle、冇散文合約、冇 phase doc。
@@ -1154,7 +1156,7 @@ Kernel 目標 **1,500–2,500 行** —— **呢個目標已經被一個入咗 c
 |---|---|
 | **`ACCEPTED_RISK` 嘅頻率** | **「中間唔使你」呢個承諾嘅單點。**四類失敗全部通去佢(§2.2)。冇量過,亦冇辦法喺跑之前量。**階段 1–3 逐個 task 記,超過 1 次/task 就係設計出咗事** |
 | **「63% rework」喺 V4 慳幾多** | §3.1 個單位改咗(相交嗰批,唔係一條),個數要重計 |
-| **Engagement 有冇用** | 【驗】零缺陷證據支持。階段 3 要外部訊號,攞唔到就剷(§9.5) |
+| **Engagement 有冇用** | 原實驗未隔離它的因果效果。舊的自動刪除條件已按 §9.5 所記決定撤回；再評估需要新的明確決定 |
 | Merge 後重跑嘅開銷 | 未知。§17 個 6.4× 冇計呢筆 |
 | N 個 worker 部機食唔食得住 | 未知。N × worktree × venv × pytest |
 | 「V4 令 task 變單 cycle」 | 6.4× 全靠佢。假設唔成立就跌返 2.6× |
@@ -1498,3 +1500,22 @@ Red/green 證明「呢個 checker 分得開兩個狀態」。**佢從來冇問�
 **一個白名單,最後一定被人放喺一個冇人諗過要列嘅位繞過。** 呢個唔係呢一個 checker
 嘅教訓,係白名單呢個形狀嘅教訓。
 
+
+## 22. 2026-09-06：歷史論證與目前實作的邊界
+
+以下更正不重寫原始實驗數字，也不把未重跑的歷史數字當成目前成效。
+
+| 歷史設計或舊說法 | 目前應怎樣讀 |
+|---|---|
+| 全部問題答完才 ship | Ship 按 per-kind policy、升級門檻、fatal chain 問題及 confirmed facts 判定；report-only 可留下。見 SPEC.md §4 及 SPEC.md §10.4 |
+| 偽造必然事後被發現、簽名必然是人 | 本地 guard／hash／紀錄不認證所有寫入或人的身份；agent／monitor 路徑會記錄其 route。見 SPEC §6 |
+| HEAD 改了，全部 repo-scoped 答案過期 | 目前是 relevant path/blob 內容 hash；單純 stage／commit 不改 bytes 不會移動 digest。見 `kernel/hashing.py::worktree_digest` |
+| `test_timeout_sec` 是 ordinary checker 的內層 timeout | ordinary `test` checker 由 registry timeout 控制；`v4 accept` 直接跑 suite 時仍使用其 suite timeout 設定。見 SPEC §8 |
+| `/checker new`、每次 ship 都跑完整 reviewer、reviewer 印 V4-CLAIM | 屬於早期設計。現有 command prompts、`review add`、periodic sweep 才是操作入口 |
+| reviewer findings 只可用 test 關閉 | 程式修正有 red/green/target 證據；非程式文字有 text-change 路徑；defer 只記錄決定，不令 blocking claim terminal |
+| 客觀 engagement 代表零成本、一定不會 retry | 機械條件可被反覆重試，也不证明理解；初始 Write/Edit gate 有明確觸發／stand-down 條件 |
+| 白名單這個形狀必然錯 | 原案例針對 code-size 計數漏掉未列目錄。公開發布的資料邊界反而需要明確 allowlist；兩者量的是不同問題 |
+| Build leak proof 必須用 production secret | 可用非生產 synthetic canary 測 injection／build 路徑，無需交出 production credential |
+
+Canonical source 與 public 發布流程見 [SYNC.md](SYNC.md)。歷史分支和 private
+adopter 的資料不是 public runtime 的依賴；共同 lens 證據改用可執行 demo。

@@ -131,7 +131,8 @@ def open_task(conn, cfg, *, task_id, request, scope_globs, forbid_globs=None,
     # they are a different kind of statement.
     if forbid_globs:
         insert(conn, "event", task_id=task_id, claim_id=None, kind="task_forbid",
-               actor="human", payload={"globs": list(forbid_globs)},
+               actor=ledger_mod.who_acted(),
+               payload={"globs": list(forbid_globs)},
                created_at=_now())
 
     # The same shape again, for the same reason. `after` was read once to build
@@ -141,7 +142,8 @@ def open_task(conn, cfg, *, task_id, request, scope_globs, forbid_globs=None,
     # the ledger already holds" -- and this was the one fact it did not hold.
     if after:
         insert(conn, "event", task_id=task_id, claim_id=None, kind=CONTINUES_KIND,
-               actor="human", payload={"after": after}, created_at=_now())
+               actor=ledger_mod.who_acted(), payload={"after": after},
+               created_at=_now())
 
     # Which working tree this task was opened in.
     #
@@ -163,7 +165,8 @@ def open_task(conn, cfg, *, task_id, request, scope_globs, forbid_globs=None,
     # same reason: no schema change, and a fact that was true when the task was
     # opened belongs in the append-only record.
     insert(conn, "event", task_id=task_id, claim_id=None, kind=WORKTREE_KIND,
-           actor="human", payload={"root": str(Path(cfg.root).resolve())},
+           actor=ledger_mod.who_acted(),
+           payload={"root": str(Path(cfg.root).resolve())},
            created_at=_now())
     return base
 
@@ -266,6 +269,16 @@ def _files_in_scope(root: Path, scope_globs, exclude=()):
 #: so anywhere in that gap is the same threshold.
 EXPENSIVE_MS = 30_000
 
+#: A claim the kernel decided not to run, and why.
+#:
+#: `v4 check` skips an expensive claim while something cheaper is still failing,
+#: which is a decision worth making and was a decision nothing recorded. The
+#: kind is named for what happened rather than for the flag that caused it: a
+#: second reason to not run a claim would be another `reason` in this payload,
+#: not another event kind, because the question a reader asks is "was this claim
+#: ever put to its checker".
+NOT_RUN_KIND = "claim_not_run"
+
 
 def kind_cost(conn, kind) -> int:
     """What this kind has actually cost in this repo, as a median.  0 if new.
@@ -329,8 +342,46 @@ def check(conn, cfg, task_id, only=None, run_expensive=True):
         # `--claim` is somebody asking for this one by name. Never skipped.
         if (not only and failed_cheap and not run_expensive
                 and cost[row["kind"]] >= EXPENSIVE_MS):
-            skipped.append((row, failed_cheap))
-            results.append((row, "SKIPPED_EXPENSIVE", None))
+            # The kinds that held it back travel with the verdict. The list was
+            # built here and read nowhere -- `grep skipped` in this file found
+            # the two lines that write it and none that read it -- so only the
+            # word `SKIPPED_EXPENSIVE` reached the caller and `cmd_check`
+            # printed "something cheaper is still failing" naming none of them.
+            # `derive._did_not_run` states the same fact one layer down: a path
+            # that skipped the work "appeared in neither rep[detectors] nor
+            # rep[detectors_not_run], and v4 ship printed no line about it at
+            # all". An expensive claim held back on purpose read, in the
+            # ledger and in the report, exactly like one nobody ever reached.
+            # `failed_cheap` holds kind names -- `failed_cheap.append(row["kind"])`
+            # is the only line that writes it. Subscripting them as rows raised
+            # `TypeError: string indices must be integers` and took the whole
+            # `v4 check` down, on the exact path this list was added to make
+            # readable. Nothing caught it because the change was proved against
+            # a repo where no cheap claim was failing, so this branch never ran.
+            held_by = sorted(set(failed_cheap))
+            skipped.append((row, held_by))
+            # And on the record, which the printed line is not. Nothing was
+            # written here at all -- no attempt, no cost observation, no event
+            # -- so a claim the kernel deliberately did not run was, in the
+            # ledger, identical to one nobody ever reached. `derive._did_not_run`
+            # is the same fact one layer down and its docstring says what the
+            # silence cost there: the refused detector "appeared in neither
+            # rep[detectors] nor rep[detectors_not_run], and `v4 ship` printed no
+            # line about it at all".
+            #
+            # An event and not an attempt: an attempt is what a checker's exit
+            # code lands in, and no checker ran. `actor="kernel"` for the same
+            # reason `derive` uses it -- this is the kernel's own decision, not
+            # a person's and not an agent's.
+            insert(
+                conn, "event", task_id=task_id, claim_id=row["id"],
+                kind=NOT_RUN_KIND, actor="kernel",
+                payload={"kind": row["kind"], "reason": "expensive",
+                         "held_by": held_by,
+                         "cost_ms": cost[row["kind"]],
+                         "threshold_ms": EXPENSIVE_MS},
+                created_at=datetime.now(timezone.utc).isoformat())
+            results.append((row, "SKIPPED_EXPENSIVE", held_by))
             continue
         st = state.claim_state(conn, cfg.root, row, kinds_cfg=_kinds(cfg),
                                config_sha=cfg.sha, checker_sha_of=_checker_sha_of(cfg),
@@ -584,6 +635,57 @@ def _nothing_seen(coverage):
     return out
 
 
+class CannotAbandon(ValueError):
+    """An abandon this refuses, with the reason a person can act on."""
+
+
+def abandon(conn, cfg, task_id, why):
+    """A task's second ending.  `(unsettled, )` on success; raises otherwise.
+
+    Beside `ship` because they are the same kind of thing: the two ways a task
+    stops. This one lived entirely on the entry surface -- `cmd_abandon` asked
+    whether the task had already ended, applied the `min_chars` floor, read the
+    unsettled findings and inserted the terminal `abandoned` event itself --
+    while its mirror `shipped` is written here. An entry surface that owns a
+    state transition is invisible to every rule this layer enforces, and to
+    every caller that is not argv: no test had ever entered it, and each one
+    that needed an ended task wrote `ledger.insert(kind="abandoned")` by hand,
+    which is the transition being simulated rather than made.
+
+    Raising rather than returning a code: the exit codes belong to the CLI, and
+    a module that returns 2 is a module that has decided how it will be printed.
+    """
+    row = conn.execute("SELECT id FROM task WHERE id = ?", (task_id,)).fetchone()
+    if row is None:
+        raise CannotAbandon(f"no such task: {task_id}")
+    already = conn.execute(
+        "SELECT kind FROM event WHERE task_id = ? AND kind IN "
+        "('shipped', 'abandoned')", (task_id,)).fetchone()
+    if already:
+        raise CannotAbandon(f"{task_id} already {already['kind']}")
+    floor = cfg.thresholds["min_chars"]
+    why = (why or "").strip()
+    if len(why) < floor:
+        raise CannotAbandon(
+            f"abandoning a task is allowed and is often right, but it is not "
+            f"allowed to be silent. {len(why)} characters, and the floor is "
+            f"{floor}.")
+    # What this task found and never settled, in the row rather than in prose.
+    #
+    # "Its claims stay in the ledger" was true and unreadable: the next task
+    # starts from a new base, the delta gates find no delta, and a finding that
+    # was FAILing becomes a question nobody asks. Somebody noticing that had to
+    # write it into three prose fields by hand. A list of ids in the event is
+    # what `doctor` can count.
+    unsettled = ledger_mod.unsettled_fails(conn, task_id)
+    ledger_mod.insert(conn, "event", task_id=task_id, claim_id=None,
+                      kind="abandoned", actor="worker",
+                      payload={"why": why,
+                               "unsettled_fails": [c[0] for c in unsettled]},
+                      created_at=_now())
+    return unsettled
+
+
 def ship(conn, cfg, task_id, max_rounds=None):
     """SPEC.md §4.  One predicate, plus a bounded re-derive."""
     from .ledger import audit_chain
@@ -738,11 +840,21 @@ def ship(conn, cfg, task_id, max_rounds=None):
         # nothing" stop looking the same -- which the row above could not do,
         # because printing a brief is free and reviewing is not.
         "lenses_reviewed": _lenses_reviewed(conn, task_id),
-        # Where this task's claims came from. `lenses_run` says a reviewer ran;
-        # this says whether it produced anything. Two different facts, and the
-        # column carrying the second had three declared values, two writers and
-        # no reader at all -- which is the shape `dead-wiring` exists to find,
-        # in the one directory `dead-wiring` skips.
+        # Where this task's claims came from. The column carrying it had three
+        # declared values, two writers and no reader at all -- the shape
+        # `dead-wiring` exists to find, in the one directory `dead-wiring`
+        # skips.
+        #
+        # This said "`lenses_run` says a reviewer ran; this says whether it
+        # produced anything", and that reading is the one the row ten lines
+        # above retracts in the same dict: `lenses_run` is written by
+        # `v4 review lens`, so it says the brief was taken and nothing about
+        # whether anyone read a diff with it. `cli.py` was repaired for the
+        # same mistake -- a ship that said `reviewed by: near-miss` about a
+        # lens no reviewer had ever read a diff with. `lenses_reviewed` is the
+        # row that answers "did a review happen"; this one answers "did the
+        # claims come from `derive`, from a review, or from a widen", which is
+        # a fact about claims and not about reviewers at all.
         "claim_origins": {
             r["origin"]: r["n"] for r in conn.execute(
                 "SELECT origin, COUNT(*) n FROM claim WHERE task_id = ? "

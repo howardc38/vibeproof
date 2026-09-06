@@ -19,6 +19,7 @@ STALE = "STALE"
 ANSWERED = "ANSWERED"
 UNSUPPORTED = "UNSUPPORTED"
 CHECKER_ERROR = "CHECKER_ERROR"      # the checker crashed
+UNKNOWN_EXIT = "UNKNOWN_EXIT"        # runner gave a code this table has no row for
 CHECKER_TAMPERED = "CHECKER_TAMPERED"  # its registered bytes are not its bytes
 SUBJECT_MOVED = "SUBJECT_MOVED"      # the tree changed while it ran
 TIMEOUT = "TIMEOUT"                  # it did not finish
@@ -135,7 +136,17 @@ def claim_state(conn, repo_root, claim_row, *, kinds_cfg, config_sha, checker_sh
         # and the ship report showed `CHECKER_ERROR` for all four. The one
         # command a person reads to find out what is wrong threw the
         # distinction away, and only `--detail` could recover it.
-        return _EXIT_STATE.get(code, CHECKER_ERROR)
+        # `UNKNOWN_EXIT`, not `CHECKER_ERROR`. The comment over `_EXIT_STATE`
+        # says the table exists so that adding a code to `runner` and
+        # forgetting it here "is one missing row rather than a silent
+        # fall-through to CHECKER_ERROR" -- and the only read of it was
+        # `.get(code, CHECKER_ERROR)`, which is that fall-through verbatim, in
+        # a dict-with-a-default that is the chain of `if`s the sentence
+        # contrasts itself with. Nothing falls through today; the property the
+        # comment promised did not exist, and a new code -- or any checker
+        # exiting 2 or 3 -- would have read as "the checker crashed" with
+        # nothing saying the state was unrecognised.
+        return _EXIT_STATE.get(code, UNKNOWN_EXIT)
 
     if stale_reason(conn, repo_root, claim_row, att, kinds_cfg=kinds_cfg,
                     config_sha=config_sha, checker_sha_of=checker_sha_of,
@@ -173,8 +184,30 @@ def stale_reason(conn, repo_root, claim_row, att, *, kinds_cfg, config_sha,
         return (f"its subject moved: {', '.join(m.split(':', 1)[-1] for m in moved[:3])}"
                 + (f" and {len(moved) - 3} more" if len(moved) > 3 else ""))
     if config_sha != att["config_sha"]:
-        # test_command is the oracle; changing it invalidates
-        return ".v4/config.json changed, and the test command in it is an oracle"
+        # It said "the test command in it is an oracle", of a comparison that
+        # is the sha of the whole file. That file also carries `thresholds`,
+        # `lens_sweep`, `derive_exclude`, `protected_paths`, `surface_command`,
+        # `surface_cwd`, `runtime_proof` and `truth_command`, and this repo's
+        # own history has three commits -- 47ea047 (a repo rename), eedcc29
+        # (three `report_max_*` thresholds) and 04db3e2 (`surface_command`,
+        # `surface_cwd`) -- that edited it without touching `test_command`.
+        # Each of those expired every answered claim in the repo and blamed a
+        # test command that had not moved.
+        #
+        # The reason says what actually happened. The granularity does not
+        # change here: `att["config_sha"]` is a whole-file sha already written
+        # into every attempt row ever recorded, so narrowing what it covers
+        # would make every one of those rows compare against a different
+        # quantity and expire every answered claim in every adopter once. That
+        # is a schema decision with a migration, not a wording repair, and the
+        # comparison eight lines below shows the shape it would take:
+        # `facts_sha_for` returns `""` for a checker that does not read the
+        # table, so an unrelated edit costs it nothing.
+        return (".v4/config.json changed. This compares the whole file, which "
+                "carries the test command (an oracle) and also thresholds, "
+                "protected paths, the sweep window and the probe commands -- "
+                "so an edit to any of them expires this answer, and which one "
+                "moved is not recorded")
     if checker_sha_of(claim_row["checker"]) != att["checker_sha"]:
         return (f"checker {claim_row['checker']} changed -- a different program "
                 f"gave that answer")

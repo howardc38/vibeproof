@@ -157,9 +157,22 @@ def main():
     if gone or now:
         return _text_closure(root, target, parent, gone, now, s)
 
+    # The other way to be red, for a finding whose repair *is* the test. There
+    # the code was always right and nobody was looking at it, so no parent
+    # exists where the test fails -- `redgreen.verify` carries the measurement
+    # and the reasoning. Read here rather than defaulted, because a claim
+    # carrying neither is a claim nobody has offered a red half for, and that is
+    # the `missing` list's business.
+    mutation = None
+    if params.get("mutation_file") or params.get("mutation_gone"):
+        mutation = (params.get("mutation_file") or "",
+                    params.get("mutation_gone") or "",
+                    params.get("mutation_now") or "")
+
     missing = [n for n, v in (("closing_test", test_path), ("target file", target),
-                              ("parent_commit", parent),
                               ("test_one_file_command", command)) if not v]
+    if not parent and not mutation:
+        missing.append("parent_commit or mutation_file")
     if missing:
         # Not UNSUPPORTED: the claim is answerable, it just has not been given
         # what it needs. Saying "cannot verify" here would let it ship.
@@ -173,9 +186,12 @@ def main():
               f"      --test <the new test file> \\\n"
               f"      --command '<a command with {{path}} in it>' \\\n"
               f"      --parent <the commit before the repair>\n\n"
-              f"All four are one command. `--parent` is what the red half is run "
-              f"against, and `--test` is the file that has to fail there and pass "
-              f"here; without either, nothing has been shown.")
+              f"All of it is one command. `--test` is the file that has to pass "
+              f"here and be red one of two ways: `--parent`, the tree before "
+              f"the repair; or `--mutation-file` with `--mutation-gone`, which "
+              f"breaks what the test covers. Use the second when the repair is "
+              f"the test itself -- there the code was always right, so no "
+              f"parent exists where the test fails.")
         return 1
 
     # Asked of `redgreen`, which is the only thing that knows what it can
@@ -209,7 +225,8 @@ def main():
     try:
         res = redgreen.verify(root, command=argv, test_path=test_path,
                               target_file=target, target_symbol=symbol,
-                              parent_commit=parent)
+                              parent_commit=None if mutation else parent,
+                              mutation=mutation)
     except Exception as exc:                                    # noqa: BLE001
         print(f"red-green check failed to run: {exc}", file=sys.stderr)
         return 5

@@ -43,6 +43,20 @@ ENVIRONMENT = re.compile(
     r"not present|not available|absent|missing|no such|not installed|"
     r"unavailable|requires? .*(repo|network|binary|tool)", re.I)
 
+#: A sweep proposed widening the pattern above to catch three more reasons this
+#: suite produces -- an adopter commit that is gone, a checkout whose name no
+#: facts table matches, and `V4_ADOPTER_REPO` unset. It was tried and reverted,
+#: because this repo had already decided and written the decision down:
+#: `tests/test_which_repo_which_task_which_environment.py::
+#: test_and_the_reason_stays_out_of_the_environment_class` pins it, and its
+#: docstring gives the argument -- "unset is a decision, and matching would make
+#: the sole oracle for every `test` claim permanently red for a question CI can
+#: never put".
+#:
+#: The split is not loud-versus-quiet, it is *chose not to ask* versus *could
+#: not ask*. Anything in the first class that reaches `env_skips` fails the
+#: suite forever, in every environment, for a question nobody has withheld.
+
 
 class LoudSkips(unittest.TextTestResult):
     def addSkip(self, test, reason):
