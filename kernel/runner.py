@@ -140,7 +140,7 @@ class CheckResult:
 
 def run_checker(*, repo_root, checker_path, registered_sha, subject_payload,
                 subject_refs, latest_attempt_id=None, facts=None, timeout_sec=300,
-                emit_baseline=False):
+                emit_baseline=False, registered_program_sha=None):
     """Exec one checker and come back with what the OS said.
 
     Order matters and each step buys something specific:
@@ -156,17 +156,21 @@ def run_checker(*, repo_root, checker_path, registered_sha, subject_payload,
     checker_path = Path(checker_path)
 
     disk_sha = hashing.file_sha(checker_path)
-    # Two different questions with two different answers. `disk_sha` is "are
-    # these the bytes that were registered", and it has to stay the entry file
-    # alone, because that is what `checkers.json` recorded and what this is
-    # about to execute. `program_sha` is "did the program that decides change",
-    # and for 20 of 27 checkers that program is mostly in kernel/analysis/.
-    program = hashing.program_sha(repo_root, checker_path)
+    # Old registries pin the entry alone. New registrations also bind the same
+    # transitive program fingerprint already used to expire earlier answers.
+    program = hashing.program_sha(repo_root, checker_path, framework_root=V4_HOME)
     if registered_sha and disk_sha != registered_sha:
         return CheckResult(
             CHECKER_TAMPERED, "",
             f"checker on disk ({disk_sha[:12]}) is not the registered one "
             f"({registered_sha[:12]}); refusing to run",
+            [], 0, {}, program,
+        )
+    if registered_program_sha is not None and program != registered_program_sha:
+        return CheckResult(
+            CHECKER_TAMPERED, "",
+            "checker program differs from the registered dependencies; "
+            "re-register and pass its fixtures before running",
             [], 0, {}, program,
         )
 
@@ -243,6 +247,11 @@ def run_checker(*, repo_root, checker_path, registered_sha, subject_payload,
             except json.JSONDecodeError as exc:
                 code, err = ERROR, f"{err}\n--out was not valid JSON: {exc}"
 
+    if registered_program_sha is not None and hashing.program_sha(
+            repo_root, checker_path, framework_root=V4_HOME) != program:
+        return CheckResult(SUBJECT_MOVED, out,
+                           f"{err}\nchecker program changed while it ran; this is not an answer",
+                           argv, dur, before, program)
     after = hashing.subject_digest(repo_root, subject_refs, latest_attempt_id)
     if after != before:
         moved = sorted(k for k in before if before[k] != after.get(k))

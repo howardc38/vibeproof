@@ -1,0 +1,4 @@
+{
+  "test_command": "python3 -c \"print('ok 1 - not executed # SKIP\\n# tests 1\\n# pass 0\\n# fail 0\\n# cancelled 0\\n# skipped 1\\n# todo 0')\"",
+  "policy": "allow_accepted_risk"
+}

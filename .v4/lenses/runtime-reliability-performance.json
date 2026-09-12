@@ -1,0 +1,157 @@
+{
+  "name": "Runtime Reliability & Performance",
+  "source": "Prevention migration: existing resource, concurrency, retry and workload obligations",
+  "why": "Inspect applicable execution paths against the declared workload and authorization. Use actual failure/latency/resource evidence; do not invent scale requirements.",
+  "checks": [
+    {
+      "check": "Resources acquired must be released on every path: an acquire with no context manager and no try/finally.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-8a87e24e",
+      "id": "prevention:035"
+    },
+    {
+      "check": "Shared mutable state written from more than one execution unit must be synchronised.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-192afd2c",
+      "id": "prevention:036"
+    },
+    {
+      "check": "No synchronous blocking I/O inside an async hot path.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-fa70ac69",
+      "id": "prevention:059"
+    },
+    {
+      "check": "Outbound operations have a finite effective timeout/deadline at the caller, client or enclosing operation boundary.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-65e92a9b",
+      "id": "prevention:060"
+    },
+    {
+      "check": "Retries have a budget and a backoff — no unbounded loop whose except branch continues without an attempt limit or a sleep.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-07ca0832",
+      "id": "prevention:061"
+    },
+    {
+      "check": "Expensive client construction is scoped to avoid measured or credible per-request resource churn; reuse must preserve correct ownership and isolation.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-9d274718",
+      "id": "prevention:062"
+    },
+    {
+      "check": "Inspect queries in loops for N+1 or unbounded work; use batching where required by the actual workload and latency/resource budget.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-38ee9305",
+      "id": "prevention:063"
+    },
+    {
+      "check": "Development hot reload must not create unbounded duplicate database connections; use lifecycle cleanup/reuse appropriate to the runtime.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-d8693d80",
+      "id": "prevention:064"
+    },
+    {
+      "check": "Each attempt writes to a uniquely named artifact path; a retry must not overwrite the previous attempt's output.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-12232374",
+      "id": "prevention:073"
+    },
+    {
+      "check": "Artifact lifecycle: stable identity, collision prevention, cleanup, rollback, orphan handling.",
+      "from": "R-9a45b89a",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:080"
+    },
+    {
+      "check": "For generated-asset workflows, cover the applicable persist, regenerate, blocked, moderation and failure paths; distinguish absent product paths from untested required paths.",
+      "from": "R-845a501f",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:081"
+    },
+    {
+      "check": "Fan-out and batch work: bounded, per-item identity, partial failure, retry exhaustion.",
+      "from": "R-d68c4bb7",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:082"
+    },
+    {
+      "check": "Artifact entropy: runtime outputs, evidence, review logs and snapshots accumulating with no retention, archive or active-window rule, and staging artifacts left in the active reasoning path.",
+      "from": "R-a0109b9d",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:087"
+    },
+    {
+      "check": "Hot paths use exact queries with a workable index strategy and do not over-fetch.",
+      "from": "R-1eb338a5",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:100"
+    },
+    {
+      "check": "Lock contention and retry amplification are bounded — nothing slow inside a critical section.",
+      "from": "R-b04a8dde",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:101"
+    },
+    {
+      "check": "Batch paths define memory caps, control disk pressure, and clean up temporary output.",
+      "from": "R-6386a0e6",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:102"
+    },
+    {
+      "check": "Projection paths define a staleness tolerance and monitor reconciliation lag and quota pressure.",
+      "from": "R-116980d0",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:103"
+    },
+    {
+      "check": "Scheduled and unattended work prevents overlap and duplicate execution.",
+      "from": "R-302fa020",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:104"
+    },
+    {
+      "check": "Unattended workers bound artifact and log retention and monitor cadence drift.",
+      "from": "R-20de5756",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:105"
+    },
+    {
+      "check": "Assess cold-start and connection lifecycle against actual workload needs; identify observed or credible resource/latency failures rather than generic optimization opportunities.",
+      "from": "R-841915c7",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:106"
+    },
+    {
+      "check": "Measure performance relevant to the stated workload/budget: interactive tail latency, bounded batch throughput, async lag or external quota as applicable; do not require a ceremonial p50 for unrelated changes.",
+      "from": "R-1383e53a",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:107"
+    },
+    {
+      "check": "Event-level sync loops: does A writing trigger B, which triggers A?",
+      "from": "R-9efd581f",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:108"
+    },
+    {
+      "check": "State invariants are implemented and transitions have explicit boundaries.",
+      "from": "R-eeced45b",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:112"
+    },
+    {
+      "check": "Heavy paths have isolation or batching guardrails, and connection, retry and lock behaviour is reasonable.",
+      "from": "R-02226b12",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:113"
+    }
+  ],
+  "anti_patterns": [
+    "Unbounded retries, duplicate execution or resource growth with no owner"
+  ],
+  "reviewer_anti_patterns": [
+    "Claiming a performance problem without an applicable workload or concrete evidence"
+  ]
+}

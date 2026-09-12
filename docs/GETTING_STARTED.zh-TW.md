@@ -2,6 +2,7 @@
 
 先跑 [獨立示範](../examples/first-proof/README.md)，再把完整 framework 用在一個可以還原的 git 專案。最容易開始的環境是 Claude Code、Python 3.12+，以及已經能執行的測試。完整流程使用 macOS 或 Linux；尚未驗證原生 Windows。
 
+Codex / 雙宿主 / 双宿主: [host setup](CODEX.md). The instructions below retain the default Claude workflow.
 ## 你決定，agent 執行
 
 你提供想要的結果、允許修改的檔案、真正的測試命令，以及是否接受未解決風險的決定。agent 可以處理安裝、流程命令、讀取檢查結果與修正程式。你不需要每次親自輸入所有命令。
@@ -41,6 +42,8 @@ cd "/absolute/path/to/project"
 ```
 
 如果專案有 UI 或外部寫入，就配置真的能執行的 surface/runtime 證明；沒有的能力才明確記錄不適用。不要用固定輸出或空命令製造通過結果。[完整欄位與格式](GETTING_STARTED.md)、[facts 格式](FACTS.md)。
+
+Surface suite 亦要接返實際執行結果；可按[接線指引](../.v4/surface/INTEGRATION.md)使用可選 Playwright helper，並確認本機 browser／loopback 權限。
 
 - 沒有 `.claude/settings.json`：可由 `.claude/settings.template.json` 複製建立。
 - 已有 settings：只合併 template 的 hooks，保留原本 hooks、權限與其他設定，不能整份覆蓋。

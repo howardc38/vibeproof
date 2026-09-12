@@ -197,10 +197,7 @@ def continued_by(conn, task_id):
 
 
 def _task(conn, task_id):
-    row = conn.execute("SELECT * FROM task WHERE id = ?", (task_id,)).fetchone()
-    if row is None:
-        raise RuntimeError(f"no such task: {task_id}")
-    return row
+    return ledger_mod.require_task(conn, task_id)
 
 
 def _kinds(cfg):
@@ -462,6 +459,7 @@ def check(conn, cfg, task_id, only=None, run_expensive=True):
         # Measured on a first adoption: `v4 install` puts the checkers' bypass
         # fixtures into the repo, and `secret` reported 13 committed
         # credentials, all of them the fixture doing its job.
+        extra = _extra_params(conn, row)
         payload = runner.Subject(
             repo_root=str(cfg.root), claim_id=row["id"], claim_kind=row["kind"],
             task_id=task_id, diff_base=t["base_commit"], subject_refs=refs,
@@ -470,7 +468,7 @@ def check(conn, cfg, task_id, only=None, run_expensive=True):
                 scope_globs=_scope_now(conn, task_id),
                 forbid_globs=forbidden(conn, task_id),
                 derive_exclude=cfg.config.get("derive_exclude", []),
-                **_extra_params(conn, row)),
+                **extra),
         ).as_dict()
         # Taken before the checker runs, not after. Taking it after absorbs
         # anything that lands during the run -- and a test suite runs for
@@ -492,9 +490,11 @@ def check(conn, cfg, task_id, only=None, run_expensive=True):
         reads = cfg.reads_for(row["checker"])
         stamp = (hashing.worktree_digest(cfg.root, reads=reads) if repo_scoped
                  else runner.head_commit(cfg.root))
+        proof_before = review_mod.closing_binding_digest(extra, cfg.root) if row["kind"] == "review-finding" else {}
 
         res = runner.run_checker(
             repo_root=cfg.root, checker_path=path, registered_sha=entry.get("sha256"),
+            registered_program_sha=entry.get("program_sha"),
             subject_payload=payload, subject_refs=refs,
             # A named function, not two nested lambdas built at the call site.
             # `runner` is the layer that execs a checker and reads an exit code,
@@ -507,12 +507,14 @@ def check(conn, cfg, task_id, only=None, run_expensive=True):
         )
         after = (hashing.worktree_digest(cfg.root, reads=reads) if repo_scoped
                  else runner.head_commit(cfg.root))
-        if after != stamp:
+        proof_after = (review_mod.closing_binding_digest(review_mod.closing_params(conn, row["id"]), cfg.root)
+                       if row["kind"] == "review-finding" else {})
+        if after != stamp or proof_after != proof_before:
             # Something moved mid-run. Neither stamp describes what was tested,
             # so the attempt is recorded as an error rather than guessed at.
             res = runner.CheckResult(
                 runner.SUBJECT_MOVED, res.stdout,
-                f"{res.stderr}\nthe working tree changed while the checker ran; "
+                f"{res.stderr}\nthe {'closing-proof inputs' if proof_after != proof_before else 'working tree'} changed while the checker ran; "
                 f"this answer describes neither state"
                 + (("\n  " + "\n  ".join(
                     hashing.moved(before_state, hashing.tree_state(cfg.root))))
@@ -523,6 +525,8 @@ def check(conn, cfg, task_id, only=None, run_expensive=True):
                    "path in `derive_exclude` / .gitignore." if repo_scoped else ""),
                 res.argv, res.duration_ms, res.subject_digest, res.checker_sha)
 
+        if row["kind"] == "review-finding":
+            res.subject_digest.update(proof_before)
         runner.record(conn, row["id"], res, repo_root=cfg.root, config_sha=cfg.sha,
                       worktree=str(cfg.root), staleness_stamp=stamp,
                       facts_sha=cfg.facts_sha_for(row["checker"]))
@@ -591,6 +595,7 @@ def report(conn, cfg, task_id):
     compiled: a `report` kind that piles up, ages, or keeps re-failing blocks
     anyway, and the three numbers that decide it live in `.v4/config.json`.
     """
+    _task(conn, task_id)
     rows, blocked, reported = state.task_report(
         conn, cfg.root, task_id, kinds_cfg=_kinds(cfg), config_sha=cfg.sha,
         checker_sha_of=_checker_sha_of(cfg), facts_sha_of=cfg.facts_sha_for,
@@ -684,6 +689,12 @@ def abandon(conn, cfg, task_id, why):
                                "unsettled_fails": [c[0] for c in unsettled]},
                       created_at=_now())
     return unsettled
+
+
+def _hook_coverage(conn, task_id):
+    from . import hosts
+    return {host: hosts.evidence(conn, task_id=task_id, host=host)
+            for host in hosts.SUPPORTED}
 
 
 def ship(conn, cfg, task_id, max_rounds=None):
@@ -862,8 +873,11 @@ def ship(conn, cfg, task_id, max_rounds=None):
         # Measured, not configured: a hook that is installed but never fires is
         # the same as no hook, and only the events know which happened.
         "hook_seen": conn.execute(
-            "SELECT COUNT(*) n FROM event WHERE task_id = ? AND kind = 'hook_seen'",
+            "SELECT COUNT(*) n FROM event WHERE task_id = ? AND kind = 'hook_seen' "
+            "AND json_extract(payload, '$.hook')='write_block' "
+            "AND coalesce(json_extract(payload, '$.basis'), '')!='unreadable'",
             (task_id,)).fetchone()["n"],
+        "hook_coverage": _hook_coverage(conn, task_id),
     }
 
 

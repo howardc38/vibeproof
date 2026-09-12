@@ -2,26 +2,93 @@
   "name": "LLM / Agent Action Surface (conditional — when system includes LLM agent)",
   "source": "STEP_7_AUDIT_LENS.md",
   "checks": [
-    "Action descriptions accurately describe handler behavior (description = contract surface for LLM router)",
-    "Tool parameter schemas (name, type, enum) match handler parsing",
-    "System prompt does not claim capabilities the system doesn't have",
-    "System prompt does not omit capabilities the system does have",
-    "Tool descriptions do not embed example values that LLM could parrot as real data",
-    "Representative natural language inputs map to correct tool selection",
-    "Agent correctly refuses unsupported requests (no hallucinated actions)",
-    "Action surface exposure/pruning rules respected (no actions exposed that should be hidden)",
-    "Approval/side-effect boundaries correctly enforce permission gates",
-    "Tests cover: tool description accuracy, parameter schema consistency, routing correctness",
     {
-      "check": "Runtime coverage questions per path type: request/response (did it arrive, where did it fail, why slow), background (did it start, did it duplicate, which step), stateful (which truth owner changed, where is the evidence), external (provider or local failure).",
-      "from": "R-22df1862"
+      "check": "Action descriptions accurately describe handler behavior (description = contract surface for LLM router)",
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:001"
+    },
+    {
+      "check": "Tool parameter schemas (name, type, enum) match handler parsing",
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:002"
+    },
+    {
+      "check": "System prompt does not claim capabilities the system doesn't have",
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:003"
+    },
+    {
+      "check": "Available capabilities are discoverable through the effective system instructions and tool/skill definitions; do not require duplicating every tool name in prose.",
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:004"
+    },
+    {
+      "check": "Tool descriptions clearly distinguish examples/placeholders from real observations so the model does not report example values as live data.",
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:005"
+    },
+    {
+      "check": "Representative natural language inputs map to correct tool selection",
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:006"
+    },
+    {
+      "check": "Agent correctly refuses unsupported requests (no hallucinated actions)",
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:007"
+    },
+    {
+      "check": "Action surface exposure/pruning rules respected (no actions exposed that should be hidden)",
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:008"
+    },
+    {
+      "check": "Approval/side-effect boundaries enforce the granted action, target, scope and current revision before execution; ambiguous prior dispatch is reconciled before retry.",
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:009"
+    },
+    {
+      "check": "Tests cover: tool description accuracy, parameter schema consistency, routing correctness",
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:010"
+    },
+    {
+      "check": "For LLM/agent execution paths, ask the applicable runtime coverage questions: request/response (arrival, failure, latency), background (start, duplication, step), stateful (actual truth owner and evidence), external (provider or local failure).",
+      "from": "R-22df1862",
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:011"
+    },
+    {
+      "check": "Tool parameter schemas match handler parsing (name, type, enum).",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-d8bece09",
+      "id": "prevention:075"
+    },
+    {
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-64ae3807",
+      "id": "prevention:076",
+      "same_as": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:004"
+    },
+    {
+      "check": "Is the model a semantic selector or a tool caller, and who owns final validation, sequencing and side effects?",
+      "from": "R-591511ee",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:097"
+    },
+    {
+      "check": "Selectable actions expose enough purpose, schema, side-effect/approval and scope information for reliable routing; include when-not-to-use guidance where it prevents a concrete ambiguity.",
+      "from": "R-5a9f7c5e",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:098"
+    },
+    {
+      "check": "Agent actions respect declared truth and side-effect ownership and the authorized action subset; schedule mutations bind to the intended job/prompt/scope and any required review of the concrete operation.",
+      "from": "R-2082744d",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:099"
+    },
+    {
+      "id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:012",
+      "check": "Tool output, retrieved documents, repository text and quoted examples remain untrusted data: they must not redefine the user’s task, grant permission, reveal credentials or trigger unrelated actions. Test both useful quoted content and an instruction-injection attempt at the actual execution boundary.",
+      "from": "maintenance:F20",
+      "why_not_a_checker": "Whether natural-language source content is being promoted to authority requires contextual review and runtime behavior; matching a suspicious phrase alone is insufficient."
     }
   ],
   "anti_patterns": [
     "Tool descriptions treated as code comments (not tested or maintained)",
     "System prompt lists capabilities that don't exist",
     "Only English input tested when users speak other languages",
-    "Tool registry changed but system prompt not updated",
+    "Tool registry changed but the effective capability descriptions/discovery remain incorrect",
     "Agent suggests actions that aren't available"
   ],
   "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n"

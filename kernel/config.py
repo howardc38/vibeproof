@@ -183,6 +183,11 @@ class RepoConfig:
         self.root = Path(repo_root).resolve()
         self.config_path = self.root / CONFIG
         self.config = _load(self.config_path, "config")
+        from .hosts import CONFIG_KEY, validate_selection
+        try:
+            validate_selection(self.config.get(CONFIG_KEY, ["claude"]))
+        except ValueError as exc:
+            raise ConfigError(str(exc)) from exc
         self.kinds = _load(self.root / CLAIM_KINDS, "claim_kinds", required=False)
         self.checkers = _load(self.root / CHECKERS, "checkers", required=False)
         # Written by `v4 register-detector`. Not required: a repo with only
@@ -393,7 +398,8 @@ class RepoConfig:
         # The same thing `runner` records: the checker plus every module in
         # this repo it imports. Comparing the entry file alone meant editing the
         # module that makes the decision left every prior PASS looking fresh.
-        return hashing.program_sha(self.root, self.root / entry["path"])
+        from .runner import V4_HOME
+        return hashing.program_sha(self.root, self.root / entry["path"], framework_root=V4_HOME)
 
     def question(self, kind_name, *, file="", symbol="", variant="", line=None):
         """Fill the kind's template.  SPEC.md §4: generated, never authored."""

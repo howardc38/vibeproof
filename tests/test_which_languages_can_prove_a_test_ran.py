@@ -126,6 +126,7 @@ class WhatTheGoToolchainAnswers(unittest.TestCase):
         self.assertIs(executed, True)
         self.assertGreaterEqual(calls, 1)
 
+
     def test_a_repo_that_asks_for_its_own_profile_keeps_it(self):
         """`GOFLAGS` is appended to, never replaced.
 
@@ -183,6 +184,25 @@ class WhatV8Answers(unittest.TestCase):
 
     def test_and_one_that_calls_it_did(self):
         code, executed, calls, out = self._run(self.CALLS_IT)
+        self.assertEqual(code, 0, out[-400:])
+        self.assertIs(executed, True)
+        self.assertGreaterEqual(calls, 1)
+
+    def test_a_completed_python_child_does_not_mask_js_execution(self):
+        source = ("import {execFileSync} from 'node:child_process';\n"
+                  f"execFileSync({json.dumps(sys.executable)}, ['-c', 'pass']);\n")
+        code, executed, calls, out = self._run(source + self.CALLS_IT)
+        self.assertEqual(code, 0, out[-400:])
+        self.assertIs(executed, True)
+        self.assertGreaterEqual(calls, 1)
+
+    def test_an_import_only_process_does_not_hide_a_child_that_calls_it(self):
+        source = ("import './t.mjs';\n"
+                  "import {spawnSync} from 'node:child_process';\n"
+                  "const child = spawnSync(process.execPath, ['--input-type=module', '-e', "
+                  + json.dumps(self.CALLS_IT) + "], {encoding:'utf8'});\n"
+                  "if (child.status !== 0) throw new Error(child.stderr);\n")
+        code, executed, calls, out = self._run(source)
         self.assertEqual(code, 0, out[-400:])
         self.assertIs(executed, True)
         self.assertGreaterEqual(calls, 1)

@@ -200,7 +200,7 @@ def finding_id(t) -> str:
     return hashlib.sha256(
         "\0".join([KIND, t[0], t[1], t[3]]).encode("utf-8")).hexdigest()[:16]
 
-SOURCE_SUFFIXES = (".py", ".sql", ".js", ".ts", ".go", ".rs")
+SOURCE_SUFFIXES = (".py", ".pyi", ".sql", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts", ".go", ".rs")
 
 #: Anything that bounds a fan-out.  Presence anywhere in the enclosing function
 #: is enough -- proving the bound actually applies is a reviewer's job, and a
@@ -421,12 +421,99 @@ def _ts_bounded(masked: str, scopes, line: int) -> bool:
 #: path and the group began after it, so the one shape this rule is named for
 #: read as an argument list with no filename in it.
 _TS_READ = re.compile(
-    r"(?<![\w.$])(?:%s)\s*\((?P<arg>[^)]{0,200})" % "|".join(TS_READERS))
+    r"(?<![\w.$])(?:[A-Za-z_$][\w$]*\s*\.\s*)*(?:%s)\s*\((?P<arg>[^)]{0,200})" % "|".join(TS_READERS))
 _TS_TEXT_ASSERT = re.compile(
     r"\.\s*(?:toContain|toMatch|toContainEqual|includes|indexOf|search)\s*\(")
 _TS_PROMISE_ALL = re.compile(
     r"(?<![\w.$])Promise\s*\.\s*(?:all|allSettled)\s*\(")
 _TS_MAP_CALL = re.compile(r"\.\s*(?:map|flatMap)\s*\(")
+
+
+def _ts_source_assertion_lines(source, masked):
+    """Bounded local value flow from source readers into text assertions.
+
+    Reading source to build a mutation is not itself the assertion's oracle.
+    Keep names in their lexical blocks; JSON/data readback is not JS source.
+    This is a static guard, not whole-program dataflow or a semantic judge.
+    """
+    from bisect import bisect_right
+    from .symbols import ts_string_spans
+    from .test_expectation import _ts_arg_spans
+    scope_points, scope_values, stack = [-1], [()], []
+    for pos, ch in enumerate(masked):
+        if ch == '{':
+            stack.append(pos)
+        elif ch == '}' and stack:
+            stack.pop()
+        else:
+            continue
+        scope_points.append(pos); scope_values.append(tuple(stack))
+
+    def scope(pos):
+        return scope_values[bisect_right(scope_points, pos)-1]
+
+    def end_of(start):
+        nested = []
+        for pos in range(start, len(masked)):
+            ch = masked[pos]
+            if ch in '([{': nested.append(ch)
+            elif ch in ')]}':
+                if not nested: return pos
+                nested.pop()
+            elif ch in ';\n' and not nested: return pos
+        return len(masked)
+
+    assignments = []
+    pattern = r'\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::[^=;\n]+)?=(?!=|>)'
+    for match in re.finditer(pattern, masked):
+        start = match.end()
+        while start < len(masked) and source[start].isspace(): start += 1
+        assignments.append((match.group(1), match.start(), start, end_of(start), scope(match.start())))
+
+    def dependencies(a, b):
+        here = scope(a)
+        for name in set(re.findall(r'(?<![\w.$])[A-Za-z_$][\w$]*', masked[a:b])):
+            visible = [x for x in assignments if x[0] == name and x[1] < a and here[:len(x[4])] == x[4]]
+            if visible:
+                entry = max(visible, key=lambda x:(len(x[4]), x[1]))
+                yield entry[2], entry[3]
+
+    def literals(a, b, hops=4):
+        text = source[a:b]
+        values = [text[x+1:y-1] for x,y in ts_string_spans(text)]
+        if hops:
+            for x,y in dependencies(a,b): values.extend(literals(x,y,hops-1))
+        return values
+
+    readers = []
+    for match in _TS_READ.finditer(masked):
+        start = masked.index('(', match.start())
+        args = _ts_arg_spans(masked, start)
+        if args and any(value.endswith(SOURCE_SUFFIXES) for value in literals(*args[0])):
+            readers.append((match.start(), args[-1][1]+1, masked.count('\n',0,match.start())+1))
+
+    def origins(a, b, hops=4):
+        found = {line for start,end,line in readers if a <= start and end <= b}
+        if hops:
+            for x,y in dependencies(a,b): found |= origins(x,y,hops-1)
+        return found
+
+    found = set()
+    calls = re.compile(r'(?<![\w.$])(?:expect|assert(?:\.[A-Za-z_$][\w$]*)?)\s*\(')
+    matchers = re.compile(r'\.\s*(?:toContain|toMatch|toContainEqual|toBe|toEqual|toStrictEqual|toHaveLength)\s*\(')
+    for pattern in (calls, matchers):
+        for match in pattern.finditer(masked):
+            args = _ts_arg_spans(masked, match.end()-1)
+            limit = 1 if match.group(0).startswith('expect') else 2
+            for a,b in args[:limit]:
+                # Structural metadata can be the contract (e.g. uniqueness of
+                # a mutation marker), like Python's deliberate reflection boundary.
+                if re.search(r'\.\s*length\s*$', masked[a:b]): continue
+                found |= origins(a,b)
+    # Handwritten assertions often use a string predicate followed by throw.
+    for match in re.finditer(r'(?<![\w.$])([A-Za-z_$][\w$]*)\s*\.\s*(?:includes|indexOf|search)\s*\(', masked):
+        found |= origins(match.start(), match.end())
+    return sorted(found)
 
 
 def ts_findings(rel: str, source: str, is_test: bool, variant: str = ""):
@@ -462,22 +549,11 @@ def ts_findings(rel: str, source: str, is_test: bool, variant: str = ""):
     out = []
 
     if variant in ("", "source_assertion") and is_test:
-        reads_source = []
-        for m in _TS_READ.finditer(masked):
-            # Out of `source`, not out of the mask: the path is a string
-            # literal and the mask is what makes it not one. `_ts_mask` keeps
-            # the length, so the same offsets slice the same argument.
-            arg = source[m.start("arg"):m.end("arg")]
-            if not any(s in arg for s in SOURCE_SUFFIXES):
-                continue
-            reads_source.append(masked.count("\n", 0, m.start()) + 1)
-        if reads_source and _TS_TEXT_ASSERT.search(masked):
-            for line in reads_source:
-                out.append((rel, "<module>", line,
-                            "this test reads a source file and asserts on its "
-                            "text; deleting the line makes it red without the "
-                            "function under test ever being called",
-                            "source_assertion"))
+        for line in _ts_source_assertion_lines(source, masked):
+            out.append((rel, "<module>", line,
+                        "this test reads a source file and asserts on its "
+                        "text; deleting the line makes it red without the "
+                        "function under test ever being called", "source_assertion"))
 
     if variant in ("", "unbounded_fanout"):
         scopes = _ts_scopes(source, masked)

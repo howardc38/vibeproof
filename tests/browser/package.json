@@ -1,0 +1,8 @@
+{
+  "name": "vibeproof-browser-acceptance",
+  "private": true,
+  "devDependencies": {
+    "@playwright/test": "1.59.1",
+    "esbuild": "0.28.2"
+  }
+}

@@ -6,6 +6,15 @@ description: 由一個 request 行到 ship —— 開 task、出 claim、答、r
 
 由一個 request 行一個完整 task。**你係 orchestrator,唔係 worker。**
 
+已有對應 task 時，先讀返其狀態及已交付證據，沿用 ID，從未完成嗰步續跑。
+不要重做已驗過的 setup／runner 研究；只有新失敗才重開相關問題。
+
+單一 task 的 worker 預設用會等待完成的呼叫：Claude Code 的 Agent 設
+`run_in_background: false`；Codex 派原生 worker 後用宿主等待工具等該 ID。
+若確實使用背景角色，保留返回的 ID，逐個等到完成或明確需要處理，讀回實際結果。
+仍有自己派出的角色運行時不要結束 turn；「已派出」「仍在做」不是交付。
+被 stopped／中斷的角色按未完成處理，核對實際檔案及 ledger 後續跑，不能用舊摘要當現況。
+
 ## 次序
 
 ```
@@ -89,8 +98,17 @@ Worker 交返理由畀你,你決定簽唔簽。你自己代人簽嗰陣,`.v4/ris
 
 ## 開工之前
 
+本次掂到 Web UI 時，先按 `.v4/surface/INTEGRATION.md` 核對產品旅程與現有 suite。
+欠必要案例或接線就派現有 worker 補建，reviewer 獨立核對，再由 checker 驗證。
+唔好把缺少 suite、全 skip 或只印成功當成 surface proof；唔需要新增 agent 角色。
+Browser finding 要關閉時沿用該 suite 的紅綠測試；編譯過的 JS/TS 依 integration contract
+提供同次 build 的 source map。缺少映射／宿主不容許啟動瀏覽器，都保留未證明狀態。
+
 ```
 ./bin/v4 --repo . doctor      # 呢個 repo 係真係接好咗,定係得個樣
 ```
 
 `BAD` 嗰幾行喺正常使用之下係靜嘅。
+
+
+開工時判斷本次已授權 request 是否有可獨立驗收的工作。若有，按依賴與共享狀態選用 `/wave`；不要只因檔案多而拆，亦不要為並行發明額外工作。維護派來的修復保留原 claim／handoff 關聯，收尾要讀回原 claim，不能只交一個新的綠 task。

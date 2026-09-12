@@ -7,6 +7,7 @@ checker to be run; it cannot report what running it produced.
 
 import argparse
 import json
+import shlex
 import sqlite3
 import sys
 import textwrap
@@ -49,6 +50,9 @@ def cmd_init(args):
     root = _repo(args)
     for rel, what in init_mod.scaffold(root):
         print(f"  {what:<8} {rel}")
+    if getattr(args, "hosts", None):
+        from . import hosts
+        hosts.configure(root, args.hosts)
     # Layer 1 is a generated file, and a repo without it has that layer absent
     # rather than empty. It was absent from every arm of the three-arm
     # experiment for exactly this reason: `init` wrote the registries and not
@@ -78,9 +82,9 @@ def cmd_init(args):
             obj["doctrine"] = True
             cfg_path.write_text(json.dumps(obj, indent=2, ensure_ascii=False) + "\n",
                                 encoding="utf-8")
-        print(f"  written  CLAUDE.md   （層 ①,生成物 —— `v4 doctrine --write` 重生）")
-        print(f"  written  .v4/config.json: \"doctrine\": true —— 刪走 CLAUDE.md "
-              f"由今日起係一個 finding")
+        from .hosts import doctrine_files
+        print("  written  " + ", ".join(p.name for p in doctrine_files(root)) + " (generated doctrine)")
+        print("  written  .v4/config.json: doctrine=true; selected instruction files are checked")
     except Exception as exc:                                    # noqa: BLE001
         print(f"  skipped  CLAUDE.md   ({exc})")
     owed = init_mod.unanswered(root)
@@ -96,9 +100,9 @@ def cmd_init(args):
     return 0
 
 
-def _install_copy(install_mod, src, root, kinds):
+def _install_copy(install_mod, src, root, kinds, host_choice=None):
     """Land the files, then make the exclusion follow the fixtures."""
-    copied = install_mod.copy_files(src, root, kinds)
+    copied = install_mod.copy_files(src, root, kinds, host_choice=host_choice)
     written = [p for p, how in copied if how == "written"]
     updated = [p for p, how in copied if how == "updated"]
     yours = [p for p, how in copied if how == "yours"]
@@ -236,15 +240,17 @@ def _install_artefacts(install_mod, root, src, kinds):
     try:
         from . import doctrine as _doc
         _doc.write(config_mod.RepoConfig(root))
-        print(f"  CLAUDE.md regenerated for {len(kinds)} kind(s)   （層 ①）")
+        from .hosts import doctrine_files
+        print("  " + ", ".join(p.name for p in doctrine_files(root)) + f" regenerated for {len(kinds)} kind(s)")
     except Exception as exc:                                    # noqa: BLE001
         print(f"  CLAUDE.md NOT regenerated ({exc}) -- run `v4 doctrine --write`")
     # Last, because it has to hash what everything above just wrote. Without it
     # these land in the next task's diff as changes the worker cannot explain:
     # measured, three of the eight paths `scope` flagged on a real run.
+    from .hosts import doctrine_files
     install_mod.stamp_generated(root, [
         ".v4/claim_kinds.json", ".v4/detectors.json", ".v4/checkers.json",
-        "CLAUDE.md", "bin/v4",
+        *[p.name for p in doctrine_files(root)], "bin/v4",
         # `write_launcher` appends to it; a path this command writes and does
         # not stamp is a diff the next worker cannot account for.
         ".gitignore",
@@ -276,29 +282,28 @@ def _install_what_is_left(root, held, refused, det_bad, lenses, no_subject):
         print("  v4 --repo . sweep --if-due        # exits 1 when it is not due")
         print("  # a cron, or a scheduled CI job. `v4 doctor` reports it "
               "until one exists.")
-    hooks = sorted(p.name for p in (root / "hooks").glob("*.py"))
-    # The file existing is not the hook running -- `doctor`'s hook row is named
-    # for that and reads the settings' contents. This asked only whether the
-    # file was there, so an adopter who already had a `.claude/settings.json`
-    # for their own reasons got no line at all: hooks copied, nothing calling
-    # them, and the one command whose job is to say what is still owed silent
-    # about it. Ask the question `doctor` asks.
-    settings = root / ".claude" / "settings.json"
-    try:
-        wired = settings.read_text(encoding="utf-8") if settings.is_file() else ""
-    except OSError:
-        wired = ""
-    unwired = [h for h in hooks if h not in wired]
-    if unwired:
-        print(f"\n{len(unwired)} of {len(hooks)} hook(s) copied and nothing "
-              f"calls them yet. They fire from the coding agent's settings, "
-              f"not from this repo:")
-        for h in unwired:
-            print(f"  {h}")
-        print("  cp .claude/settings.template.json .claude/settings.json"
-              if not settings.is_file() else
-              "  merge .claude/settings.template.json into your "
-              ".claude/settings.json")
+    from . import hosts
+    for host in hosts.selected(root):
+        template = ".claude/settings.template.json" if host == "claude" else ".codex/hooks.template.json"
+        settings = ".claude/settings.json" if host == "claude" else ".codex/hooks.json"
+        print(f"\n  {host} host: {template} supplies the handlers for {settings}")
+        hooks = sorted(p.name for p in (root / "hooks").glob("*.py")
+                       if not p.name.startswith("_"))
+        settings_path = root / settings
+        try:
+            body = settings_path.read_text() if settings_path.is_file() else ""
+        except OSError:
+            body = ""
+        unwired = [name for name in hooks if name not in body]
+        if unwired:
+            print(f"  {len(unwired)} of {len(hooks)} hook(s) have no reference in {settings}")
+            for name in unwired:
+                print(f"  {name}")
+            print(f"  merge {template} into {settings}" if settings_path.is_file()
+                  else f"  cp {template} {settings}")
+        print("  --activate-hooks merges framework handlers while preserving unrelated settings")
+        if host == "codex":
+            print("  review and trust the definitions in Codex /hooks; a file is not execution evidence")
     if no_subject:
         print(f"\n{len(no_subject)} checker(s) have nothing to read in this repo "
               f"yet. They are registered and they work; every task will raise "
@@ -329,8 +334,9 @@ def cmd_install(args):
         return 2
 
     if getattr(args, "check", False):
-        return _install_check(install_mod, src, root)
+        return _install_check(install_mod, src, root, getattr(args, "hosts", None))
 
+    from . import hosts
     # Asked before anything is written. `write_kinds` merges rather than
     # replaces, so a kind dropped afterwards left the earlier write standing and
     # `derive` went on raising a claim whose checker was never registered.
@@ -338,7 +344,11 @@ def cmd_install(args):
     print(f"installing from {src}\n")
     reg_src = json.loads((src / config_mod.CHECKERS).read_text())
 
-    _install_copy(install_mod, src, root, kinds)
+    # Select candidate host assets without committing the choice before the
+    # corpus preflight. A refused custom-lens upgrade must not change hosts.
+    _install_copy(install_mod, src, root, kinds, getattr(args, "hosts", None))
+    if getattr(args, "hosts", None):
+        hosts.configure(root, args.hosts)
 
     conn = ledger.connect(root)
     # Read once. This sat inside both registration loops, so a full `RepoConfig`
@@ -355,10 +365,17 @@ def cmd_install(args):
         install_mod, conn, root, src, facts)
     lenses = _install_artefacts(install_mod, root, src, kinds)
     _install_what_is_left(root, held, refused, det_bad, lenses, no_subject)
-    return 1 if refused else 0
+    if getattr(args, "activate_hooks", False):
+        selected = hosts.selected(root)
+        for host in selected:
+            print(f"  hooks merged: {hosts.activate_hooks(root, host).relative_to(root)}")
+        # A Codex-specific trust reminder belongs only to Codex installations.
+        if "codex" in selected:
+            print("  Codex hooks still require host trust; inspect /hooks before relying on them.")
+    return 1 if refused or det_bad else 0
 
 
-def _install_check(install_mod, src, root):
+def _install_check(install_mod, src, root, host_choice=None):
     """`v4 install --check` -- what this repo would get if it ran `install`.
 
     The question `.v4/installed.json` could not answer. It records the bytes
@@ -375,7 +392,7 @@ def _install_check(install_mod, src, root):
     Reads and prints. `install` is the thing that writes.
     """
     rows = install_mod.copy_files(
-        src, root, install_mod.installable_kinds(src, root)[0], dry=True)
+        src, root, install_mod.installable_kinds(src, root)[0], dry=True, host_choice=host_choice)
     by = {}
     for rel, how in rows:
         by.setdefault(how, []).append(rel)
@@ -421,7 +438,7 @@ def cmd_accept(args):
         import tempfile as _tf
         with _tf.TemporaryDirectory() as td:
             tree = accept_mod.archive(root, Path(td))
-            print(f"accepting HEAD of {root} in a fresh tree at {tree}\n")
+            print(f"accepting the staged index of {root} in a fresh tree at {tree}\n")
             rows = accept_mod.run(tree, on_step=show, **parts)
     bad = [s for s, ok, _d in rows if not ok]
     print(f"\n{len(rows) - len(bad)}/{len(rows)} held"
@@ -799,7 +816,10 @@ def cmd_derive(args):
     except (OSError, _sf.DiffUnreadable):
         changed = None
     if changed is not None:
-        rows = [c for c in _state.task_claims(conn, args.task) if c["file"]]
+        # A hand-raised finding can explicitly ask for missing tests around
+        # unchanged product code. It is assigned work, not detector scope debt.
+        rows = [c for c in _state.task_claims(conn, args.task)
+                if c["file"] and c["origin"] == "derive"]
         try:
             lines = _sf.changed_lines(cfg.root, base)
         except (OSError, _sf.DiffUnreadable):
@@ -824,9 +844,10 @@ def cmd_derive(args):
                     print(f"    {w}")
                 if len(where) > 4:
                     print(f"    …and {len(where) - 4} more")
-            print("  That is inherited debt, not this task's work. Narrow "
-                  "`--scope` and re-open if it is not yours to answer, or carry "
-                  "it: a delta kind takes `--emit-baseline`.")
+            print("  These detector findings concern unchanged code. Check "
+                  "whether the request includes them before changing scope. "
+                  "For verified inherited debt, a delta kind's `--emit-baseline` "
+                  "route still requires its normal review and authorization.")
 
     # Which of these will ask for a sentence, said here rather than at `check`.
     # SPEC.md §9 argues the whole value of this layer is that it lands before
@@ -949,7 +970,7 @@ def cmd_status(args):
 
     An orchestrator -- a person driving several tasks, or an agent doing it --
     reads this to decide what to do next, and the only machine-readable thing
-    here was the exit code: 0 if every claim is terminal, 1 otherwise. Which
+    here was the exit code: 0 if no claim blocks, 1 otherwise. Which
     claim, in which state, and what is blocking it had to be recovered by
     parsing lines written for a human, and those lines change whenever the
     wording improves.
@@ -1144,6 +1165,10 @@ def cmd_ship(args):
               "checked at ship, not while the code was being written -- so this "
               "task had no early warning, and that is recorded rather than assumed "
               "away.")
+    for host, coverage in rep.get("hook_coverage", {}).items():
+        if coverage["observed"]:
+            print(f"  {host} hooks: observed {', '.join(coverage['observed'])}; "
+                  f"checked {', '.join(coverage['checked']) or 'none'}")
     u = scope_mod.usage(conn, cfg, args.task)
     print(f"widened  : {u['widens']} time(s), {len(u['paths'])} path(s) = {u['pct']}%"
           + _refused_widens(u))
@@ -1318,7 +1343,7 @@ def cmd_sweep(args):
 
     if args.done:
         lenses = sorted(review.lenses(cfg.root))
-        prev = sweep_mod.last(conn)
+        prev = sweep_mod.last_attempted(conn)
         briefed = sweep_mod.ran_since(conn, prev)
         reviewed = sweep_mod.reviewed_since(conn, prev)
         # Refused before the sweep is closed, not reported after. Both counts
@@ -1330,7 +1355,7 @@ def cmd_sweep(args):
         if why_not:
             print(f"REFUSED: {why_not}", file=sys.stderr)
             return 2
-        sweep_mod.record(conn, lenses=lenses, findings=args.findings, note=args.note or "")
+        recorded = sweep_mod.record(conn, lenses=lenses, findings=args.findings, note=args.note or "")
         print(f"recorded: {len(lenses)} lens(es) available"
               f"{'' if args.findings is None else f', {args.findings} finding(s)'}")
         # The same three states `v4 ship` prints, because it is the same fact:
@@ -1356,8 +1381,11 @@ def cmd_sweep(args):
         never = sorted(set(lenses) - briefed - set(reviewed))
         if never:
             print(f"  no brief printed since the last sweep: {', '.join(never)}")
-        print(f"\nnext due in {c['every_days']} day(s)")
-        return 0
+        if recorded["complete"]:
+            print(f"\nnext due in {c['every_days']} day(s)")
+            return 0
+        print("\nPARTIAL: complete-review cadence was not advanced. Use maintain start for versioned, resumable review.")
+        return 1
 
     ok, why = sweep_mod.due(conn, cfg)
     print(f"{'DUE' if ok else 'not due'} -- {why}\n")
@@ -1685,14 +1713,14 @@ def cmd_engage(args):
 #: of them was silently dropped by the other six. Fixing the one that was
 #: reported would have left five.
 _REVIEW_FLAGS = {
-    "add":    {"task", "file", "symbol", "note", "lens"},
+    "add":    {"task", "file", "symbol", "note", "lens", "run", "check_id"},
     "amend":  {"claim", "note"},
     "close":  {"claim", "test", "command", "parent", "gone", "now",
-               "mutation_file", "mutation_gone", "mutation_now"},
+               "mutation_file", "mutation_gone", "mutation_now", "rename_commit", "declaration", "why"},
     "defer":  {"claim", "why", "target", "withdraw"},
-    "done":   {"lens", "findings", "task"},
+    "done":   {"lens", "findings", "task", "run", "result", "note", "evidence"},
     "group":  {"name", "claim", "why"},
-    "lens":   {"lens", "task"},
+    "lens":   {"lens", "task", "run"},
 }
 
 #: Where each flag *is* read, for the refusal to name. Derived from the table so
@@ -1735,6 +1763,17 @@ def cmd_review(args):
                 "`review add --withdraw` filed a finding for somebody who "
                 "meant to cancel a deferral.", file=sys.stderr)
         return 2
+    run_context = None
+    if getattr(args, "run", None):
+        from . import maintenance
+        try:
+            run_context = maintenance.validate_run(conn, cfg.root, args.run, args.lens)
+            if args.task and args.task != run_context["task"]:
+                raise ValueError("--task differs from the assigned run")
+            args.task = run_context["task"]
+        except ValueError as exc:
+            print(f"REFUSED: {exc}", file=sys.stderr)
+            return 2
     if args.action == "defer":
         if not claim:
             print("defer needs --claim", file=sys.stderr)
@@ -1766,7 +1805,7 @@ def cmd_review(args):
         print("`v4 ship` prints how many are outstanding, every time.")
         return 0
     if args.action == "lens":
-        all_lenses, skipped = review.lens_files(cfg.root)
+        all_lenses, skipped = review.lens_files(cfg.root, include_legacy=bool(args.lens))
         if not args.lens:
             print(f"{len(all_lenses)} lens(es). Pass --lens <name> for the brief.\n")
             for slug, l in all_lenses.items():
@@ -1791,8 +1830,13 @@ def cmd_review(args):
         # The task, when there is one. `lens_brief` prints a different opening
         # line for each mode, and it can only tell them apart if this hands it
         # the one thing that distinguishes them. A periodic sweep passes none.
+        context = run_context["context"] if run_context else None
+        if args.task and context is None:
+            from .maintenance import context_for
+            context = context_for(conn, args.task)
         print(review.lens_brief(all_lenses[args.lens], slug=args.lens,
-                                task=args.task))
+                                task=args.task, repo=cfg.root, context=context,
+                                run=getattr(args, "run", None)))
         # A reviewer who ran and found nothing looked identical to one that
         # never ran. The predecessor measured this failure at 100% of adopters:
         # two repos vendored an executable kit, both satisfied the contract by
@@ -1808,7 +1852,8 @@ def cmd_review(args):
         # tells a run-and-found-nothing from a never-ran was switched off for
         # exactly the two ways a lens is actually used.
         review.record_lens_run(conn, slug=args.lens,
-                               lens=all_lenses[args.lens], task_id=args.task)
+                               lens=all_lenses[args.lens], task_id=args.task,
+                               root=cfg.root, run_id=getattr(args, "run", None))
         return 0
 
     if args.action == "done":
@@ -1827,9 +1872,10 @@ def cmd_review(args):
         # it is the only way "ran and found nothing" can exist as a fact.
         try:
             review.record_lens_reviewed(conn, cfg.root, slug=args.lens,
-                                        findings=args.findings,
-                                        task_id=args.task)
-        except review.BadCoordinates as exc:
+                                        findings=args.findings, task_id=args.task,
+                                        run_id=getattr(args, "run", None), result=getattr(args, "result", None) or "completed",
+                                        note=args.note or "", evidence=getattr(args, "evidence", None) or [])
+        except (review.BadCoordinates, ValueError) as exc:
             print(f"REFUSED: {exc}", file=sys.stderr)
             return 2
         print(f"recorded: {args.lens} reviewed"
@@ -1844,7 +1890,7 @@ def cmd_review(args):
         # finding sees as the lens that found it. A typo there files a finding
         # under a lens that does not exist and no sweep can ever account for.
         if args.lens:
-            known, skipped = review.lens_files(cfg.root)
+            known, skipped = review.lens_files(cfg.root, include_legacy=bool(args.lens))
             if args.lens in skipped:
                 print(f"lens {args.lens!r} is there and not usable: "
                       f"{skipped[args.lens]}", file=sys.stderr)
@@ -1856,12 +1902,15 @@ def cmd_review(args):
         try:
             cid, created, siblings = review.raise_finding(
                 conn, cfg, task_id=args.task, file=args.file, symbol=args.symbol or "",
-                note=args.note, lens=args.lens or "")
-        except review.BadCoordinates as exc:
+                note=args.note, lens=args.lens or "", check_id=getattr(args, "check_id", None))
+        except (review.BadCoordinates, ValueError) as exc:
             # Refused here, where it costs one retry, rather than at the end of
             # the task where the only remaining move is a signature.
             print(f"REFUSED: {exc}", file=sys.stderr)
             return 2
+        if run_context:
+            from .maintenance import observe_finding
+            observe_finding(conn, cfg.root, args.run, args.lens, cid, getattr(args, "check_id", None))
         print(f"{'raised' if created else 'already open'} {cid}")
         # The line that would have stopped six answered findings being
         # overwritten. `note amended on <id>` was printed for a write nobody
@@ -1924,7 +1973,7 @@ def cmd_review(args):
         try:
             was, changed = review.amend_note(conn, claim_id=claim,
                                              note=args.note or "")
-        except review.BadCoordinates as exc:
+        except (review.BadCoordinates, ValueError) as exc:
             print(f"REFUSED: {exc}", file=sys.stderr)
             return 2
         if not changed:
@@ -1939,7 +1988,7 @@ def cmd_review(args):
         try:
             ids = review.group(conn, cfg, name=args.name,
                                claim_ids=args.claim or [], why=args.why)
-        except review.BadCoordinates as exc:
+        except (review.BadCoordinates, ValueError) as exc:
             print(f"REFUSED: {exc}", file=sys.stderr)
             return 2
         print(f"{len(ids)} finding(s) recorded as one fact: {args.name}")
@@ -1950,6 +1999,9 @@ def cmd_review(args):
         print("  finding this group does not actually reach will fail there.")
         return 0
     if args.gone or args.now:
+        if getattr(args, "rename_commit", None) is not None or getattr(args, "declaration", False) or args.why:
+            print("REFUSED: rename/declaration evidence requires executable red/green proof, not --gone/--now")
+            return 2
         try:
             review.bind_text_change(conn, claim_id=claim, gone=args.gone,
                                     now=args.now, parent_commit=args.parent)
@@ -1999,12 +2051,16 @@ def cmd_review(args):
     try:
         review.bind_closing_test(conn, claim_id=claim, test_path=args.test,
                                  command=args.command, parent_commit=args.parent,
-                                 mutation=mutation, root=cfg.root)
-    except review.BadCoordinates as exc:
+                                 mutation=mutation, root=cfg.root,
+                                 rename_commits=getattr(args, "rename_commit", None),
+                                 declaration=getattr(args, "declaration", False), why=args.why)
+    except (review.BadCoordinates, ValueError) as exc:
         print(f"REFUSED: --test {args.test} -- {exc}.\n\n"
               f"{review.HOW_TO_NAME_A_TEST}", file=sys.stderr)
         return 2
     print(f"{args.test} offered as closing {claim}")
+    if getattr(args, "declaration", False):
+        print("coordinate correction recorded: observe the original value's initialization; original claim and symbol retained")
     if mutation:
         print(f"it has to pass at HEAD, run the symbol, and fail with "
               f"{mutation[0]} broken")
@@ -2017,8 +2073,9 @@ def cmd_review(args):
     # rather than implied. Measured on an adopter closing 35 findings: they read
     # exit 0 plus this wording as success and found otherwise by counting OPEN
     # in `status`.
+    claim_task = conn.execute("SELECT task_id FROM claim WHERE id=?", (claim,)).fetchone()[0]
     print(f"\nNOT VERIFIED YET -- the claim is still open. The verdict comes "
-          f"from:\n  v4 --repo . check --task {ledger.REVIEW_TASK} "
+          f"from:\n  v4 --repo {shlex.quote(str(cfg.root))} check --task {shlex.quote(claim_task)} "
           f"--claim {claim}")
     return 0
 
@@ -2324,7 +2381,7 @@ def _analysis_behind(root: Path, program: Path) -> list:
 
 
 def cmd_facts(args):
-    """The four commands that maintain the facts table.
+    """The commands that maintain the facts table.
 
     They existed only as `python3 -m kernel.facts`, which `v4 --help` did not
     mention and `USING.md` contradicts in one line -- 所有指令行 `./bin/v4`.
@@ -2337,6 +2394,8 @@ def cmd_facts(args):
     """
     from . import facts as facts_mod
     rest = list(args.rest or [])
+    if facts_mod.help_requested(rest):
+        return facts_mod.main([args.command, *rest])
     # This repo's own table and root, unless the caller named them. Flags are
     # not positional arguments: `v4 facts verify --gone-only` has to mean the
     # same thing as spelling both paths out, or the form CI runs is the one
@@ -2344,8 +2403,8 @@ def cmd_facts(args):
     positional = [r for r in rest if not r.startswith("-")]
     if args.command == "propose" and not positional:
         rest = [str(_repo(args)), *rest]
-    elif args.command in ("validate", "verify", "scan", "restate") \
-            and not positional:
+    elif args.command in ("validate", "verify", "scan", "restate") and (
+            not positional or (args.command == "scan" and positional[0] in facts_mod.SYMBOL_LISTS)):
         cfg = _cfg(args)
         if cfg.facts_path is None:
             print("this repo has no facts table; `v4 facts propose` drafts one")
@@ -2458,16 +2517,18 @@ def cmd_doctrine(args):
             if not args.write:
                 return 1
         else:
-            print(f"{doctrine.path_for(cfg.root).name} is what `v4 doctrine` "
-                  f"generates")
+            from .hosts import doctrine_files
+            print(", ".join(p.name for p in doctrine_files(cfg.root)) + " is what `v4 doctrine` generates")
             if not args.write:
                 return 0
     # `--write` was declared and read by nothing, so `v4 doctrine --check --write`
     # checked and wrote nothing -- while the header this command generates into
     # every adopter's CLAUDE.md, and SPEC.md's command table, both name that flag.
     # Writing stays the behaviour with neither flag, which is what the docs rely on.
-    path, changed = doctrine.write(cfg)
-    print(f"{path}{'  (updated)' if changed else '  (already current)'}")
+    from .hosts import doctrine_files
+    for destination in doctrine_files(cfg.root):
+        path, changed = doctrine.write(cfg, destination)
+        print(f"{path}{'  (updated)' if changed else '  (already current)'}")
     return 0
 
 
@@ -2489,13 +2550,22 @@ def cmd_export(args):
 
 def cmd_audit(args):
     if getattr(args, "events", None):
-        n, problems = ledger.verify_exported(args.events)
+        details = {}
+        n, problems = ledger.verify_exported(args.events, details=details)
         if problems:
             print(f"FAIL: {len(problems)} problem(s) across {n} chained row(s).\n")
             for pr in problems:
                 print(f"  {pr}")
             return 1
-        print(f"chain intact across {n} chained row(s) in {args.events}")
+        projected = len(details.get("redacted_projection_events", []))
+        if projected:
+            print(f"export integrity verified across {n} chained row(s) in {args.events}")
+            print(f"  {projected} legacy event(s) verified as redacted projections; "
+                  "their original hashes cannot be re-derived from public bytes.")
+            print("  The projection commitment was checked against the source ledger at export; "
+                  "it is not an authenticated signature or recovery of the original secret.")
+        else:
+            print(f"chain intact across {n} chained row(s) in {args.events}")
         return 0
 
     conn = ledger.connect(_repo(args))
@@ -2558,14 +2628,56 @@ def cmd_run_checker(args):
     return res.exit_code
 
 
+def cmd_host(args):
+    from . import hosts, host_binding
+    root = _repo(args)
+    if args.action == "permissions":
+        print('default_permissions = "vibeproof"\n')
+        print("permissions.vibeproof = " + hosts.inline_toml(
+            hosts.permission_profile(root, git_operations=args.git_operations)))
+        return 0
+    if args.action == "bind":
+        conn = ledger.connect(root)
+        try:
+            result = host_binding.bind(conn, root, task_id=args.task,
+                                       session=args.session, agent=args.agent, host=args.host)
+        finally:
+            conn.close()
+        print(json.dumps(result))
+        return 0
+    conn = ledger.connect_readonly(root)
+    try:
+        print(json.dumps(hosts.evidence(conn, task_id=args.task, host=args.host,
+                                       session=args.session, agent=args.agent), indent=2))
+    finally:
+        conn.close()
+    return 0
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="v4")
     p.add_argument("--repo", default=".")
     p.add_argument("--acceptance", default=".v4/acceptance.json")
     sub = p.add_subparsers(dest="cmd", required=True)
 
+    host = sub.add_parser("host", help="bind a host agent to its task or read hook coverage")
+    hp = host.add_subparsers(dest="action", required=True)
+    permissions = hp.add_parser("permissions")
+    permissions.add_argument("--git-operations", action="store_true",
+                             help="include local Git index/objects/refs/worktree writes")
+    permissions.set_defaults(fn=cmd_host)
+    for verb in ("bind", "status"):
+        h = hp.add_parser(verb)
+        h.add_argument("--task", required=verb == "bind")
+        h.add_argument("--session", required=verb == "bind")
+        h.add_argument("--agent", default="")
+        h.add_argument("--host", choices=("claude", "codex"), default="codex")
+        h.set_defaults(fn=cmd_host)
+
     ini = sub.add_parser("init",
                          help="scaffold .v4/ for a repo adopting this")
+    ini.add_argument("--hosts", choices=("claude", "codex", "both"),
+                     help="coding hosts to configure; default is Claude")
     ini.set_defaults(fn=cmd_init)
 
     ins = sub.add_parser("install",
@@ -2573,6 +2685,10 @@ def main(argv=None):
                               "into this repo and register them")
     ins.add_argument("--check", action="store_true",
                      help="say what is behind or missing and write nothing")
+    ins.add_argument("--hosts", choices=("claude", "codex", "both"),
+                     help="install host assets; preserves the existing choice when omitted")
+    ins.add_argument("--activate-hooks", action="store_true",
+                     help="merge framework handlers into the selected host settings")
     ins.set_defaults(fn=cmd_install)
 
     ac = sub.add_parser("accept",
@@ -2808,6 +2924,22 @@ def main(argv=None):
                         "cheap exit expensive")
     e.set_defaults(fn=cmd_engage)
 
+    mt = sub.add_parser("maintain", help="coordinate review, authorized repair, host schedules and notifications")
+    mt.add_argument("action", choices=["schema", "setup", "status", "start", "finish", "handoff", "schedule", "pause", "resume", "notify", "ack", "listen", "notifications", "receiver"])
+    mt.add_argument("--data", help="JSON input file (or - for stdin) for setup, handoff, schedule or notification")
+    mt.add_argument("--id", help="maintenance run, handoff or notification ID")
+    mt.add_argument("--host", choices=["claude", "codex"])
+    mt.add_argument("--trigger", choices=["manual", "scheduled"], default="manual")
+    mt.add_argument("--job", help="start: configured host job ID for a scheduled run")
+    mt.add_argument("--session", help="host session identity or explicit manual label")
+    mt.add_argument("--task", help="task-bound review in its recorded worktree")
+    mt.add_argument("--context-task", help="request/base context for repo-wide review; does not change finding ownership")
+    mt.add_argument("--lens", action="append", help="explicit requested lens; repeat, otherwise select by available context")
+    mt.add_argument("--why", help="finish: abandon the run with a recorded reason")
+    mt.add_argument("--once", action="store_true", help="listen: collect once instead of continuing")
+    from .maintenance_cli import command as maintain_command
+    mt.set_defaults(fn=maintain_command)
+
     rv = sub.add_parser("review", help="raise a reviewer's finding, or close one")
     rv.add_argument("action",
                     choices=["add", "amend", "close", "lens", "defer", "group",
@@ -2820,6 +2952,10 @@ def main(argv=None):
                          "`add` opens a second claim, it does not rewrite the "
                          "first")
     rv.add_argument("--lens")
+    rv.add_argument("--check-id", help="add: source responsibility ID; preserves migrated claim namespace")
+    rv.add_argument("--run", help="lens/add/done: assigned maintenance run")
+    rv.add_argument("--result", choices=["completed", "not_applicable", "not_evaluable", "failed"], help="done: review outcome, distinct from finding count")
+    rv.add_argument("--evidence", action="append", help="done: evidence reference; repeat as needed")
     rv.add_argument("--claim", action="append",
                     help="repeat it for `group`; once for everything else")
     rv.add_argument("--test")
@@ -2831,6 +2967,10 @@ def main(argv=None):
                     help="cancel a deferral that was written about nothing "
                          "(defer only; refused when the claim exists)")
     rv.add_argument("--command"); rv.add_argument("--parent")
+    rv.add_argument("--rename-commit", action="append",
+                    help="close: committed same-file Python function rename; repeat in order for a chain. Requires unchanged body/signature/scope and full red-green proof")
+    rv.add_argument("--declaration", action="store_true",
+                    help="close: correct an old named-value coordinate using actual Node instruction/type observation in the same file; requires --why and red/green proof")
     rv.add_argument("--mutation-file",
                     help="close: the file to break, as the other way to be red. "
                          "For a finding whose repair is a test, there is no "
@@ -2847,7 +2987,7 @@ def main(argv=None):
                                    "at --parent and is not there now")
     rv.add_argument("--now", help="the other direction: quote the text that was "
                                   "not there at --parent and is there now")
-    rv.add_argument("--why", help="defer: why this is not being fixed now")
+    rv.add_argument("--why", help="defer: why not fixed now; close --declaration: why the original coordinate names a value")
     rv.add_argument("--target", help="defer: where the work went -- an issue, a "
                                      "task id, a file, a dated review")
     rv.set_defaults(fn=cmd_review)
@@ -2918,6 +3058,9 @@ def main(argv=None):
     # a framework stops being debuggable.
     try:
         return args.fn(args)
+    except (ledger.NoSuchTask, ledger.ExportProjectionError, scope_mod.WidenRefused) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     except (config_mod.ConfigError, facts_mod.FactsError, sqlite3.DatabaseError) as exc:
         print(f"v4 {args.cmd}: {exc}", file=sys.stderr)
         return 5

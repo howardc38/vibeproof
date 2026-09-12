@@ -134,11 +134,14 @@ def changed_since(root, base: str = "") -> frozenset:
                 f"`git {' '.join(args)}` exited {r.returncode}"
                 + (f": {r.stderr.strip().splitlines()[0][:160]}"
                    if r.stderr.strip() else ""))
-        return r.stdout.splitlines()
+        return r.stdout.split("\0")
 
-    out = set(git("diff", "--name-only", base or "HEAD"))
-    out |= set(git("ls-files", "--others", "--exclude-standard"))
-    return frozenset(p for p in out if p.strip())
+    # A rename changes both paths. Reporting only its destination would hide
+    # removal of production code when it is moved into a test directory.
+    # NUL delimiters preserve spaces, quotes and newlines in Git path names.
+    out = set(git("diff", "--name-only", "--no-renames", "-z", base or "HEAD"))
+    out |= set(git("ls-files", "--others", "--exclude-standard", "-z"))
+    return frozenset(p for p in out if p)
 
 
 def changed_lines(root, base: str = "") -> dict:

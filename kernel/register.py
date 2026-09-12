@@ -494,7 +494,9 @@ def register(conn, *, checkers_json: Path, checker_id, checker_path, kinds,
     kinds and gated on one is gated on half of what it claims to do.
     """
     ok, report = True, {"cases": [], "failures": [], "passed": 0, "total": 0,
-                        "checker_sha": hashing.file_sha(Path(checker_path))}
+                        "checker_sha": hashing.file_sha(Path(checker_path)),
+                        "program_sha": hashing.program_sha(repo_root, checker_path,
+                                                           framework_root=runner.V4_HOME)}
     for kind in kinds:
         k_ok, k_report = verify_checker(
             repo_root=repo_root, checker_path=checker_path,
@@ -511,6 +513,9 @@ def register(conn, *, checkers_json: Path, checker_id, checker_path, kinds,
         report["failures"] += [f"[{kind}] {f}" for f in k_report["failures"]]
         report["passed"] += k_report.get("passed", 0)
         report["total"] += k_report.get("total", 0)
+    if hashing.program_sha(repo_root, checker_path, framework_root=runner.V4_HOME) != report["program_sha"]:
+        ok = False
+        report["failures"].append("checker program changed during fixture verification; re-run registration")
     from .ledger import insert
     # The full report only when something moved. The fixtures still run every
     # install -- that is what caught 23 kinds registering as 2 -- but writing the
@@ -527,15 +532,16 @@ def register(conn, *, checkers_json: Path, checker_id, checker_path, kinds,
         try:
             was = json.loads(prior["payload"])
             same = (was.get("accepted") == ok
-                    and was.get("checker_sha") == report["checker_sha"])
+                    and was.get("checker_sha") == report["checker_sha"]
+                    and was.get("program_sha") == report["program_sha"])
         except (ValueError, TypeError, AttributeError):
             same = False
     payload = ({"checker": checker_id, "accepted": ok,
-                "checker_sha": report["checker_sha"], "unchanged": True,
+                "checker_sha": report["checker_sha"], "program_sha": report["program_sha"], "unchanged": True,
                 "cases": report["total"]}
                if same else
                {"checker": checker_id, "accepted": ok,
-                "checker_sha": report["checker_sha"], "report": report})
+                "checker_sha": report["checker_sha"], "program_sha": report["program_sha"], "report": report})
     insert(conn, "event", task_id=None, claim_id=None, kind="register",
            actor="kernel", payload=payload,
            created_at=datetime.now(timezone.utc).isoformat())
@@ -580,6 +586,7 @@ def register(conn, *, checkers_json: Path, checker_id, checker_path, kinds,
     reg[checker_id] = {
         "path": str(Path(checker_path).relative_to(Path(repo_root))),
         "sha256": report["checker_sha"],
+        "program_sha": report["program_sha"],
         "timeout_sec": timeout_sec,
         "kinds": kinds,
         "fixtures": str(Path(fixtures_dir).relative_to(Path(repo_root))),
@@ -983,6 +990,13 @@ class _Case:
                 (live / r).unlink()
             else:
                 (live / r).write_text(body)
+        # Opt-in history for a checker that verifies a committed transition,
+        # rather than a working-tree change relative to the fixture base.
+        if self.spec.get("commit_current") is True:
+            subprocess.run(["git", "add", "-A"], cwd=live, capture_output=True, check=True)
+            subprocess.run(["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0",
+                            "commit", "-qm", "fixture current"], cwd=live,
+                           capture_output=True, check=True)
         _seed_ledger(live, self.spec.get("ledger"))
         self.files = [live / f.relative_to(self.root) for f in self.files]
         self.root = live

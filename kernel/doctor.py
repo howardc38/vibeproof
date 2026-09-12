@@ -25,6 +25,7 @@ Nothing here is a gate. It is a report, and every line of it says what to run.
 
 import contextlib
 import json
+import sqlite3
 import os
 import subprocess
 from pathlib import Path
@@ -163,12 +164,7 @@ def _reader(root):
 
 def _ro(root):
     from . import ledger as _l
-    try:
-        return _l.connect_readonly(root)
-    except Exception:                                           # noqa: BLE001
-        # A repo with no ledger yet. The caller's `_reports` block turns the
-        # failure into a row rather than a vanished line.
-        return _l.connect(root)
+    return _l.connect_readonly(root)
 
 
 def _close_reader():
@@ -466,6 +462,8 @@ def _check_lens_files_that_will_not_load(root, out):
 
 def _check_registered_hashes_match_what_is_on_disk(root, out):
     """Has a checker been edited since the registry recorded its hash?"""
+    from . import hashing
+    from .runner import V4_HOME
     reg = _json_or(root / config_mod.CHECKERS, {})
     stale = [cid for cid, e in sorted(reg.items())
              if (root / e["path"]).is_file()
@@ -475,6 +473,17 @@ def _check_registered_hashes_match_what_is_on_disk(root, out):
                   f"{len(reg)} checker(s) match",
                   "re-register them; until then every claim they serve exits 6"
                   if stale else ""))
+    # Entry identity and transitive program identity are separate observations.
+    # A legacy registry has no reference for the latter; do not call it matched.
+    unpinned = [cid for cid, entry in sorted(reg.items()) if entry.get("program_sha") is None]
+    moved = [cid for cid, entry in sorted(reg.items())
+             if entry.get("program_sha") is not None and
+             hashing.program_sha(root, root / entry["path"], framework_root=V4_HOME) != entry["program_sha"]]
+    out.append(_c(BAD if moved else WARN if unpinned else OK, "checker programs",
+                  f"changed dependencies: {moved}; no registered program fingerprint: {unpinned}"
+                  if moved or unpinned else f"{len(reg)} registered program(s) match",
+                  "re-register through the fixture gate (v4 install for installed checkers)"
+                  if moved or unpinned else ""))
 
 
 
@@ -912,12 +921,51 @@ def _check_a_registered_checker_that_has_never_executed(root, out):
 
 
 
+def _check_codex_hooks(root, out):
+    """Which Codex handlers are configured, attributed, and still unverified by the host?"""
+    from . import hosts
+    path = root / ".codex/hooks.json"
+    if not path.is_file():
+        out.append(_c(WARN, "codex hooks", "not activated; only installed assets may be present",
+                      "merge .codex/hooks.template.json; inspect and trust the definition in /hooks"))
+        return
+    try:
+        data = json.loads(path.read_text())
+        missing = []
+        for event, groups in hosts.hook_groups("codex").items():
+            got = data.get("hooks", {}).get(event, [])
+            for group in groups:
+                script = group["hooks"][0]["command"].split("/hooks/")[1].split(".py")[0]
+                if not any(g.get("matcher", "") == group.get("matcher", "") and
+                           any(f"/hooks/{script}.py" in h.get("command", "")
+                               for h in g.get("hooks", [])) for g in got):
+                    missing.append(event + ":" + script)
+        if missing:
+            out.append(_c(BAD, "codex hooks", "missing handlers: " + ", ".join(missing)))
+            return
+        observed = hosts.evidence(_reader(root), host="codex")
+        missing = sorted(set(hosts.HOOKS) - set(observed["checked"]))
+        detail = ("configured; not yet observed checking: " + ", ".join(missing)
+                  if missing else "configured; each guard has historical Codex evidence")
+        detail += "; current host trust/session coverage must be checked in /hooks"
+        out.append(_c(WARN, "codex hooks", detail,
+                      "v4 host status --session <current-session> reads only that session's evidence"))
+    except (OSError, ValueError, sqlite3.Error) as exc:
+        out.append(_c(BAD, "codex hooks", f"configuration or evidence unreadable: {exc}"))
+
+
 def _check_hooks_are_called_and_not_merely_present(root, out):
     """Does a settings file call these hooks, and has any of them ever fired?"""
+    from . import hosts
+    chosen = hosts.selected(root)
+    if "codex" in chosen:
+        _check_codex_hooks(root, out)
+    if "claude" not in chosen:
+        return
     settings = [p for p in (root / ".claude" / "settings.json",
                             root / ".claude" / "settings.template.json") if p.is_file()]
     hooks = sorted(p.name for p in (root / "hooks").glob("*.py")
-                   if not p.name.startswith("_")) if (root / "hooks").is_dir() else []
+                   if p.stem in ("write_block", "bash_guard", "stop_gate")) if (root / "hooks").is_dir() else []
     if not settings:
         out.append(_c(WARN, "hooks",
                       f"{len(hooks)} hook file(s) and no .claude/settings*.json",
@@ -948,10 +996,12 @@ def _check_hooks_are_called_and_not_merely_present(root, out):
             _c_h = _reader(root)
             fired = _c_h.execute(
                 "SELECT created_at FROM event WHERE kind = 'hook_seen' "
+                "AND coalesce(json_extract(payload, '$.host'), 'claude') = 'claude' "
                 "ORDER BY id DESC LIMIT 1").fetchone()
             seen = {r[0] for r in _c_h.execute(
                 "SELECT DISTINCT json_extract(payload, '$.hook') FROM event "
-                "WHERE kind = 'hook_seen'") if r[0]}
+                "WHERE kind = 'hook_seen' "
+                "AND coalesce(json_extract(payload, '$.host'), 'claude') = 'claude'") if r[0]}
             # Rows written before the payload carried a name are not evidence
             # about any particular hook, so a repo whose whole history predates
             # this is reported as "none of them named itself" rather than as
@@ -959,7 +1009,11 @@ def _check_hooks_are_called_and_not_merely_present(root, out):
             silent = ([h[:-3] for h in hooks if h[:-3] not in seen]
                       if seen else [])
         except Exception as exc:                                # noqa: BLE001
-            unread = f"{type(exc).__name__}: {exc}"
+            from . import ledger as _lh
+            if not _lh.ledger_path(root).is_file():
+                fired, seen, silent = None, set(), []
+            else:
+                unread = f"{type(exc).__name__}: {exc}"
         if unwired:
             status, detail = BAD, f"not wired: {unwired}"
         elif not live:
@@ -1005,58 +1059,34 @@ def _check_hooks_are_called_and_not_merely_present(root, out):
 
 
 def _check_the_after_gate_is_called_and_not_merely_present(root, out):
-    """Does anything call `v4 sweep`, and when did a sweep last run?"""
-    cfg_raw = _json_or(root / config_mod.CONFIG, {})
-    # `kernel/sweep.py` answers "is it due" and deliberately does not start
-    # anything -- SPEC.md §10.1 says `--if-due` is "for cron to give up on".
-    # So the trigger lives outside this repo's code, exactly like a hook's, and
-    # exactly like a hook it can simply not exist. Measured: no workflow, no
-    # command, no config key mentioned `sweep`, and 145 of the 254 migrated
-    # rules (57%) live in the lens layer this gate is the only trigger for.
-    #
-    # This repo already refuses that shape twice over: "一個檢查要算數要三樣:
-    # 自動觸發、喺一個唔繼承任何本地嘢嘅環境跑過、而且至少 fire 過一次" and
-    # "一個喺呢個 repo 裡跑唔起嘅閘,比冇閘更差". The check for hooks was
-    # written and the same question was never asked about this one.
-    lenses = len(list((root / ".v4" / "lenses").glob("*.json")))
-    if lenses:
-        declared = "lens_sweep" in cfg_raw
-        wf_text = "".join(p.read_text(encoding="utf-8", errors="replace")
-                          for p in (root / ".github" / "workflows").glob("*.yml")) \
-            if (root / ".github" / "workflows").is_dir() else ""
-        cmd_text = "".join(p.read_text(encoding="utf-8", errors="replace")
-                           for p in (root / ".claude").rglob("*.md")) \
-            if (root / ".claude").is_dir() else ""
-        called = "sweep" in wf_text or "sweep" in cmd_text
-        # `ran = None` on a failed read gives the identical output to a repo
-        # that genuinely never swept -- "wired, and no sweep has ever been
-        # recorded" -- so the two are separated here rather than in the
-        # sentence below. This is the row `_reports` exists for; it is spelled
-        # out because the answer feeds the next branch rather than replacing it.
-        ran, unread = None, ""
-        try:
-            from . import ledger, sweep as sweep_mod
-            ran = sweep_mod.last(_reader(root))
-        except Exception as exc:                                # noqa: BLE001
-            unread = f"{type(exc).__name__}: {exc}"
-        if not called:
-            out.append(_c(WARN, "sweep",
-                          f"{lenses} lens(es) and nothing calls `v4 sweep`",
-                          "the after-gate answers 'is it due' and starts "
-                          "nothing by design, so the trigger is a cron, a "
-                          "workflow or a command -- and there is none. Every "
-                          "rule that landed in a lens has never been read."))
-        elif unread:
-            out.append(_c(BAD, "sweep",
-                          f"wired, and the ledger could not be read: {unread}",
-                          "this line cannot say whether a sweep has ever "
-                          "happened, which is not the same as saying none has"))
-        else:
-            out.append(_c(OK if ran else WARN, "sweep",
-                          (f"last swept {str(ran)[:19]}" if ran else
-                           f"wired, and no sweep has ever been recorded")
-                          + ("" if declared else
-                             "  (no lens_sweep in config -- running on the default)")))
+    """A command file, a host job and a completed review are different facts."""
+    from . import maintenance, review
+    with _reports(out, "sweep"):
+        lenses, invalid = review.lens_files(root)
+        if invalid:
+            out.append(_c(BAD, "sweep", "lens catalogue unreadable: " + str(invalid)))
+            return
+        if not lenses:
+            return
+        data = maintenance.wiring(root)
+        available = [h for h, present in data["entrypoints"].items() if present]
+        out.append(_c(OK if available else WARN, "maintenance entry",
+                      "installed: " + ", ".join(available) if available else "no maintain entry installed",
+                      "install the selected host assets" if not available else ""))
+        if not data["schedules"]:
+            out.append(_c(WARN, "maintenance schedule", "no native job observation recorded",
+                          "run maintain setup through the host; a command or documentation mention does not create a job"))
+        for host, job in data["schedules"].items():
+            execution = data["executions"].get(host, {}).get(job["job_id"])
+            observed = job["status"]
+            detail = (f"{host}: job {job['job_id']}, last observed {observed} at {job['observed_at']}; "
+                      + (f"recorded scheduled run {execution['id']}: {execution['status']}" if execution else "no execution recorded for this job"))
+            out.append(_c(OK if observed == "active" and execution and execution["status"] == "complete" else WARN,
+                          "maintenance schedule", detail, data["verification"]))
+        last = data["last_complete"]
+        out.append(_c(OK if last else WARN, "sweep",
+                      f"last complete review {last}" if last else "no complete review recorded",
+                      "run maintain once; partial or waiting work does not advance review cadence" if not last else ""))
 
 
 
@@ -1125,12 +1155,18 @@ def _check_ci_can_actually_walk_the_chain(root, out):
         else:
             try:
                 from . import ledger as _lc
-                n, probs = _lc.verify_exported(export)
-                out.append(_c(OK if not probs else BAD, "CI",
-                              f"the exported chain walks clean across {n} attempt(s)"
+                details = {}
+                n, probs = _lc.verify_exported(export, details=details)
+                projected = len(details.get("redacted_projection_events", []))
+                out.append(_c(BAD if probs else WARN if projected else OK, "CI",
+                              (f"export integrity verified across {n} chained row(s); "
+                               f"{projected} legacy redacted projection(s)" if projected else
+                               f"the exported chain walks clean across {n} chained row(s)")
                               if not probs else
                               f"the exported chain does not walk: {probs[0][:110]}",
-                              "" if not probs else
+                              ("Original hashes of redacted rows cannot be re-derived from public bytes; "
+                               "keep the projection sidecar in version control with the segments."
+                               if projected else "") if not probs else
                               "this is what the chain job runs, so it is failing "
                               "there too -- and a job that has never passed is "
                               "one nobody can tell from a broken one"))
@@ -1213,19 +1249,12 @@ def _check_the_path_the_hooks_use_to_find_the_framework(root, out):
     # checked it, and the failure is silent by construction: a hook that cannot
     # import `kernel` allows the write. `bin/v4` fails loudly on the same fact;
     # this is the quiet half, and now it is one line to see.
-    home = root / ".v4" / "home"
-    if home.is_file():
-        where = home.read_text(encoding="utf-8", errors="replace").strip()
-        there = Path(where).is_dir() if where else False
-        env = os.environ.get("V4_HOME")
-        out.append(_c(OK if (there or env) else BAD, "framework path",
-                      f"{where or '(empty)'}"
-                      + ("" if there else " -- not a directory on this machine"),
-                      "" if there else
-                      (f"V4_HOME={env} is set and wins" if env else
-                       "every hook that cannot import `kernel` allows the write. "
-                       "Run `v4 install` here, or set V4_HOME. `.v4/home` is a "
-                       "fact about one machine and does not belong in git")))
+    where = _layout.framework_home(root)
+    if where is not None:
+        there = (where / "kernel").is_dir()
+        out.append(_c(OK if there else BAD, "framework path",
+                      f"{where}" + ("" if there else " -- no kernel at this location"),
+                      "" if there else "repair the explicit V4_HOME/local/shared framework locator; do not treat a missing kernel as an active hook"))
 
 
 
@@ -1288,50 +1317,20 @@ def _check_tasks_that_were_opened_and_never_ended(root, out):
 
 
 def _check_findings_a_review_raised_and_nobody_closed(root, out):
-    """Which review findings are neither closed nor deferred?"""
-    # The review row is deliberately outside "open tasks": a hook that guarded it
-    # would guard every repo forever. That exclusion is also why nothing showed
-    # these. Measured the day filing started working: one finding landed, sat
-    # unrun, and `doctor` said nothing -- so it was as visible in the ledger as it
-    # had been in the markdown file it came from, which was the thing being fixed.
+    """Use the current verdict, not whether this claim ever passed."""
     with _reports(out, "review findings"):
-        from . import ledger as _led3
-        conn3 = _reader(root)
-        # `kind`, not just the task. The review row is where a task-less
-        # finding hangs, and anything that runs `v4 derive` against it raises
-        # the whole battery there too -- measured here: 32 open claims on it,
-        # of which 3 were findings and 29 were `fail-closed`, `test`, `lint`
-        # and the rest. This line said "32 raised by a review", which is one
-        # output standing for two different facts.
-        # And not one somebody deferred. A deferral is a decision with a
-        # reason and a target written down, and `v4 review defer` is one of the
-        # two endings this row is about -- counting those as "nobody closed it"
-        # made this line disagree with the `deferrals` row four lines down and
-        # print advice ("close it with a test") against a decision already on
-        # the record. There were twelve of them the first time both rows ran.
-        rows = conn3.execute(
-            "SELECT c.id, c.file, c.symbol FROM claim c WHERE c.task_id = ? "
-            "AND c.kind = 'review-finding' "
-            "AND NOT EXISTS (SELECT 1 FROM attempt a WHERE a.claim_id = c.id "
-            "AND a.exit_code = 0) "
-            "AND NOT EXISTS (SELECT 1 FROM event e WHERE e.claim_id = c.id "
-            "AND e.kind = 'finding_deferred') "
-            "ORDER BY c.rowid", (_led3.REVIEW_TASK,)).fetchall()
+        from . import attention, ledger
+        result = attention.scan(root, conn=_reader(root),
+                                task_id=ledger.REVIEW_TASK, kind="review-finding")
+        rows = [r for r in result["items"] if not r["deferred_to"]]
+        if result["errors"]:
+            out.append(_c(BAD, "review findings", "current state unavailable: " + str(result["errors"])))
         if rows:
-            named = ", ".join(f"{r['file']}::{r['symbol']}" for r in rows[:3])
-            out.append(_c(
-                WARN, "review findings",
-                f"{len(rows)} raised by a review and neither closed nor "
-                f"deferred: {named}"
-                + (f" … +{len(rows) - 3}" if len(rows) > 3 else ""),
-                f"a review finding closes one way -- a test that fails at the "
-                f"parent, passes at HEAD, and runs the symbol -- or it is "
-                f"deferred, which is a decision with a target:\n"
-                f"    v4 --repo . status --task {_led3.REVIEW_TASK}\n"
-                f"    v4 --repo . review close --claim <id> --test <path> "
-                f"--command '<cmd with {{path}}>' --parent <commit>\n"
-                f"    v4 --repo . review defer --claim <id> --why '…' "
-                f"--target '…'"))
+            named = ", ".join(f"{r['file']}::{r['symbol']} ({r['state']})" for r in rows[:3])
+            out.append(_c(WARN, "review findings",
+                          f"{len(rows)} review finding(s) currently unresolved and not deferred: {named}",
+                          "Read current evidence before choosing repair, re-check or a deferral: "
+                          "v4 --repo . status --task repo-review"))
 
 
 

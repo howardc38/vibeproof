@@ -31,20 +31,19 @@ description: 把 N 件唔相干嘅工作,同時開 N 個 worktree、N 個 task�
 
 ```
 每個 worker sub-agent 個 prompt 要帶:
-    cd ../wt-<id> && export V4_TASK=t-<id>
+    ./bin/v4 --repo /absolute/wt-<id> status --task t-<id>
+    # 收到 host identity 時，從該 worktree 執行 host bind。
 ```
 
 用 host 支援嘅並行 dispatch；唔好等一個 worker 完成先開下一個。
 Message 數目本身唔決定並行，亦要遵守 host 的 concurrency 上限。
 
-**`export V4_TASK` 係呢個 command 存在嘅一半理由。** ledger 係成個 repo 共用嘅
-(`ledger_path` 行 `git rev-parse --git-common-dir`,SPEC.md §1),所以幾棵樹嘅
-task 全部喺同一張表度開住。write hook 冇咗 `V4_TASK` 就冇得知呢次寫入屬於邊個,
-舊版本會靜默揀最新嗰個；現行 `open_task` 發現多於一個 open task 會回
-`AMBIGUOUS`，hook 會拒絕呢次寫入。每個 worker 必須帶自己嘅 task ID。
+**一個 worker task 對一個 worktree。** Ledger 由 Git common directory 共用，
+hook 先按 task_worktree 記錄選出當前 worktree 的 task。同一棵樹有幾個 open
+tasks 而沒有明確身份時仍然拒絕猜測。每次 CLI 都傳明確 --repo／--task；
+收到 SessionStart/SubagentStart 的 identity 時用 host bind 綁定。
+不要靠一個共享的 V4_TASK 環境變數代表同時跑緊的幾個 worker。
 
-`hooks/write_block.py` 自己寫住:「Two tasks open and no `V4_TASK`: the guard has
-no way to know which one this is.」
 
 ## 一刀嘅來源:一個 request,或者幾條講緊同一件事嘅 finding
 
@@ -130,7 +129,12 @@ Kernel 沒有在這份流程定工作數上限；host、資源和可安全合併
 一棵冇 ship 嘅 worktree 係一個永遠開住嘅 task,而一個開住嘅 task 會:
 
 - 在其仍屬活躍工作且有 blocking claims 時令 `v4 sweep` 等待；只有 report-only 問題不一定算 busy
-- 令 write hook 喺下一次冇 `V4_TASK` 嘅寫入度揀錯人
+- 同一 worktree 留低多個 open tasks 時，令 write hook 無法唯一判定歸屬
 
 `v4 doctor` 嗰行 `open tasks` 會逐個名咁報返出嚟,連埋佢喺邊棵樹。收唔到就
 `v4 abandon --task <id> --why '…'`,唔好當佢唔存在。
+
+Headless 執行亦要收齊結果先回覆最後答案：驗收指令同步等到 exit code；如用了背景工作，讀回其完成結果後才繼續。單純「等待中」不是完成或阻塞證據。
+
+
+由維護流程派工時，每組保留原 claim IDs 與 handoff ID。主控先記 prepared，再用宿主派工並記真實 host_ref；派工回覆不明就對帳，不能再開一個相同 worker。完成後向原 claims 提供有效 proof，並在合併後重驗。讀取固定 snapshot 的 review 可以與另一棵樹的 dev 並行；修改與合併仍要重新核對授權、目標狀態及相互依賴。

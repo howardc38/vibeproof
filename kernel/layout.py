@@ -12,7 +12,7 @@ A path is not a policy.  Nothing here validates a file, applies a rule or
 decides anything, so both directions can import it and neither gains a
 dependency on the other's rules.
 
-`repo_name` asks git a question and is the one thing here that does I/O.  It
+`repo_name` and `framework_home` read declared locations and ask Git for repository metadata.  It
 is here rather than in `hashing` or `config` because it answers the same kind
 of question as the constants above -- *what is this repo, and where are its
 things* -- and because the three callers are `doctrine`, `facts` and `config`,
@@ -21,6 +21,7 @@ matters is preserved: it adds no dependency on anybody's rules.
 """
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -32,6 +33,43 @@ CONFIG = f"{DIR}/config.json"
 CLAIM_KINDS = f"{DIR}/claim_kinds.json"
 CHECKERS = f"{DIR}/checkers.json"
 DETECTORS = f"{DIR}/detectors.json"
+SURFACE_DIR = f"{DIR}/surface"
+
+
+def surface_programs(root):
+    """Installed executable browser adapters; documentation/types are not programs."""
+    return sorted(p for p in (Path(root) / SURFACE_DIR).rglob('*')
+                  if p.is_file() and p.suffix in {'.cjs', '.mjs', '.js'})
+
+
+def framework_home(root):
+    """Resolve the configured framework for readers, including sibling worktrees.
+
+    Bootstrap hooks use the same precedence before they can import the kernel:
+    explicit environment, vendored kernel, local marker, shared Git marker.
+    A nonempty invalid override is returned for diagnosis, never silently hidden.
+    """
+    root = Path(root).resolve()
+    if os.environ.get("V4_HOME"):
+        return Path(os.environ["V4_HOME"]).expanduser().resolve()
+    if (root / "kernel").is_dir():
+        return root
+    local = root / DIR / "home"
+    if local.is_file():
+        value = local.read_text(encoding="utf-8").strip()
+        if value:
+            return Path(value).expanduser().resolve()
+    try:
+        result = subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=root,
+                                text=True, capture_output=True, check=True)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    shared = (root / result.stdout.strip()).resolve() / "v4/framework-home"
+    if shared.is_file():
+        value = shared.read_text(encoding="utf-8").strip()
+        if value:
+            return Path(value).expanduser().resolve()
+    return None
 
 
 

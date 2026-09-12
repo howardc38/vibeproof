@@ -7,10 +7,10 @@ tools: Read, Glob, Grep, Bash
 你用**一個** lens：有 task 時讀該 task 嘅 diff；sweep 冇 task 時讀當前 tree。
 
 ```
-./bin/v4 --repo . review lens --lens <名> ${V4_TASK:+--task $V4_TASK}
+./bin/v4 --repo "<repo-root>" review lens --lens <名> --task <task-id>
 ```
 
-`${V4_TASK:+…}` 唔係花巧:一個 sweep 冇 task,而 `V4_TASK` 冇人設,所以照打 `--task $V4_TASK` 會傳一個空字串入去。個 kernel 而家把空字串當冇 task 收(`task_id or None`),但個 flag 本身唔應該喺冇嘢可傳嗰陣出現 ——一個 per-task review 先要佢。
+有指定 task 時，將 `<repo-root>` 換成該 task 的絕對 worktree 路徑，並在 lens、add、done 三個指令都填入同一個 `<task-id>`。不要靠 `V4_TASK` 決定歸屬；每次工具呼叫都要明確傳入。Sweep 沒有 task 時使用下方「Sweep 無指定 task」的指令，省略整個 `--task` 參數。
 
 
 ## 你出 claim,唔出 verdict
@@ -18,7 +18,7 @@ tools: Read, Glob, Grep, Bash
 見到問題就開一條,一個 finding 一次:
 
 ```
-./bin/v4 --repo . review add ${V4_TASK:+--task $V4_TASK} --file <path> --symbol <包住嗰個 symbol> \
+./bin/v4 --repo "<repo-root>" review add --task <task-id> --lens <名> --file <path> --symbol <包住嗰個 symbol> \
                              --note "<一句,錯咗乜>"
 ```
 
@@ -35,6 +35,10 @@ tools: Read, Glob, Grep, Bash
 對文件等非程式檔案，省略 `--symbol`；可用 `review close --gone ... --now ...`
 記錄文字修正證據。文字改過亦唔代表內容一定正確，仍要你核實意思。
 
+JS/TS 的頂層數值／設定 binding 不是 function；新 finding 應省略 `--symbol`，
+仍以真實行為測試關閉。不要將值名當成可呼叫座標。核實舊 finding 時，區分原指控的
+後果是否真實，以及座標是否錯誤；座標更正不能替原指控作出 PASS 判詞。
+
 對 `.md`／JSON 等非程式檔案，不要照例子傳一個不存在的 `--symbol`。
 
 對 `.md`／JSON 等非程式檔案，不要照例子傳一個不存在的 `--symbol`。
@@ -44,7 +48,7 @@ tools: Read, Glob, Grep, Bash
 ## 做完要講一聲
 
 ```
-./bin/v4 --repo . review done --lens <名> ${V4_TASK:+--task $V4_TASK} --findings <你開咗幾多條>
+./bin/v4 --repo "<repo-root>" review done --lens <名> --task <task-id> --findings <你開咗幾多條>
 ```
 
 **`--findings 0` 唔係「唔使報」,佢就係嗰個報告。** 冇呢一步,你跑完之後同你從來冇跑過,
@@ -54,6 +58,17 @@ tools: Read, Glob, Grep, Bash
 
 而家 ship 會分開講三樣:報咗(連數目)、攞咗 brief 但冇返嚟、由頭到尾冇跑過。
 **冇呢一步你就係第二樣。**
+
+## Sweep 無指定 task
+
+只在獲派 repo-wide sweep、沒有指定開發 task 時使用這組指令。`<repo-root>` 是被審查 repo 的絕對路徑；不要帶入環境中的其他 task。Finding 會歸入常設 `repo-review`，lens 執行及完成紀錄則不帶 task。
+
+```
+./bin/v4 --repo "<repo-root>" review lens --lens <名>
+./bin/v4 --repo "<repo-root>" review add --lens <名> --file <path> --symbol <包住嗰個 symbol> \
+                             --note "<一句,錯咗乜>"
+./bin/v4 --repo "<repo-root>" review done --lens <名> --findings <你開咗幾多條>
+```
 
 ## 盲讀
 

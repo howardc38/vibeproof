@@ -54,6 +54,31 @@ _TS_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.S)
 _TS_LINE_COMMENT = re.compile(r"//[^\n]*")
 _TS_STRING = re.compile(r"""(?<!\\)(['"`])(?:\\.|(?!\1)[^\\])*\1""", re.S)
 
+# Match against the original source once, in lexical order. Sequential strips
+# mistake a URL's // for a comment; putting strings first instead mistakes a
+# quote inside a comment for the start of a string. Earliest-token matching
+# preserves both boundaries. This remains the existing bounded quoted-literal
+# reader, not a complete JS parser (regex literals/template expressions).
+_TS_TOKEN = re.compile("|".join("(?:" + rx.pattern + ")" for rx in
+                              (_TS_STRING, _TS_BLOCK_COMMENT, _TS_LINE_COMMENT)), re.S)
+
+
+def ts_string_spans(source: str):
+    """Quoted literal spans, excluding quotes inside comments."""
+    return [m.span() for m in _TS_TOKEN.finditer(source) if m.group(0)[0] in "\"'`"]
+
+
+def ts_mask(source: str, *, strings=True) -> str:
+    """Blank comments and optionally literals without moving offsets/newlines."""
+    out = list(source)
+    for m in _TS_TOKEN.finditer(source):
+        if not strings and m.group(0)[0] in "\"'`":
+            continue
+        for i in range(m.start(), m.end()):
+            if out[i] not in "\r\n":
+                out[i] = " "
+    return "".join(out)
+
 #: Only at the start of a line, allowing indentation and the modifiers a
 #: declaration really can carry.  A `function` in the middle of a line is an
 #: expression, not a binding this file is asked about.
@@ -170,12 +195,7 @@ def _ts_names(path: Path) -> set | None:
         src = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
-    stripped = _TS_BLOCK_COMMENT.sub(" ", src)
-    stripped = _TS_LINE_COMMENT.sub(" ", stripped)
-    # Replaced with a quote pair rather than removed, so the line structure the
-    # declaration pattern anchors on survives.
-    stripped = _TS_STRING.sub('""', stripped)
-    return set(_TS_DECL.findall(stripped))
+    return set(_TS_DECL.findall(ts_mask(src)))
 
 
 #: Every name a Rust file binds at the top of a module or an `impl` block.
@@ -298,8 +318,8 @@ def ts_imports(source: str):
     was yielded as a real import and reached `dangling_ref.ts_scan` and
     `layers.scan` as a crossing the file does not make.
     """
-    masked = _TS_LINE_COMMENT.sub(" ", _TS_BLOCK_COMMENT.sub(" ", source))
-    quoted = [m.span() for m in _TS_STRING.finditer(masked)]
+    masked = ts_mask(source, strings=False)
+    quoted = ts_string_spans(source)
     out = []
     for m in _TS_IMPORT.finditer(masked):
         if any(a <= m.start() < b for a, b in quoted):
@@ -332,7 +352,7 @@ def ts_imports(source: str):
 
 def ts_exported_names(source: str) -> set:
     """Every name this module publishes, by any of the forms TypeScript has."""
-    masked = _TS_LINE_COMMENT.sub(" ", _TS_BLOCK_COMMENT.sub(" ", source))
+    masked = ts_mask(source)
     out = {m.group("name") for m in _TS_EXPORT_DECL.finditer(masked)}
     for m in _TS_EXPORT_LIST.finditer(masked):
         for piece in m.group("names").split(","):

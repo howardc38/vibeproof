@@ -2,6 +2,7 @@
 
 先运行 [独立演示](../examples/first-proof/README.md)，再把完整 framework 用在一个可以还原的 git 项目。最容易开始的环境是 Claude Code、Python 3.12+，以及已经能运行的测试。完整流程使用 macOS 或 Linux；尚未验证原生 Windows。
 
+Codex / 雙宿主 / 双宿主: [host setup](CODEX.md). The instructions below retain the default Claude workflow.
 ## 你决定，agent 执行
 
 你提供想要的结果、允许修改的文件、真正的测试命令，以及是否接受未解决风险的决定。agent 可以处理安装、流程命令、读取检查结果与修复代码。你不需要每次亲自输入所有命令。
@@ -9,6 +10,8 @@
 ## 先完成安装
 
 保留安装前可以还原的 commit。如果已经下载 vibeproof，使用现有 checkout，不要重复 clone 到同一个目录。
+
+Surface suite 也要接入实际执行结果；可按[接线指引](../.v4/surface/INTEGRATION.md)使用可选 Playwright helper，并确认本机 browser／loopback 权限。
 
 ```sh
 git clone https://github.com/howardc38/vibeproof.git ~/vibeproof

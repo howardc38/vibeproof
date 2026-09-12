@@ -226,6 +226,18 @@ the file outgrows 25 MB a ship seals it as `ledger_export.jsonl.0001` beside
 a fresh open file — commit the sealed one too, and never edit it; the walk
 crosses from one to the next by itself.
 
+For old rows redacted after hashing, normal export also writes an adjacent
+`<export>.projection.json`. Commit that sidecar too: it verifies the public
+redacted view while preserving the original hashes and sealed bytes. Audit
+prints the legacy projection count; doctor shows WARN because those original
+hashes cannot be re-derived from public bytes. Re-export using the original
+ledger if the proof is missing/stale. Do not hand-edit it to silence a mismatch;
+an invalid original ledger cannot produce this proof. See SPEC's export section
+for the verification scope and its Git-review trust boundary.
+On upgrade, run one normal export to populate the final anchor's event count
+and head. Audit refuses an older open export without them; old sealed segments
+stay unchanged.
+
 ---
 
 ## When the scope is not enough
@@ -302,8 +314,11 @@ not an actively edited development copy, if they need controlled kernel updates.
 cd <framework repo> && ./bin/v4 --repo <adopter> install
 ```
 
-- change `kernel/**` → **live immediately**, no install needed (an adopter has no
-  kernel of its own; `bin/v4` puts the framework's on `PYTHONPATH`)
+- change `kernel/**` → the shared code loads immediately, but a changed checker
+  dependency invalidates its registered program fingerprint. Run `install` to
+  re-gate affected checkers before they can produce another answer; until then
+  they refuse with exit 6. Older registries lacking this fingerprint receive a
+  `doctor` warning and gain it on installation.
 - change `checkers/**` / `detectors/**` → install
 - Historical observations were about ten minutes on one 5,400-file repo and
   about two on a three-file repo. Timing is not a guarantee or a health check:
@@ -373,3 +388,32 @@ expected output for every repo. Replace placeholders before executing.
 git add <explicit-reviewed-paths>
 git commit
 ```
+
+
+## Periodic maintenance and findings
+
+Invoke `/maintain` in Claude Code or `$vibeproof-maintain` in Codex and request
+`setup`, `once` or `status`. Setup reuses existing choices and asks only for
+missing host/cadence, repair scope and notification destination. Review is the
+default; repair needs an explicit path grant. Native job creation/read-back is
+separate from `v4 maintain setup`, which only records local configuration.
+
+Use `./bin/v4 --repo <absolute-root> maintain status` to inspect current attention,
+run/handoff status and cadence. Follow the indicated check/derive action for stale
+evidence before treating it as a code defect. Keep controller JSON on stdin
+(`--data -`) or outside the reviewed tree so it does not change the review source.
+`maintain schema` lists accepted fields and limits.
+
+Maintenance can review an isolated committed snapshot while development continues
+elsewhere. It repairs only in authorized isolated worktrees; unresolved ownership,
+changed targets and uncertain dispatch remain visible. A complete review and a
+closed finding are separate outcomes. Do not merge branches on the strength of
+branch-only proof.
+
+For Telegram, provide the intended chat and a securely stored token-file path,
+not a token in chat or source. The workflow configures bounded delivery and a
+per-bot acknowledgement receiver. On macOS, `maintain receiver` manages its owned
+launchd service using JSON `operation` values `start`, `status`, `stop`, `remove`.
+Inspect both service status and `maintain notifications`: a loaded service may
+still be unable to reach Telegram. An acknowledged notice still needs the actual
+finding to be fixed. Credentials are not needed for local review/dev.

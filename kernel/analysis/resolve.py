@@ -55,6 +55,21 @@ def py_resolve(root: Path, dotted: str):
     return None
 
 
+def py_submodule(package_path: Path, name: str):
+    """An exact child module; a same-named package attribute may still win."""
+    if package_path.is_dir():
+        directory = package_path
+    elif package_path.name == "__init__.py":
+        directory = package_path.parent
+    else:
+        return None
+    base = directory / name
+    for candidate in (base.with_suffix(".py"), base / "__init__.py"):
+        if candidate.is_file():
+            return candidate
+    return base if base.is_dir() else None
+
+
 # ── TypeScript and JavaScript ────────────────────────────────────────────────
 #
 # The same refusal to guess. What "resolution" means here was measured on five

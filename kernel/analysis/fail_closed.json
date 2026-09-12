@@ -194,6 +194,8 @@
       "unavailable",
       "unknown",
       "unreadable"
-    ]
+    ],
+    "failure_reporting_assignments": [],
+    "failure_reporting_calls": []
   }
 }

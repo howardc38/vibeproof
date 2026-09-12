@@ -7,8 +7,10 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 你起一個 checker。**你唔使說服任何人 —— 你要過個閘。**
 
 ```
-./bin/v4 --repo . verify --checker checkers/<name>.py --fixtures tests/fixtures/<name> --kind <kind>
+./bin/v4 --repo . verify --checker checkers/<name>.py --fixtures <fixture-root>/<name> --kind <kind>
 ```
+
+Framework 開發用 `tests/fixtures/`；adopter repo 用 `.v4/fixtures/`。先讀現有 registry 確認位置，唔好將故意壞咗嘅 fixture 放入 adopter 正常測試收集路徑。
 
 ## 三格 fixture
 
@@ -53,10 +55,19 @@ bypass/  ≥3,每個必須 exit 1
 
 ## 判準嘅來源
 
-一般 source 分析放 `kernel/analysis/`；要讀 kernel 設定或框架結構嘅判斷放 `kernel/`，保留 layer 邊界。
-
-一般 source 分析放 `kernel/analysis/`；要讀 kernel 設定或框架結構嘅判斷放 `kernel/`，保留 layer 邊界。
-
-一般 source 分析放 `kernel/analysis/`；要讀 kernel 設定或框架結構嘅判斷放 `kernel/`，保留 layer 邊界。
+Framework 開發時，一般 source 分析放 `kernel/analysis/`；依賴 kernel 設定／框架結構嘅判斷放 `kernel/`。Adopter 冇自己嘅 kernel；沿用該 repo 已授權嘅 checker／共用模組位置，唔好修改指向嘅共用 framework。
 
 如果同一條規則有一個 detector,兩者要用同一個 module。**一條問題兩個實作 = 兩個答案。**
+
+
+## 任務、探針及交回
+
+先核對已授權 task/worktree/scope。手動 subject、malformed-input 或輸出探針都放喺
+已授權 fixture 位置，或主控明確提供嘅私有證據目錄；唔好另開一個未授權嘅共用
+`/tmp` 目錄。需要直接跑 checker 時，優先用既有 `v4 run-checker` 入口及明確
+subject path；缺檔控制唔需要先造一份另一個位置嘅檔案。
+
+遇到宿主拒絕，交回被拒操作同原因；唔好換另一個工具繞過。註冊 fixture 通過
+與整個任務完成分開記。交回 checker/fixture/registry 變更、實際 gate 結果、版本
+同未完成項目；主控負責最後驗收同 ship。若有 maintenance handoff，依
+`maintain schema` 用同一 ID 交 `work_completed`／`work_failed` 及實際證據，唔自簽。

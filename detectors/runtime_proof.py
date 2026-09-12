@@ -11,6 +11,10 @@ what to expect; ``truth_command`` says who to ask. Either one alone produces a
 claim the checker can only answer with 4 -- so requiring both here is the
 difference between a claim and a permanent open question.
 
+The checker and detector share runtime_scope: a known test/documentation-only
+change outside all scoped proofs produces an explicit not_applicable result.
+An uncovered runtime change still raises the claim that needs a proof.
+
 Exit codes -- ``0`` is the only success value:
 
     0   read the declaration (emitting nothing is still 0)
@@ -24,6 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from kernel import config as config_mod  # noqa: E402
+from kernel import runtime_scope  # noqa: E402
 
 KIND = "runtime-proof"
 
@@ -77,14 +82,16 @@ def main() -> int:
         except (OSError, json.JSONDecodeError):
             facts = {}
     proofs = declared(root)
-    if proofs or writes_outward(facts):
+    _, proof_scope = runtime_scope.select(root, s, proofs)
+    if (proofs or writes_outward(facts)) and proof_scope["status"] != "not_applicable":
         # One claim covering every declared proof, because the checker runs
         # them all and returns one exit code. One claim per proof would ask the
         # checker to answer a question it does not take an argument for.
         print(f"V4-CLAIM: kind={KIND} symbol=<module> variant=triggered")
     if a.out:
         Path(a.out).write_text(json.dumps(
-            {"proofs": len(proofs), "writes_outward": writes_outward(facts)}))
+            {"proofs": len(proofs), "writes_outward": writes_outward(facts),
+             "scope": proof_scope}))
     return 0
 
 

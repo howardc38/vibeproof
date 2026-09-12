@@ -157,6 +157,9 @@ _APPEND_ONLY = [
 #: which is what this vocabulary is about, and a kind nobody has reached yet is
 #: not the same fact as a kind nothing can write.
 EVENT_KINDS = {
+    "maintenance_run": "a versioned maintenance run, its expected review coverage and completion",
+    "maintenance_handoff": "correlated role assignment, decision and repair evidence; not a claim verdict",
+    "review_observed": "a maintenance review's reference to a concrete ledger finding and its lens/check",
     "abandoned": "a task ended without shipping: why, and the FAILs it never settled",
     "blocked": "ship or remerge ran out of bounded rounds and stopped asking",
     "checker_out": "the structured `--out` a checker wrote for one claim",
@@ -189,6 +192,7 @@ EVENT_KINDS = {
     "shipped": "every claim terminal, and the task recorded as delivered",
     "task_continues": "which earlier task this one continues",
     "task_forbid": "paths this task may not touch, declared when it was opened",
+    "host_binding": "explicit host session and agent to task/worktree binding",
     "task_worktree": "the working tree a task was opened in",
 }
 
@@ -707,6 +711,17 @@ def _row_hash(prev: str, c: dict, scheme: str = None) -> str:
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
+class NoSuchTask(RuntimeError):
+    """A requested task is absent, rather than completed or blocked."""
+
+
+def require_task(conn, task_id):
+    row = conn.execute("SELECT * FROM task WHERE id = ?", (task_id,)).fetchone()
+    if row is None:
+        raise NoSuchTask(f"no such task: {task_id}")
+    return row
+
+
 def append_attempt(conn, **cols) -> int:
     """The only way an attempt enters the ledger, and the only place the chain grows.
 
@@ -754,59 +769,44 @@ def chain_head_path(repo_root) -> Path:
     return Path(repo_root) / ".v4" / "chain_head.json"
 
 
-def _event_anchor(conn, anchor) -> list:
-    """The event chain against the witness outside the database.
-
-    The same three questions `audit_chain` asks of `attempt`, and for the same
-    reason: a walk of the rows alone cannot tell a real chain from a rebuilt
-    one, because every `row_hash` is derived from that row's own contents. Only
-    something outside the file can. `attempt` has had that since the forgery was
-    reproduced -- three rows deleted and re-appended with different content,
-    `audit_chain` returning `(True, [])` -- and `event` had the same hole with
-    nothing in it, over the table that records what every guard allowed.
-
-    Reproduced here before this function existed, on a copy of this repo's
-    ledger: triggers dropped, the last fifty events deleted, `_walk_events`
-    returned `[]`.
-
-    `None` when the anchor predates this: an adopter's committed
-    `chain_head.json` has no `events` key, and reporting that as a finding would
-    turn every repo red on the first run after an upgrade.
-    """
-    if not anchor or "events" not in anchor:
-        return []
-    row = conn.execute(
-        "SELECT COUNT(*) n, COALESCE(MAX(id), 0) last_id FROM event "
-        "WHERE row_hash != ''").fetchone()
-    head = conn.execute(
-        "SELECT row_hash FROM event WHERE row_hash != '' "
-        "ORDER BY id DESC LIMIT 1").fetchone()
-    count = row["n"]
-    prev = head["row_hash"] if head else GENESIS
-    recorded, was = anchor["events"], anchor.get("event_head_hash") or GENESIS
-
-    if count == recorded and prev != was:
-        return [f"{count} chained events on disk and {recorded} in "
-                f"chain_head.json, but the head is {prev[:12]} where the anchor "
-                f"records {was[:12]} -- same count, different chain. The event "
-                f"table was rebuilt, not appended to."]
-    if count < recorded:
-        return [f"{count} chained events on disk, {recorded} recorded in "
-                f"chain_head.json -- rows were removed from the end of the "
-                f"event chain. `scope_widen` lives here, and it is the only "
-                f"input to what a task may write."]
-    if count > recorded and prev != was:
-        # Growth is ordinary -- the anchor is refreshed on every ship. What is
-        # not ordinary is growth that does not continue from the recorded head.
-        walk = conn.execute(
-            "SELECT prev_hash FROM event WHERE id > ? AND row_hash != '' "
-            "ORDER BY id LIMIT 1", (anchor.get("last_event_id") or 0,)).fetchone()
-        if walk is not None and walk["prev_hash"] != was:
-            return [f"the event chain grew past the anchor without continuing "
-                    f"from it: the first row after {anchor.get('last_event_id')} "
-                    f"follows {str(walk['prev_hash'])[:12]}, and the anchor "
-                    f"records {was[:12]}."]
+def _chain_anchor_prefix(conn, anchor, *, table, count_key, id_key, hash_key):
+    """Count, last id and hash must witness the same immutable chain prefix."""
+    if not isinstance(anchor, dict):
+        return ["chain_head.json must be an object"]
+    count, last_id, head = (anchor.get(k) for k in (count_key, id_key, hash_key))
+    if (type(count) is not int or count < 0 or type(last_id) is not int
+            or last_id < 0 or not isinstance(head, str)):
+        return [f"chain_head.json has invalid {count_key}/{id_key}/{hash_key}"]
+    condition = "row_hash != ''" if table == "event" else "1=1"
+    prefix = conn.execute(
+        f"SELECT COUNT(*) n, COALESCE(MAX(id), 0) last_id FROM {table} "
+        f"WHERE {condition} AND id <= ?", (last_id,)).fetchone()
+    total = conn.execute(f"SELECT COUNT(*) FROM {table} WHERE {condition}").fetchone()[0]
+    if total < count:
+        return [f"{total} {table} rows on disk, {count} recorded in chain_head.json "
+                "-- rows were removed from the end"]
+    if prefix["n"] != count or prefix["last_id"] != last_id:
+        detail = "same count, different chain; " if total == count else ""
+        return [f"chain_head.json {count_key}/{id_key} do not identify a {table} prefix: "
+                f"{detail}recorded {count}/{last_id}, actual {prefix['n']}/{prefix['last_id']}; "
+                "the anchor was edited or rows were removed/rebuilt"]
+    row = conn.execute(f"SELECT row_hash FROM {table} WHERE {condition} AND id = ?",
+                       (last_id,)).fetchone()
+    actual_head = row["row_hash"] if row else GENESIS
+    if actual_head != head:
+        detail = ("same count, different chain. The ledger was rebuilt, not appended to"
+                  if total == count else
+                  "the chain grew without continuing from the recorded anchor")
+        return [f"chain_head.json {hash_key} does not match {table} {last_id}: {detail}"]
     return []
+
+
+def _event_anchor(conn, anchor) -> list:
+    """Legacy anchors with no event witness remain readable."""
+    if not isinstance(anchor, dict) or "events" not in anchor:
+        return []
+    return _chain_anchor_prefix(conn, anchor, table="event", count_key="events",
+                                id_key="last_event_id", hash_key="event_head_hash")
 
 
 def write_chain_head(conn, repo_root):
@@ -1030,39 +1030,8 @@ def audit_chain(conn, repo_root=None):
     problems += reconcile_signatures(conn, repo_root)
 
     if anchor is not None:
-        if count == anchor["attempts"] and prev != anchor["head_hash"]:
-            # The case the anchor exists for, and the one it did not check.
-            #
-            # A walk of the rows alone cannot tell a real chain from a rebuilt
-            # one: every row's `row_hash` is derived from its own contents, so a
-            # ledger deleted and re-appended is internally perfect. The anchor
-            # is the only thing outside the database, and it was compared only
-            # when the count differed -- so matching the count was the whole
-            # forgery.
-            #
-            # Reproduced before this line was written: three attempts, anchor
-            # taken, triggers dropped, `DELETE FROM attempt`, three re-appended
-            # with `stdout = "FORGED"`. Head hash `c68f5d31…` recorded,
-            # `0009d1c6…` on disk, and `audit_chain` returned `(True, [])`.
-            problems.append(
-                f"{count} attempts on disk and {anchor['attempts']} in "
-                f"chain_head.json, but the head is {prev[:12]} where the anchor "
-                f"records {anchor['head_hash'][:12]} -- same count, different "
-                f"chain. The ledger was rebuilt, not appended to.")
-        elif count < anchor["attempts"]:
-            problems.append(
-                f"{count} attempts on disk, {anchor['attempts']} recorded in "
-                f"chain_head.json -- rows were removed from the end")
-        elif count > anchor["attempts"] and prev != anchor["head_hash"]:
-            # Growth is normal; the anchor is refreshed after each run. What is
-            # not normal is growth that does not extend the recorded head.
-            walk = conn.execute(
-                "SELECT prev_hash FROM attempt WHERE id > ? ORDER BY id LIMIT 1",
-                (anchor["last_id"],)).fetchone()
-            if walk and walk["prev_hash"] != anchor["head_hash"]:
-                problems.append(
-                    "the rows added since the anchor do not continue from it -- "
-                    "the recorded head was replaced rather than extended")
+        problems += _chain_anchor_prefix(conn, anchor, table="attempt", count_key="attempts",
+                                         id_key="last_id", hash_key="head_hash")
     return (not problems), problems
 
 
@@ -1213,8 +1182,8 @@ SEAL_AT = 25_000_000
 #: how many rows of each table the sealed files already hold, so this file
 #: carries the rest; `starts_after` is the attempt chain head those files ended
 #: on, so `verify_exported` can walk across the boundary. Absent from an export
-#: that has never sealed, so a repo that never outgrows one file writes the
-#: same bytes it always did.
+#: that has never sealed: no continuation header is needed before the first
+#: segment. The final anchor independently records both chains.
 SEGMENT_TABLE = "_segment"
 
 
@@ -1286,6 +1255,121 @@ def _seal_if_full(path, seal_at):
     return skip, (anchored or last_attempt or starts_after)
 
 
+class ExportProjectionError(ValueError):
+    """The original ledger cannot support a claimed redacted export view."""
+
+
+def projection_path(path):
+    return Path(str(path) + ".projection.json")
+
+
+def _projection_digest(row):
+    return hashlib.sha256(json.dumps(row, sort_keys=True, separators=(",", ":"))
+                          .encode()).hexdigest()
+
+
+def _export_files(path):
+    return segment_files(path) + [Path(path)]
+
+
+def _write_export_projection(conn, path, root):
+    """Commit to a redacted view after checking its source; never rehash history.
+
+    Old sealed files stay byte-identical. The sidecar is a portable commitment
+    to their public bytes, not a recovered SHA256 preimage or an authenticated
+    signature. Git review anchors this commitment, as it anchors the original
+    export. An edited source or unexplained change is ineligible. No secret
+    value or secret-specific digest is written to the sidecar.
+    """
+    files, events = [], []
+    for f in _export_files(path):
+        raw = f.read_bytes()
+        files.append({"name": f.name, "sha256": hashlib.sha256(raw).hexdigest()})
+        for line in raw.decode("utf-8").splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("_table") != "event" or not row.get("row_hash"):
+                continue
+            if not row.get("_redacted") and (
+                    _REDACTED_MARK not in str(row.get("payload")) or
+                    _event_hash(row.get("prev_hash") or "", row) == row["row_hash"]):
+                continue
+            source = conn.execute("SELECT * FROM event WHERE id = ?", (row["id"],)).fetchone()
+            where = f"{f.name}: event {row['id']}"
+            if source is None:
+                raise ExportProjectionError(f"{where}: no original row for redacted export proof")
+            source = dict(source)
+            if (source.get("row_hash") != row["row_hash"] or
+                    _event_hash(source.get("prev_hash") or "", source) != source["row_hash"]):
+                raise ExportProjectionError(f"{where}: original hash is invalid; cannot certify a redacted view")
+            projected, fields = dict(source), []
+            for field in _EXPORT_REDACTED["event"]:
+                if isinstance(source.get(field), str):
+                    projected[field] = _redact(source[field], root)
+                    if projected[field] != source[field]:
+                        fields.append(field)
+            public = {k: v for k, v in row.items() if k not in {"_table", "_redacted"}}
+            if (not fields or public != projected or
+                    ("_redacted" in row and row["_redacted"] != sorted(fields))):
+                raise ExportProjectionError(f"{where}: bytes are not the current redaction of the original row")
+            events.append({"file": f.name, "id": row["id"], "source_hash": row["row_hash"],
+                           "projection_hash": _projection_digest(row), "fields": sorted(fields)})
+    target = projection_path(path)
+    if not events and not target.exists():
+        return
+    current = [{"name": f.name, "sha256": hashlib.sha256(f.read_bytes()).hexdigest()}
+               for f in _export_files(path)]
+    if current != files:
+        raise ExportProjectionError("export changed while its redacted view was being checked; retry export")
+    proof = {"scheme": "v4-export-projection-1", "files": files, "events": events}
+    import os
+    import tempfile
+    fd, name = tempfile.mkstemp(dir=target.parent, prefix=target.name+".", suffix=".tmp")
+    temporary = Path(name)
+    try:
+        with os.fdopen(fd, "w") as stream:
+            json.dump(proof, stream, sort_keys=True, indent=2)
+            stream.write("\n")
+        os.replace(temporary, target)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _load_export_projection(path, files):
+    """Return exact row commitments plus explicit errors; no database is read."""
+    target = projection_path(path)
+    if not target.exists():
+        return {}, [], None
+    try:
+        proof = json.loads(target.read_text())
+        expected = [{"name": f.name, "sha256": hashlib.sha256(f.read_bytes()).hexdigest()}
+                    for f in files]
+        if (not isinstance(proof, dict) or proof.get("scheme") != "v4-export-projection-1" or
+                proof.get("files") != expected or not isinstance(proof.get("events"), list)):
+            raise ValueError("schema, segment inventory or file digest differs")
+        records = {}
+        for row in proof["events"]:
+            fields = row.get("fields") if isinstance(row, dict) else None
+            if (not isinstance(row, dict) or row.get("file") not in {f.name for f in files} or
+                    type(row.get("id")) is not int or row["id"] <= 0 or
+                    not isinstance(fields, list) or not fields or
+                    any(f not in _EXPORT_REDACTED["event"] for f in fields) or
+                    fields != sorted(set(fields))):
+                raise ValueError("invalid redacted event coordinates")
+            for field in ("source_hash", "projection_hash"):
+                digest = row.get(field)
+                if not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+                    raise ValueError("invalid event digest")
+            key = (row["file"], row["id"])
+            if key in records:
+                raise ValueError("duplicate redacted event")
+            records[key] = row
+        return records, [], proof
+    except (OSError, ValueError, TypeError):
+        return {}, [f"{target.name}: redacted export proof is invalid or stale; re-export from the original ledger"], None
+
+
 def export_jsonl(conn, out_path, root, seal_at=SEAL_AT):
     """Write the ledger out as portable JSONL.  The whole ledger, on purpose.
 
@@ -1293,9 +1377,10 @@ def export_jsonl(conn, out_path, root, seal_at=SEAL_AT):
     lives in `.git/v4/`, which a fresh clone does not have. So the anchor named
     in three places has never once existed, and could not have.
 
-    Exporting is what closes that. The rows go out verbatim, including `hash`,
-    `prev_hash` and `scheme`, so `verify_exported` re-derives every digest from
-    the JSONL alone -- an auditor needs the file, not the database.
+    Rows retain their original hashes, predecessors and schemes. Unchanged
+    rows can be re-derived from JSONL; legacy redactions use the separately
+    source-checked public-byte commitments below. An auditor needs the export
+    set and any projection sidecar, not the live database.
 
     This took a `task_id=` and `v4 export --task` passed one, and it could not
     work twice over. The SQL was `WHERE task_id = ?` against every table, and
@@ -1324,6 +1409,16 @@ def export_jsonl(conn, out_path, root, seal_at=SEAL_AT):
     tables = ["task", "claim", "attempt", "event", "accepted_risk", "cost_observation"]
     skip, starts_after = _seal_if_full(out_path, seal_at)
     n, attempts, head = 0, 0, starts_after
+    events, event_head, sealed_event_rows = 0, GENESIS, 0
+    for sealed in segment_files(out_path):
+        for row in _rows_of(sealed):
+            if row.get("_table") == "event":
+                sealed_event_rows += 1
+                if row.get("row_hash"):
+                    events += 1
+                    event_head = row["row_hash"]
+    if type(skip.get("event", 0)) is not int or skip.get("event", 0) != sealed_event_rows:
+        raise ExportProjectionError("sealed event count differs from the export offset; cannot carry missing history")
     with _Path(out_path).open("w", encoding="utf-8") as fh:
         if skip:
             fh.write(_json.dumps({"_table": SEGMENT_TABLE,
@@ -1341,6 +1436,9 @@ def export_jsonl(conn, out_path, root, seal_at=SEAL_AT):
                 if t == "attempt":
                     attempts += 1
                     head = d.get("row_hash") or head
+                if t == "event" and d.get("row_hash"):
+                    events += 1
+                    event_head = d["row_hash"]
                 # Free text, on its way into a committed file. `runner.redact`
                 # is applied to `attempt.stdout`, `attempt.stderr` and the
                 # checker `--out` payload, with a comment naming this file as
@@ -1387,28 +1485,36 @@ def export_jsonl(conn, out_path, root, seal_at=SEAL_AT):
         # Self-contained is also what `verify_exported`'s own docstring asks
         # for: "an auditor should need the file and nothing else."
         fh.write(_json.dumps({"_table": ANCHOR_TABLE, "attempts": attempts,
-                              "head_hash": head}, sort_keys=True) + "\n")
+                              "head_hash": head, "events": events,
+                              "event_head_hash": event_head}, sort_keys=True) + "\n")
+    _write_export_projection(conn, out_path, root)
     return n
 
 
-def verify_exported(path):
+def verify_exported(path, *, details=None):
     """Re-walk an exported chain with no database in reach.
 
     Deliberately re-derived against the JSONL rather than by reusing the live
     walk: the live walk reads the same rows it is judging, so a tampered
-    database hands it a consistent set of lies. An auditor should need the file
-    and nothing else.
+    database hands it a consistent set of lies. Legacy redactions additionally
+    need the adjacent projection sidecar. Its public-byte commitments do not
+    recover the original secret preimage; `details` reports that distinction.
     """
     from pathlib import Path as _Path
     open_file = _Path(path)
     files = segment_files(open_file) + [open_file]
+    projection, projection_problems, projection_snapshot = _load_export_projection(open_file, files)
+    used_projection = set()
+    if details is not None:
+        details["redacted_projection_events"] = []
     # `ev_prev` beside `prev`, and outside the loop for the same reason: the
     # event chain crosses a segment boundary exactly as the attempt chain does.
     # It was initialised per file, so the first event of the open file was
     # compared against GENESIS instead of the last event of the sealed segment
     # before it -- measured on this repo, one `prev_hash does not follow` at
     # precisely that seam, reported the day the event walk was added.
-    problems, total, prev, ev_prev = [], 0, GENESIS, GENESIS
+    problems, total, prev, ev_prev = list(projection_problems), 0, GENESIS, GENESIS
+    event_total = 0
     for seq, f in enumerate(files, 1):
         sealed = f is not open_file
         where = f"{f.name}: " if len(files) > 1 else ""
@@ -1478,50 +1584,43 @@ def verify_exported(path):
         for r in events:
             if not r.get("row_hash"):
                 continue
-            # A row the exporter altered cannot be re-derived from what is
-            # written here, and saying "something edited it" about the
-            # framework's own redaction is an accusation aimed at nobody. The
-            # row declares it, so this reads the declaration rather than
-            # guessing -- and still counts it, because a walk that cannot
-            # verify a row and says nothing is the shape being repaired.
-            if r.get("_redacted"):
+            event_total += 1
+            row = {k: v for k, v in r.items() if k != "_table"}
+            expect = _event_hash(r.get("prev_hash") or "", row)
+            key = (f.name, r["id"])
+            commitment = projection.get(key) or {}
+            projected = ((r.get("_redacted") or expect != r.get("row_hash")) and
+                         commitment.get("source_hash") == r.get("row_hash") and
+                         commitment.get("projection_hash") == _projection_digest(r))
+            if projected:
+                used_projection.add(key)
+                if details is not None:
+                    details["redacted_projection_events"].append({"file": f.name, "id": r["id"]})
+            elif r.get("_redacted"):
                 problems.append(
                     f"{where}event {r['id']} ({r.get('kind')}): "
                     f"{', '.join(r['_redacted'])} was redacted when this file "
                     f"was written, and the hash covers the original -- so this "
-                    f"row cannot be verified from the export alone. Rows "
-                    f"written since redaction moved to `insert` carry no such "
-                    f"mark.")
-                ev_prev = r.get("row_hash", "")
-                continue
-            row = {k: v for k, v in r.items() if k != "_table"}
-            expect = _event_hash(r.get("prev_hash") or "", row)
-            if expect != r.get("row_hash"):
-                # A sealed segment is byte-stable forever, so a row exported
-                # before the mark above existed can never gain one -- and this
-                # repo has three of them, all `engagement`, all altered by this
-                # framework's own exporter. The marker string is derivable from
-                # the row itself and explains the mismatch exactly; claiming a
-                # person edited it does not. Still reported: a row that cannot
-                # be verified is a finding, and only the sentence changes.
+                    f"row cannot be verified from the export alone. Re-export "
+                    f"from the original ledger to create its redacted-view proof.")
+            elif expect != r.get("row_hash"):
                 if _REDACTED_MARK in json.dumps(row, ensure_ascii=False):
                     problems.append(
                         f"{where}event {r['id']} ({r.get('kind')}): carries "
                         f"`{_REDACTED_MARK}` and hashes to something else, so "
                         f"the exporter blanked a value after the hash was taken "
                         f"and this row cannot be verified from the export alone. "
-                        f"Written before redaction moved to `insert`; a sealed "
-                        f"segment cannot be relabelled.")
+                        f"Re-export from the original ledger; the sealed bytes stay unchanged.")
                 else:
                     problems.append(
                         f"{where}event {r['id']} ({r.get('kind')}): the recorded "
                         f"hash does not match its own row. Something edited the "
                         f"row after it was written.")
-            elif (r.get("prev_hash") or "") != ev_prev:
+            # A projection covers redacted bytes, never a missing predecessor.
+            if (r.get("prev_hash") or "") != ev_prev:
                 problems.append(
-                    f"{where}event {r['id']} ({r.get('kind')}): prev_hash does "
-                    f"not follow the event before it. A row was removed, "
-                    f"reordered, or inserted.")
+                    f"{where}event {r['id']}: prev_hash does not follow the event "
+                    f"before it. A row was removed, reordered, or inserted.")
             ev_prev = r.get("row_hash", "")
 
         # Walking forward cannot see rows dropped off the end -- the shorter
@@ -1546,12 +1645,28 @@ def verify_exported(path):
                     f"{where}the last row hashes to {prev[:12]} where the anchor "
                     f"records {str(anchor.get('head_hash'))[:12]} -- same count, "
                     f"different chain. The export was rebuilt, not written.")
+            if "events" in anchor or "event_head_hash" in anchor:
+                if type(anchor.get("events")) is not int or anchor["events"] != event_total:
+                    problems.append(f"{where}event count differs from the export-prefix anchor; rows were added or removed")
+                if anchor.get("event_head_hash") != ev_prev:
+                    problems.append(f"{where}event head differs from the export-prefix anchor")
+            elif not sealed:
+                problems.append(f"{where}no event anchor: re-export from the original ledger; sealed files need not change")
         # Rows walked, both chains. It counted attempts alone, which was true
         # while attempts were all this walked; an export of a repo that has
         # events and no attempt yet reported "0 rows" over a file it had just
         # re-derived every event in, and a number that understates the check is
         # the same shape as a check that does not run.
         total += len(attempts) + sum(1 for r in events if r.get("row_hash"))
+    if set(projection) != used_projection:
+        problems.append("redacted export proof names an absent or changed event")
+    if projection_snapshot is not None:
+        _, changed, current = _load_export_projection(open_file, _export_files(open_file))
+        problems.extend(changed)
+        if not changed and current != projection_snapshot:
+            problems.append("redacted export proof changed while the export was being verified; retry audit")
+    if details is not None:
+        details["original_hashes_rederived"] = total - len(used_projection)
     return total, problems
 
 

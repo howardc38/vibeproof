@@ -21,9 +21,9 @@ Delete the lock and that test fails, so it satisfies red-green perfectly. It
 also never calls the function. Without step 3 a worker closes any review claim
 with one line of `inspect.getsource`, and the mechanism is decorative.
 
-Tracing is how we tell the difference. It is installed through `sitecustomize`
-rather than by importing a test runner, so this works with pytest, unittest, or
-whatever else a repo's `test_command` happens to be.
+Tracing is how we tell the difference. Python uses `sitecustomize`, Go and Node
+use their runtime coverage, and the optional Playwright fixture records Chromium
+coverage of exact served source bytes. Each reports only what it observed.
 """
 
 import ast
@@ -32,6 +32,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import uuid
 from pathlib import Path
 
 _SITECUSTOMIZE = '''
@@ -96,13 +97,29 @@ import atexit, json, os, sys, threading
 OUT = os.path.join(os.environ["V4_TRACE_OUT"], "%d.json" % os.getpid())
 ROOT = os.environ.get("V4_TRACE_ROOT", "")
 files = set()
+_relative_cache = {}
+_prefix = ROOT.rstrip(os.sep) + os.sep if ROOT else ""
+
+
+def _relative(filename):
+    if filename not in _relative_cache:
+        relative = None
+        if _prefix and os.path.isabs(filename):
+            path = os.path.normpath(filename)
+            # Resolve once per code filename, not per call. An external alias
+            # may enter this checkout; an internal symlink may leave it.
+            real = os.path.realpath(path)
+            if real.startswith(_prefix):
+                relative = (path if path.startswith(_prefix) else real)[len(_prefix):]
+        _relative_cache[filename] = relative
+    return _relative_cache[filename]
 
 
 def tracer(frame, event, arg):
     if event == "call":
-        f = frame.f_code.co_filename
-        if ROOT and f.startswith(ROOT):
-            files.add(f[len(ROOT):].lstrip("/"))
+        relative = _relative(frame.f_code.co_filename)
+        if relative:
+            files.add(relative)
     return None
 
 
@@ -208,13 +225,16 @@ class RedGreenResult:
         self.symbol_executed = None
         self.calls = 0
         self.notes = []
+        self.browser_trace = None
+        self.source_assertion_check = None
 
     @property
     def ok(self):
-        return bool(self.red_failed and self.green_passed and self.symbol_executed)
+        return bool(self.red_failed and self.green_passed and self.symbol_executed and
+                    (self.source_assertion_check is None or self.source_assertion_check["status"] == "passed"))
 
     def as_dict(self):
-        return {
+        result = {
             "red_failed_at_parent": self.red_failed,
             "green_passed_at_head": self.green_passed,
             "symbol_executed": self.symbol_executed,
@@ -222,6 +242,11 @@ class RedGreenResult:
             "ok": self.ok,
             "notes": self.notes,
         }
+        if self.source_assertion_check is not None:
+            result["source_assertion_check"] = self.source_assertion_check
+        if self.browser_trace:
+            result["browser_trace"] = self.browser_trace
+        return result
 
 
 #: `go test` reads its flags from `GOFLAGS`, and Node writes V8's own coverage
@@ -233,6 +258,122 @@ class RedGreenResult:
 #: needs. A repo that already sets `GOFLAGS` keeps what it set.
 _GO_COVER = "-coverprofile="
 _NODE_COVER = "NODE_V8_COVERAGE"
+
+# Node's coverage contains offsets, but loaders may transform the file behind
+# its URL. For declaration proof, observe the actual source bytes with the
+# in-process inspector; do not infer positions from a filename. No source text
+# leaves the process. Each PID/thread records its actual instruction hits.
+_NODE_SOURCE_OBSERVER = r'''
+const fs = require('node:fs'), crypto = require('node:crypto');
+const {fileURLToPath} = require('node:url');
+const {threadId} = require('node:worker_threads');
+const observations = [];
+const points = new Map();
+let error = null, session;
+try {
+  const target = fs.realpathSync(process.env.V4_TRACE_FILE);
+  const coordinate = JSON.parse(process.env.V4_DECLARATION_COORDINATE);
+  session = new (require('node:inspector').Session)();
+  session.connect();
+  session.on('Debugger.paused', ({params}) => {
+    for (const id of params.hitBreakpoints || []) {
+      const point = points.get(id);
+      if (!point) continue;
+      const {row,after} = point;
+      if (!after) { row.entries++; continue; }
+      const frame=params.callFrames[0];
+      const contains = location => location && location.scriptId === row.script_id;
+      const before = (a,b) => a.lineNumber < b.lineNumber ||
+        (a.lineNumber === b.lineNumber && a.columnNumber <= b.columnNumber);
+      const original={lineNumber:coordinate.statement_line,columnNumber:coordinate.statement_column};
+      // Read the scope that actually owns this declaration, excluding a later
+      // block or nested function that happens to shadow the same spelling.
+      const scope=frame.scopeChain.find(scope => contains(scope.startLocation) && contains(scope.endLocation) &&
+        before(scope.startLocation,original) && before(original,scope.endLocation));
+      if (!scope || !row.entries) continue;
+      session.post('Runtime.getProperties',{objectId:scope.object.objectId,ownProperties:true},(err,result)=>{
+        if (err) { error=String(err.message); return; }
+        const value=result.result.find(item=>item.name === coordinate.symbol)?.value;
+        if (value && ['object','undefined','string','number','boolean','symbol','bigint'].includes(value.type)) {
+          row.hits++; row.value_types.push(value.type);
+        }
+      });
+    }
+    session.post('Debugger.resume');
+  });
+  session.on('Debugger.scriptParsed', ({params}) => {
+    try {
+      if (!params.url.startsWith('file:') || fs.realpathSync(fileURLToPath(params.url)) !== target) return;
+      session.post('Debugger.getScriptSource', {scriptId:params.scriptId}, (err, result) => {
+        if (err) { error = String(err.message); return; }
+        const row = {script_id:params.scriptId,url:params.url,hits:0,entries:0,value_types:[],breakpoint_set:false,after_breakpoint_set:false,
+          sha256:crypto.createHash('sha256').update(result.scriptSource,'utf8').digest('hex')};
+        observations.push(row);
+        if (row.sha256 !== coordinate.source_sha256) return;
+        const start={scriptId:params.scriptId,lineNumber:coordinate.statement_line,columnNumber:coordinate.statement_column};
+        const end={scriptId:params.scriptId,lineNumber:coordinate.end_line,columnNumber:coordinate.end_column};
+        session.post('Debugger.getPossibleBreakpoints', {start,end}, (err, result) => {
+          if (err) { error = String(err.message); return; }
+          const location = result.locations[0];
+          if (!location) return;
+          session.post('Debugger.setBreakpoint', {location}, (err, result) => {
+            if (err) { error = String(err.message); return; }
+            row.breakpoint_set=true; row.location=result.actualLocation;
+            points.set(result.breakpointId,{row,after:false});
+          });
+        });
+        session.post('Debugger.getPossibleBreakpoints',{start:end,restrictToFunction:true},(err,result)=>{
+          if (err) { error=String(err.message); return; }
+          if (!result.locations.length) return;
+          session.post('Debugger.setBreakpoint',{location:result.locations[0]},(err,result)=>{
+            if (err) { error=String(err.message); return; }
+            row.after_breakpoint_set=true;
+            points.set(result.breakpointId,{row,after:true});
+          });
+        });
+      });
+    } catch (err) { error = String(err.message); }
+  });
+  session.post('Debugger.enable');
+} catch (err) { error = String(err.message); }
+process.once('exit', () => {
+  try {
+    fs.writeFileSync(process.env.V4_NODE_SOURCE_DIR+'/'+process.pid+'-'+threadId+'.json',
+      JSON.stringify({observations,error}));
+  } catch (_) { /* Missing evidence remains unproved. */ }
+  if (session) session.disconnect();
+});
+'''
+
+
+def _node_declaration_executed(directory, coordinate):
+    """Actual inspector instruction hits tied to exact source bytes."""
+    seen, calls = False, 0
+    for path in directory.glob('*.json'):
+        try:
+            data = json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+        if not isinstance(data, dict) or data.get('error') or not isinstance(data.get('observations'), list):
+            continue
+        for row in data.get('observations', []):
+            if (not isinstance(row, dict) or row.get('sha256') != coordinate['source_sha256'] or
+                    row.get('breakpoint_set') is not True or
+                    row.get('after_breakpoint_set') is not True or
+                    type(row.get('hits')) is not int or row['hits'] < 0):
+                continue
+            location = row.get('location') or {}
+            if (not isinstance(location, dict) or type(location.get('lineNumber')) is not int or
+                    type(location.get('columnNumber')) is not int):
+                continue
+            point = (location.get('lineNumber', -1), location.get('columnNumber', -1))
+            if not ((coordinate['statement_line'],coordinate['statement_column']) <= point <
+                    (coordinate['end_line'],coordinate['end_column'])):
+                continue
+            seen = True
+            calls += row['hits']
+    return (calls > 0, calls) if seen else (None, 0)
+
 
 #: Suffixes some tracer in this module can answer for.
 #:
@@ -365,6 +506,7 @@ def _node_executed(covdir: Path, target_file: str, target_symbol: str):
     if not covdir.is_dir():
         return None, 0
     want = _identity(target_file)
+    seen_uncalled = False
     for path in sorted(covdir.glob("*.json")):
         try:
             blob = json.loads(path.read_text(encoding="utf-8"))
@@ -381,11 +523,15 @@ def _node_executed(covdir: Path, target_file: str, target_symbol: str):
                 if count:
                     return True, count
                 if target_symbol:
-                    return False, 0
-    return None, 0
+                    # An import-only parent can record zero while its CLI child
+                    # enters the same function. A zero is conclusive only after
+                    # every matching process profile has been read.
+                    seen_uncalled = True
+    return (False, 0) if seen_uncalled else (None, 0)
 
 
-def _run_traced(cwd: Path, command, target_file: str, target_symbol: str, timeout=600):
+def _run_traced(cwd: Path, command, target_file: str, target_symbol: str, timeout=600,
+                trace_details=None, declaration=False):
     """Run a test command with the tracer attached.  (exit_code, executed, calls, output).
 
     Three answers, and the third is the reason this is not a boolean: `True`
@@ -394,17 +540,26 @@ def _run_traced(cwd: Path, command, target_file: str, target_symbol: str, timeou
     would accuse a worker of the one bypass this exists to refuse.
 
     Python answers through `sitecustomize`, Go through its own coverage
-    profile, Node through V8's. All three are set up before the command runs
-    and read after, so a repo whose suite is a mix answers from whichever left
-    something behind -- and the Python path is tried first because it is the
-    only one that reports a real call count.
+    profile, Node through V8's, and integrated Chromium tests through browser
+    V8 coverage. Select evidence for the target's runtime: a Python server's
+    negative trace cannot answer whether a browser executed its JS asset.
     """
     with tempfile.TemporaryDirectory() as td:
+        from . import browser_trace
+        from . import review_coordinates
+        coordinate = review_coordinates.resolve_declaration(cwd, target_file, target_symbol) if declaration else None
+        suffix = Path(target_file).suffix.lower()
         (Path(td) / "sitecustomize.py").write_text(_SITECUSTOMIZE)
         out = Path(td) / "hits.json"
         go_profile = Path(td) / "go-cover.out"
         node_dir = Path(td) / "node-cover"
         node_dir.mkdir()
+        browser_dir = Path(td) / "browser-cover"
+        browser_dir.mkdir()
+        node_sources = Path(td) / "node-sources"
+        node_sources.mkdir()
+        browser_run = uuid.uuid4().hex
+        expected_browser_sha = browser_trace.target_sha(cwd, target_file)
 
         env = dict(os.environ)
         env["PYTHONPATH"] = td + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
@@ -419,6 +574,18 @@ def _run_traced(cwd: Path, command, target_file: str, target_symbol: str, timeou
             env["GOFLAGS"] = (env.get("GOFLAGS", "") + " "
                               + _GO_COVER + str(go_profile)).strip()
         env.setdefault(_NODE_COVER, str(node_dir))
+        if declaration:
+            observer = Path(td) / "observe-source.cjs"
+            observer.write_text(_NODE_SOURCE_OBSERVER)
+            env["NODE_OPTIONS"] = (env.get("NODE_OPTIONS", "") + " --require=" + json.dumps(str(observer))).strip()
+            env["V4_NODE_SOURCE_DIR"] = str(node_sources)
+            env["V4_DECLARATION_COORDINATE"] = json.dumps(coordinate)
+        if suffix in TRACEABLE - {".py", ".go"}:
+            env.update(V4_BROWSER_TRACE_DIR=str(browser_dir), V4_BROWSER_TRACE_RUN=browser_run,
+                       V4_BROWSER_TRACE_ROOT=str(Path(cwd).resolve()))
+        else:
+            for key in ("V4_BROWSER_TRACE_DIR", "V4_BROWSER_TRACE_RUN", "V4_BROWSER_TRACE_ROOT"):
+                env.pop(key, None)
 
         try:
             proc = subprocess.run(command, cwd=cwd, env=env, capture_output=True,
@@ -442,22 +609,32 @@ def _run_traced(cwd: Path, command, target_file: str, target_symbol: str, timeou
         # the tracer never attached. `executed_files` in this module fixed the
         # same distinction ("None is only right when nothing at all was
         # readable"); the per-symbol path did not get it.
-        if out.is_file():
+        # A Python web-server child must not override evidence about a JS target
+        # with its own negative Python trace. Select the target's runtime.
+        if out.is_file() and suffix in {".py", ".pyi"}:
             hits = json.loads(out.read_text())
             return proc.returncode, hits.get("executed", False), \
                 hits.get("calls", 0), proc.stdout + proc.stderr
 
-        # No Python trace file. Before answering `None`, ask the two toolchains
-        # that leave their own evidence -- `go test` writes the profile the
-        # `GOFLAGS` above asked for, and Node writes V8's coverage into the
-        # directory above. Neither needs the command rewritten and neither is a
-        # third-party dependency, which is why they are here and a coverage
-        # library is not.
-        for executed, calls in (_go_executed(cwd, go_profile, target_file, target_symbol),
-                                _node_executed(node_dir, target_file, target_symbol)):
+        # Runtime evidence is read without rewriting the repo's test command.
+        if suffix == ".go":
+            executed, calls = _go_executed(cwd, go_profile, target_file, target_symbol)
+            return proc.returncode, executed, calls, proc.stdout + proc.stderr
+        browser_executed, browser_calls, browser_detail = browser_trace.observed(
+            browser_dir, cwd, browser_run, target_file, target_symbol, expected_browser_sha, coordinate=coordinate)
+        candidates = [(browser_executed, browser_calls, browser_detail),
+                      (*(_node_declaration_executed(node_sources, coordinate) if declaration else
+                         _node_executed(node_dir, target_file, target_symbol)), {})]
+        # Positive evidence wins over an unrelated runtime's zero. Otherwise a
+        # known zero remains distinct from an observer that never attached.
+        candidates.sort(key=lambda value: value[0] is not True)
+        for executed, calls, detail in candidates:
             if executed is not None:
+                if trace_details is not None:
+                    trace_details.update(detail)
                 return proc.returncode, executed, calls, proc.stdout + proc.stderr
-
+        if trace_details is not None:
+            trace_details.update(browser_detail)
         return proc.returncode, None, 0, proc.stdout + proc.stderr
 
 
@@ -522,7 +699,7 @@ def what_runs(tree, command):
 
 
 def verify(repo_root, *, command, test_path, target_file, target_symbol,
-           parent_commit=None, mutation=None, timeout=600):
+           parent_commit=None, mutation=None, timeout=600, declaration=False):
     """Check whether a test has earned the right to close a review claim.
 
     `command` runs exactly one test file. The red half goes into a throwaway
@@ -553,8 +730,10 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol,
     repo_root = Path(repo_root).resolve()
     res = RedGreenResult()
 
+    trace_details = {}
     rc, executed, calls, out_h = _run_traced(repo_root, command, target_file,
-                                             target_symbol, timeout)
+                                             target_symbol, timeout, trace_details, declaration)
+    res.browser_trace = trace_details or None
     res.green_passed = rc == 0
     res.symbol_executed = executed
     res.calls = calls
@@ -606,9 +785,26 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol,
         # name. Leaving the decision to it would have let a closing test called
         # `t_mod.py` past the rule entirely -- a refusal that used to be
         # unconditional here, so this would have been a hole opened by the fix.
-        _found = _ts.findings(str(_path.relative_to(_root)), _src,
-                              what_runs(_ast.parse(_src), command),
-                              "source_assertion", is_test=True)
+        suffix = _path.suffix.lower()
+        from kernel.analysis.subject_files import TS_SUFFIXES
+        if suffix in TS_SUFFIXES or suffix in {".mts", ".cts"}:
+            _found = _ts.ts_findings(test_path, _src, True, "source_assertion")
+            reader = "typescript-text-flow"
+        elif suffix == ".go":
+            from kernel.analysis import gosource
+            shape = gosource.shape_source(_src)
+            if shape is None:
+                raise ValueError("Go source-shape parser unavailable or could not parse the closing test")
+            _found = _ts.go_findings(test_path, shape, True, "source_assertion")
+            reader = "go-ast"
+        elif suffix == ".py":
+            _found = _ts.findings(test_path, _src, what_runs(_ast.parse(_src), command),
+                                  "source_assertion", is_test=True)
+            reader = "python-ast"
+        else:
+            raise ValueError("no source-assertion reader for the closing test language")
+        res.source_assertion_check = {"status":"passed", "reader":reader}
+
         try:
             _found, _, _carried_notes = _bl.forgive(
                 repo_root, _ts.KIND, _found, _ts.finding_id, complete=False)
@@ -620,6 +816,7 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol,
             # read must not be cheaper than answering the assertion. The checker
             # answers 4 here for the same reason.
             res.symbol_executed = False
+            res.source_assertion_check["status"] = "failed"
             res.notes.append(
                 f"{exc} -- so what it forgives could not be read, and this "
                 f"closure is refused rather than given the benefit of an "
@@ -630,6 +827,7 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol,
             # reader of this closure is entitled to know which one they have.
             res.notes.extend(_carried_notes)
             if _found:
+                res.source_assertion_check["status"] = "failed"
                 res.symbol_executed = False
                 res.notes.append(
                     "asserts on the source text of the code it is closing. "
@@ -644,9 +842,10 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol,
         # `symbol_executed: true` and the verdict was indistinguishable from a
         # test that was examined and cleared. Not fatal: an unparseable test
         # file is not proof of a bypass. Unsaid is the part that was wrong.
+        res.source_assertion_check = {"status":"unavailable", "reason":str(exc)}
         res.notes.append(
             f"the source-assertion check did not run ({type(exc).__name__}: "
-            f"{exc}), so this verdict does not include it -- calling the symbol "
+            f"{exc}); this closure remains unproved. Calling the symbol "
             f"once and then reading its source would satisfy both halves of "
             f"red-green and is not ruled out here.")
 
@@ -666,11 +865,10 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol,
     if executed is None:
         res.notes.append(
             f"nothing observed whether {target_symbol or target_file} ran: the "
-            f"tracer attaches through a `sitecustomize` on PYTHONPATH and left "
-            f"no trace file, which is what a non-Python command, a runner "
-            f"killed before exit, or a suite that execs into a subprocess all "
-            f"look like. This is unknown, not a bypass -- point --command at a "
-            f"Python runner in this interpreter to make it answerable")
+            f"target's tracer produced no usable execution evidence. This is "
+            f"unknown, not a bypass. Use a supported runtime and a command that "
+            f"actually exercises this target; browser JS needs the integrated "
+            f"Chromium fixture and exact served source bytes")
     elif not executed:
         res.notes.append(
             f"never executed {target_symbol or target_file}. A test that reads source "
@@ -700,8 +898,16 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol,
                     res.notes.append(broke)
                     return res
 
-            rc_p, _, _, out_p = _run_traced(wt, command, target_file, target_symbol,
-                                            timeout)
+            red_trace = {}
+            try:
+                rc_p, red_executed, _, out_p = _run_traced(wt, command, target_file, target_symbol,
+                                                timeout, red_trace, declaration)
+            except ValueError as exc:
+                res.red_failed = False
+                res.notes.append(f"red control has no usable declaration/trace coordinate: {exc}")
+                return res
+            if res.browser_trace:
+                res.browser_trace["red"] = red_trace
             if rc_p in COULD_NOT_RUN:
                 # A worktree carries no .venv, no node_modules, nothing
                 # untracked -- so "command not found" and "no tests collected"
@@ -717,6 +923,13 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol,
                     f"    {out_p.strip()[:300]}")
             else:
                 res.red_failed = rc_p != 0
+                if declaration and red_executed is not True:
+                    res.red_failed = False
+                    res.notes.append("declaration red control did not observe the initialized non-function value; startup/type failure is not behavioral red")
+                if res.browser_trace and (not red_trace.get("valid") or not red_trace.get("matched")):
+                    res.red_failed = False
+                    res.notes.append("browser red control did not load the exact mutated target; "
+                                     "startup/mapping failure is not behavioral red")
                 if not res.red_failed and mutation:
                     res.notes.append(
                         f"still passes with {mutation[0]} broken, so it does not "

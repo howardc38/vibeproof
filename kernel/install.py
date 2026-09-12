@@ -30,6 +30,9 @@ does NOT do, both deliberate:
 
 import json
 import shutil
+import shlex
+import subprocess
+import tempfile
 from pathlib import Path
 
 from . import config as config_mod
@@ -285,7 +288,7 @@ def _retired_here(src: Path, rel: str, never_here: set) -> bool:
     return bool(raised) and raised <= never_here
 
 
-def copy_files(src: Path, dst: Path, kinds, dry=False) -> list:
+def copy_files(src: Path, dst: Path, kinds, dry=False, host_choice=None) -> list:
     """Everything an adopter gets a copy of, and nothing it shares.
 
     Four kinds of thing leave here: the programs (`checkers/`, `detectors/`,
@@ -320,6 +323,8 @@ def copy_files(src: Path, dst: Path, kinds, dry=False) -> list:
     nobody touched it, and it is updated. Different means somebody said
     something, and it is left alone and named.
     """
+    from . import hosts
+    chosen_hosts = hosts.selected(dst, host_choice)
     reg = json.loads((src / config_mod.CHECKERS).read_text())
     wanted = {spec["checker"] for spec in kinds.values() if spec.get("checker")}
     was = _manifest(dst)
@@ -360,6 +365,32 @@ def copy_files(src: Path, dst: Path, kinds, dry=False) -> list:
             if key not in was or was[key] != hashing.file_sha(f):
                 return True
         return False
+
+    # A preserved old/custom owner may not implement a new catalogue's IDs.
+    # Validate the resulting corpus before copying any assets, rather than
+    # reporting a successful upgrade whose reviewer cannot load its lenses.
+    from . import lens_catalogue, review
+    if (src / lens_catalogue.CATALOGUE).is_file():
+        with tempfile.TemporaryDirectory(prefix="v4-lens-upgrade-") as temp:
+            candidate = Path(temp)
+            directory = candidate / ".v4/lenses"
+            directory.mkdir(parents=True)
+            for original in (src / ".v4/lenses").glob("*.json"):
+                rel = Path(".v4/lenses") / original.name
+                chosen = dst / rel if (dst / rel).is_file() and edited(rel) else original
+                shutil.copy2(chosen, directory / original.name)
+            for original in (dst / ".v4/lenses").glob("*.json"):
+                rel = Path(".v4/lenses") / original.name
+                if not (directory / original.name).exists() and (original.stem not in lens_catalogue.metadata(src)["legacy"] or edited(rel)):
+                    shutil.copy2(original, directory / original.name)
+            for name in (lens_catalogue.CATALOGUE, lens_catalogue.CONTRACT):
+                rel = Path(name)
+                chosen = dst / rel if (dst / rel).is_file() and edited(rel) else src / rel
+                if chosen.is_file():
+                    shutil.copy2(chosen, candidate / rel)
+            _, invalid = review.lens_files(candidate)
+            if invalid:
+                raise config_mod.ConfigError("lens upgrade requires reconciling adopter edits before installation: " + str(invalid))
 
     def put(rel_src: Path, rel_dst: Path = None):
         rel_dst = rel_dst or rel_src
@@ -424,6 +455,29 @@ def copy_files(src: Path, dst: Path, kinds, dry=False) -> list:
             put(Path(entry["fixtures"]), Path(fixture_dest(entry["fixtures"])))
     for lens in sorted((src / ".v4" / "lenses").glob("*.json")):
         put(Path(".v4/lenses") / lens.name)
+    # Optional runner adapters are installer-owned like hooks. No Node/browser
+    # dependency is installed, and adopter-edited adapters remain theirs.
+    for adapter in sorted((src / layout.SURFACE_DIR).glob("*")):
+        if adapter.is_file():
+            put(Path(layout.SURFACE_DIR) / adapter.name)
+    from . import lens_catalogue
+    for rel in (lens_catalogue.CATALOGUE, lens_catalogue.CONTRACT):
+        if (src / rel).is_file():
+            put(Path(rel))
+    # Retire only bytes this installer still owns; custom lens content survives.
+    for slug in lens_catalogue.metadata(src)["legacy"]:
+        rel = Path(".v4/lenses") / (slug + ".json")
+        target = dst / rel
+        if not target.is_file() or (src / rel).exists():
+            continue
+        if edited(rel):
+            out.append((rel.as_posix(), "yours"))
+            carry(rel)
+        else:
+            out.append((rel.as_posix(), RETIRED if dry else "retired"))
+            if not dry:
+                target.unlink()
+
     # Layer 3's reviewers and layer 1's doctrine both arrive as files; the hooks
     # are the one part that needs a line in the agent's own settings, so the
     # template is copied and named rather than silently activated.
@@ -438,7 +492,7 @@ def copy_files(src: Path, dst: Path, kinds, dry=False) -> list:
     for doc in sorted((src / ".github" / "monitor").glob("*.md")):
         put(Path(".github/monitor") / doc.name)
     tmpl = src / ".claude" / "settings.template.json"
-    if tmpl.is_file():
+    if tmpl.is_file() and "claude" in chosen_hosts:
         put(Path(".claude/settings.template.json"))
     # The operating loop, which is as much a part of this system as the kernel.
     #
@@ -451,12 +505,15 @@ def copy_files(src: Path, dst: Path, kinds, dry=False) -> list:
     #
     # `put` leaves an edited file alone and names it, so a repo that has written
     # its own `worker` keeps it.
-    for kind in ("agents", "commands"):
+    for kind in (("agents", "commands") if "claude" in chosen_hosts else ()):
         d = src / ".claude" / kind
         if not d.is_dir():
             continue
         for f in sorted(d.glob("*.md")):
             put(Path(".claude") / kind / f.name)
+    if "codex" in chosen_hosts:
+        for rel in hosts.codex_assets(src):
+            put(Path(rel))
     # Carry forward what this run did not touch. `now` is built only from the
     # paths this install decided about, and a kind held back -- because the repo
     # has no file its checker reads, or because it was refused -- is not among
@@ -522,14 +579,20 @@ def copy_files(src: Path, dst: Path, kinds, dry=False) -> list:
 #: them back, so in this repo the path is already right and nothing said what
 #: an adopter needs.  This is what an adopter needs.
 LAUNCHER = """#!/usr/bin/env bash
-# Written by `v4 install`. The checkers copied into this repo import `kernel`,
-# which lives in the framework rather than here, so `python3 -m kernel.cli`
-# alone would fail on the first command with ModuleNotFoundError.
-V4_HOME="${{V4_HOME:-{src}}}"
+# Generated by v4 install. Hooks and the launcher consult the same locator.
+HERE="$(cd "$(dirname "${{BASH_SOURCE[0]}}")/.." && pwd)"
+if [ -f "$HERE/hooks/_framework.py" ]; then
+  V4_HOME="$(python3 "$HERE/hooks/_framework.py" --home "$HERE")" || exit 2
+else
+  # Keep the CLI available to repair an older installation missing its hooks.
+  V4_FALLBACK={src}
+  V4_HOME="${{V4_HOME:-$V4_FALLBACK}}"
+fi
 if [ ! -d "$V4_HOME/kernel" ]; then
-  echo "v4: no kernel/ under $V4_HOME -- set V4_HOME to where the framework lives" >&2
+  echo "v4: no kernel/ under $V4_HOME -- reinstall or set V4_HOME" >&2
   exit 2
 fi
+export V4_HOME
 exec env PYTHONPATH="$V4_HOME${{PYTHONPATH:+:$PYTHONPATH}}" \\
      python3 -m kernel.cli --repo "$(git rev-parse --show-toplevel)" "$@"
 """
@@ -572,9 +635,14 @@ def write_launcher(dst: Path, src: Path) -> Path:
     """`./bin/v4` in the adopter, pointing at wherever the framework lives."""
     path = dst / "bin" / "v4"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(LAUNCHER.format(src=src))
+    path.write_text(LAUNCHER.format(src=shlex.quote(str(src))))
     path.chmod(0o755)
     (dst / HOME_FILE).write_text(str(src) + "\n")
+    common = subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=dst,
+                            capture_output=True, text=True, check=True).stdout.strip()
+    shared = (dst / common).resolve() / "v4/framework-home"
+    shared.parent.mkdir(parents=True, exist_ok=True)
+    shared.write_text(str(src) + "\n")
 
     # And keep it out of git. It holds one machine's absolute path, so on
     # anybody else's clone it names a directory that is not there -- and the

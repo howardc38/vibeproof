@@ -2,31 +2,118 @@
   "name": "Architecture Fit",
   "source": "ARCHITECTURE_GUIDELINES.md",
   "checks": [
-    "Every new/changed data table is documented in architecture docs (table, purpose, fields, constraints, indexes, sensitive tag)",
-    "Every new/changed workflow has a Workflow ID and covers: trigger, input validation, auth check, external calls, state changes, success response, failure response, idempotency strategy",
-    "Truth boundaries are explicit — which store is authority vs derived/projection",
-    "Storage areas define: access mode (public/private/signed), lifecycle (temp/permanent), authority vs derived",
-    "New components map to the role taxonomy (entrypoint/orchestrator/worker/adapter/scheduler/handler/DAL) with clear responsibility",
-    "Traceability matrix updated: Workflow ID -> file path -> DB table -> storage path -> external service",
-    "Non-goals have not been violated (features explicitly excluded have not been sneaked in)",
-    "ADR table reflects any new design decisions made during implementation",
-    "Document role & authority labels are correct (authority/companion/reference)",
-    "Repo/code structure mapping reflects any new directories or moved files",
-    "Human surfaces vs truth clarity check — UI/surface layers are clearly distinguished from truth-owning layers; no surface is silently treated as authority",
-    "Current vs Target topology clarity check — current-state architecture and target-state architecture are clearly separated; no target topology masquerading as current",
-    "Documentation maintenance is mandatory — architecture docs MUST be updated when schema, workflow, truth-boundary, integration, or deployment topology changes; stale docs are a conformance failure",
-    "Change Trigger Rules defined and followed — doc must be updated when: schema changes, workflow changes, truth-boundary changes, integration changes, deployment topology changes",
+    {
+      "check": "Every new/changed persistent data table is documented in the project’s adopted schema/architecture source (purpose, fields, constraints, relevant indexes and sensitive data).",
+      "id": "architecture-fit:001"
+    },
+    {
+      "check": "Every new/changed workflow covers applicable triggers, input validation, auth, external calls, state changes, success/failure and idempotency; retain Workflow IDs where the project uses them.",
+      "id": "architecture-fit:002"
+    },
+    {
+      "check": "Truth boundaries are explicit — which store is authority vs derived/projection",
+      "id": "architecture-fit:003"
+    },
+    {
+      "check": "Storage areas define: access mode (public/private/signed), lifecycle (temp/permanent), authority vs derived",
+      "id": "architecture-fit:004"
+    },
+    {
+      "check": "New components have clear responsibility in the project’s adopted architecture (for example entrypoint/orchestrator/worker/adapter/scheduler/handler/DAL); do not introduce layers solely to match these names.",
+      "id": "architecture-fit:005"
+    },
+    {
+      "check": "Workflow-to-implementation and applicable data/storage/external-service references remain traceable using the project’s existing documentation convention.",
+      "id": "architecture-fit:006"
+    },
+    {
+      "check": "Non-goals have not been violated (features explicitly excluded have not been sneaked in)",
+      "id": "architecture-fit:007"
+    },
+    {
+      "check": "Record material architectural decisions in the project’s adopted decision record; routine local implementation choices need no new ADR.",
+      "id": "architecture-fit:008"
+    },
+    {
+      "check": "Document role & authority labels are correct (authority/companion/reference)",
+      "id": "architecture-fit:009"
+    },
+    {
+      "check": "Repo/code structure mapping reflects any new directories or moved files",
+      "id": "architecture-fit:010"
+    },
+    {
+      "check": "Human surfaces vs truth clarity check — UI/surface layers are clearly distinguished from truth-owning layers; no surface is silently treated as authority",
+      "id": "architecture-fit:011"
+    },
+    {
+      "check": "Current vs Target topology clarity check — current-state architecture and target-state architecture are clearly separated; no target topology masquerading as current",
+      "id": "architecture-fit:012"
+    },
+    {
+      "check": "Documentation maintenance is mandatory — architecture docs MUST be updated when schema, workflow, truth-boundary, integration, or deployment topology changes; stale docs are a conformance failure",
+      "id": "architecture-fit:013"
+    },
+    {
+      "check": "Keep the project’s documentation change triggers aligned with schema, workflow, truth-boundary, integration and deployment-topology changes; update affected documents.",
+      "id": "architecture-fit:014"
+    },
     {
       "check": "Reference versus clone: what may be consulted, what may be copied, and what may only be learned from.",
-      "from": "R-e30917e1"
+      "from": "R-e30917e1",
+      "id": "architecture-fit:015"
     },
     {
       "check": "Take every row in `.v4/facts.<repo>.json` under `auth_decision`, open the code at its `seen_at`, and say whether that symbol can refuse. Report the ones that carry an auth word and decide nothing.",
-      "why_not_a_checker": "Whether a named symbol can actually refuse requires reading its callers and behavior. auth_decision remains facts vocabulary for review; this release has no active route-auth checker. fail-closed uses its separate Vocabulary configuration, not this table as an authorization oracle."
+      "why_not_a_checker": "Whether a named symbol can actually refuse requires reading its callers and behavior. auth_decision remains facts vocabulary for review; this release has no active route-auth checker. fail-closed uses its separate Vocabulary configuration, not this table as an authorization oracle.",
+      "id": "architecture-fit:016"
     },
     {
-      "check": "Read the facts table against how this repo actually decides who may do what. Name one way permission is granted or refused here that has no row.",
-      "why_not_a_checker": "Historical adopter measurements found that call-name matching missed enum-, constant- and regex-based permission decisions. Current facts discovery scans Python and Go calls; it does not establish completeness of authorization vocabulary."
+      "check": "Read the facts table against how this repo actually decides who may do what. Report any permission-grant/refusal path with no row; no omission is a valid result.",
+      "why_not_a_checker": "Historical adopter measurements found that call-name matching missed enum-, constant- and regex-based permission decisions. Current facts discovery scans Python and Go calls; it does not establish completeness of authorization vocabulary.",
+      "id": "architecture-fit:017"
+    },
+    {
+      "check": "Every repo-relative path and every cross-document section anchor mentioned in an active document must resolve.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-007bd7f5",
+      "id": "prevention:001"
+    },
+    {
+      "check": "A count or enum stated as current fact in prose traces to its canonical source and matches that source; repeated summaries must not drift, regardless of document count.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-2018a6e9",
+      "id": "prevention:002"
+    },
+    {
+      "check": "Blocks marked as a declared sync pair must stay verbatim identical after whitespace normalisation.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-aff2caae",
+      "id": "prevention:004"
+    },
+    {
+      "check": "Authority documents distinguish current behavior from historical examples, phases and revision references; remove stale claims, not useful provenance merely because it names history.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-d2cb6640",
+      "id": "prevention:005"
+    },
+    {
+      "check": "Workflow/routing changes keep authority, external-write, forbidden and failure paths understandable in the project’s adopted design representation; use a diagram where it materially helps.",
+      "from": "R-4b100ce0",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:085"
+    },
+    {
+      "check": "Imported legacy abstractions or control-plane conventions must serve the current requirement and adopted design; reuse is valid when it fits, not wrong merely because it is old.",
+      "from": "R-8fe76a44",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:094"
+    },
+    {
+      "check": "Make applicable ownership explicit: workflow/approval/file truth, projections, transport and runtime metadata. Do not let derived surfaces silently write authority or require seven unused categories.",
+      "from": "R-bf69b6a0",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:096"
     }
   ],
   "anti_patterns": [
@@ -36,9 +123,9 @@
     "Runtime helpers silently becoming truth by convenience",
     "Architecture doc updated without traceability (workflows cannot be traced to code)",
     "Unresolved alternatives presented as active choices (evaluating tech listed as decided)",
-    "No non-goals defined — architecture doc lacks explicit exclusions, making scope creep undetectable",
-    "No phaseability — architecture treats everything as one monolithic delivery with no incremental path",
-    "No companion topology — architecture doc exists alone without companion docs (flowcharts, runtime profile) to triangulate correctness",
+    "Unclear authorized scope/exclusions make actual scope creep hard to detect",
+    "Delivery dependencies or failure isolation are unclear where the workflow requires incremental delivery",
+    "Material topology or workflow boundaries cannot be understood from the adopted design representation",
     "Giant action-capability inventory without consolidation — doc lists every possible action/capability without grouping or prioritizing, obscuring actual architecture",
     "No change trigger rules — doc has no explicit rules for when it must be updated, leading to silent drift",
     "Template-filled but weak reasoning — architecture doc has all required sections filled in but reasoning is shallow/copy-pasted, not reflecting actual design decisions",

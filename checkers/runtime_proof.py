@@ -24,8 +24,8 @@ What a repo declares
 --------------------
     "runtime_proof": [
       {"name": "a lead magnet reaches the table that owns it",
-       "trigger": "python3 -m app.cli make-lead-magnet --dry-run",
-       "truth": "select count(*) from lead_magnets where created_at > now() - interval '5 minutes'",
+       "trigger": "python3 -m app.cli make-lead-magnet --run-id {run_id}",
+       "truth": "select count(*) from lead_magnets where run_id = '{run_id}'",
        "expect": "gt:0"}
     ]
 
@@ -36,7 +36,8 @@ write the answer you wanted.
 
 Exit
 ----
-  0  every declared proof triggered and its truth owner agreed
+  0  selected proofs passed, or a recorded test/documentation-only scope was
+     not applicable (no trigger executed)
   1  something triggered and the truth owner did not agree
   4  nothing declared, or no `truth_command` to ask -- this needs a live
      environment and saying so is not a finding about the code
@@ -52,6 +53,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from kernel import config as config_mod  # noqa: E402
+from kernel import runtime_scope  # noqa: E402
 
 KIND = "runtime-proof"
 
@@ -80,8 +82,10 @@ answer may be a row from last week -- a trigger that does nothing passes.
 
 `truth_command` is not necessarily a database. It is whatever owns the data:
 `psql -tA -d <db>`, `sqlite3 <path>`, `gcloud storage ls gs://<bucket>/...`.
-It must read the query from stdin; one that answers the same thing to an empty
-query is refused, because it is not being asked anything."""
+It must read the query from stdin without changing the data. After each
+successful trigger and real query, an empty query observes that same state;
+one that answers both queries the same way is refused. Review the provider's
+readback semantics too: this control alone cannot establish that it is honest."""
 
 
 def _cfg(root: Path) -> dict:
@@ -168,37 +172,20 @@ RUN_ID = "{run_id}"
 # being broken rather than the environment being slow. `checkers/test.py`
 # states the rule and this file was written the day after with the same
 # defect. One owner: register with `--timeout` if a trigger needs longer.
-def _changed_paths(root, subject):
-    """What this change touched, or `None` when that cannot be answered.
-
-    `None` rather than `[]`: a subject with no `diff_base`, or a directory git
-    cannot answer for, is not a change that touched nothing.
-    """
-    base = subject.get("diff_base")
-    if not base:
-        return None
-    r = subprocess.run(["git", "diff", "--name-only", base], cwd=root,
-                       capture_output=True, text=True)
-    if r.returncode != 0:
-        return None
-    return [f for f in r.stdout.splitlines() if f.strip()]
-
-
 def empty_query(root: Path, truth_command: str):
     """Ask the truth owner nothing, and keep what it said.
 
     A command that answers a query and an empty query the same way is not being
     asked anything -- found by declaring a `truth_command` that ignores stdin,
-    under which every proof passed. It is a fact about the command, so it is
-    asked once per invocation; it used to be asked inside `run_one`, which
-    `main` calls once per declared proof, so a repo declaring five proofs ran
-    five identical control queries against its own database.
+    under which every proof passed. Ask after each trigger and real query:
+    a pre-trigger answer observes a different state, so the write itself can
+    make an input-ignoring reader look as if it answered two different queries.
     """
     return subprocess.run(truth_command, shell=True, cwd=root, input="",
                           capture_output=True, text=True)
 
 
-def run_one(root: Path, truth_command: str, proof: dict, run_id="", control=None):
+def run_one(root: Path, truth_command: str, proof: dict, run_id=""):
     name = proof.get("name") or proof.get("trigger", "?")
     for field in ("trigger", "truth", "expect"):
         if not proof.get(field):
@@ -231,12 +218,6 @@ def run_one(root: Path, truth_command: str, proof: dict, run_id="", control=None
     proof["trigger"] = proof["trigger"].replace(RUN_ID, run_id)
     proof["truth"] = proof["truth"].replace(RUN_ID, run_id)
 
-    # Does the truth owner read the question at all? `empty_query` above says
-    # why, and the caller passes the one answer in -- it is a fact about the
-    # command, and this function is called once per declared proof.
-    if control is None:
-        control = empty_query(root, truth_command)
-
     t = subprocess.run(proof["trigger"], shell=True, cwd=root,
                        capture_output=True, text=True)
     if t.returncode != 0:
@@ -253,6 +234,7 @@ def run_one(root: Path, truth_command: str, proof: dict, run_id="", control=None
         # says nothing either way and must not be read as a finding.
         return None, (f"{name}: could not ask the truth owner "
                       f"(exit {q.returncode}): {(q.stderr or '').strip()[-200:]}")
+    control = empty_query(root, truth_command)
     if control.returncode == 0 and control.stdout == q.stdout:
         return False, (f"{name}: `truth_command` answered {q.stdout.strip()!r} to "
                        f"this query and the same to an empty one, so it is not "
@@ -293,25 +275,17 @@ def main() -> int:
     # the change touches them; one that does not is run and *said* to be
     # repo-level, so the reader knows which of the two greens this is. Optional,
     # because demanding it would refuse every table declared before today.
-    changed = _changed_paths(root, s)
-    if changed is not None:
-        scoped = [pr for pr in proofs if pr.get("covers")]
-        if scoped:
-            from kernel.analysis.subject_files import matches
-            live = [pr for pr in scoped
-                    if any(matches(f, pr["covers"]) for f in changed)]
-            unscoped = [pr for pr in proofs if not pr.get("covers")]
-            if not live and not unscoped:
-                print(f"CANNOT VERIFY: {len(scoped)} declared proof(s), and none "
-                      f"of them covers anything this change touched "
-                      f"({len(changed)} path(s)). A proof about a part of the "
-                      f"system the diff did not reach answers a question nobody "
-                      f"asked here.\n\n"
-                      f"  add `covers` to a proof that does reach this change, "
-                      f"or say why not `v4 risk accept --claim <id> "
-                      f"--kind unprovable --why '…'`", file=sys.stderr)
-                return UNSUPPORTED
-            proofs = live + unscoped
+    proofs, proof_scope = runtime_scope.select(root, s, proofs)
+    if proof_scope["status"] in ("not_applicable", "uncovered"):
+        if a.out:
+            Path(a.out).write_text(json.dumps({"scope": proof_scope, "results": []}, indent=2))
+        if proof_scope["status"] == "not_applicable":
+            print("NOT APPLICABLE: " + proof_scope["reason"] + "; no runtime proof executed")
+            return PASS
+        print("CANNOT VERIFY: no declared proof covers anything this change touched "
+              f"({len(proof_scope['changed'])} path(s)). Add a proof with covers "
+              "that exercises the changed runtime behavior.", file=sys.stderr)
+        return UNSUPPORTED
     if not proofs:
         # The shape, not just the name. An adopter told only "declare
         # runtime_proof" has to go and find what the object looks like, that
@@ -334,11 +308,9 @@ def main() -> int:
     # the checker.
     run_id = "rt" + uuid.uuid4().hex[:12]
     results, failed, unanswerable, not_triggered = [], [], [], []
-    control = empty_query(root, truth_command)
     for proof in proofs:
         try:
-            ok, why = run_one(root, truth_command, proof, run_id=run_id,
-                              control=control)
+            ok, why = run_one(root, truth_command, proof, run_id=run_id)
         except Exception as exc:                                # noqa: BLE001
             print(f"checker failed: {exc}", file=sys.stderr)
             return 5
@@ -367,7 +339,7 @@ def main() -> int:
         # this payload as a `checker_out` event in the append-only ledger,
         # which is what makes it an answer to a question asked next year.
         Path(a.out).write_text(json.dumps(
-            {"run_id": run_id, "results": results}, indent=2))
+            {"run_id": run_id, "scope": proof_scope, "results": results}, indent=2))
     if not_triggered:
         print(f"FAIL: {len(not_triggered)} declared proof(s) never ran -- the "
               f"trigger did not succeed.\n\n  "

@@ -59,7 +59,11 @@ def _digest_now(conn, repo_root, claim_row):
     refs = json.loads(claim_row["subject_refs"])
 
     from .ledger import attempt_reader
-    return hashing.subject_digest(Path(repo_root), refs, attempt_reader(conn))
+    digest = hashing.subject_digest(Path(repo_root), refs, attempt_reader(conn))
+    if claim_row["kind"] == "review-finding":
+        from . import review
+        digest.update(review.closing_binding_digest(review.closing_params(conn, claim_row["id"]), repo_root))
+    return digest
 
 
 def claim_state(conn, repo_root, claim_row, *, kinds_cfg, config_sha, checker_sha_of,

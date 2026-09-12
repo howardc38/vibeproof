@@ -49,11 +49,13 @@ except ImportError:                                             # noqa: E402
     # inside the handler that was reporting it, and the reason never reached
     # anybody. A stand-in that records nothing is honest; one that does not
     # exist is a second failure on top of the first.
-    _framework = SimpleNamespace(on_path=lambda r: _WHY, ledger=lambda r: None,
+    _framework = SimpleNamespace(set_context=lambda p: None, host=lambda: "claude",
+                                 operation_cwd=Path.cwd, patch_root=lambda names, root: root,
+                                 open_task_ids=lambda c, r: [], on_path=lambda r: _WHY, ledger=lambda r: None,
                                  config=lambda r: None, why=lambda r: _WHY,
                                  home=lambda r: None, db_path=lambda r: None,
                                  record_seen=lambda *a, **k: _WHY,
-                                 is_open=lambda r, t: True,
+                                 is_open=lambda r, t: True, task_id=lambda r: ("", ""),
                                  repo_root=lambda: Path(__file__).resolve().parent.parent)
 
 
@@ -132,7 +134,7 @@ def _mark(root: Path, cmd: str, *, allowed: bool, reason: str = "",
             # adopted v4. `connect_readonly`'s own docstring names this shape as
             # the defect it exists for.
             conn = ledger.connect_readonly(root)
-            ids = ledger.open_task_ids(conn)
+            ids = _framework.open_task_ids(conn, root)
             conn.close()
         except Exception:                                       # noqa: BLE001
             ids = []
@@ -147,7 +149,7 @@ def _mark(root: Path, cmd: str, *, allowed: bool, reason: str = "",
         failed = _framework.record_seen(root, tid, head,
                                         allowed=allowed, reason=reason,
                                         basis=basis, session=session,
-                                        scattered=True, hook="bash_guard")
+                                        scattered=len(ids) != 1 or _framework.host() != "codex", hook="bash_guard")
         if failed:
             print(f"v4 bash_guard: no mark written -- {failed}", file=sys.stderr)
             return
@@ -191,6 +193,7 @@ def main():
             f"the payload did not read ({type(exc).__name__}: {exc})",
             "unreadable payload")
         return 0
+    _framework.set_context(payload)
     if payload.get("tool_name") != "Bash":
         print("{}")
         return 0

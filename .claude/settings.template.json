@@ -46,16 +46,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then exec python3 \"$D/hooks/write_block.py\"; fi; echo \"write_block stood down: $PWD is not in a git repository\" >&2; echo '{}'"
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=claude exec python3 \"$D/hooks/write_block.py\"; else echo \"v4 write_block: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
           }
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "^Bash$",
         "hooks": [
           {
             "type": "command",
-            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then exec python3 \"$D/hooks/bash_guard.py\"; fi; echo \"bash_guard stood down: $PWD is not in a git repository\" >&2; echo '{}'"
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=claude exec python3 \"$D/hooks/bash_guard.py\"; else echo \"v4 bash_guard: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
           }
         ]
       }
@@ -65,7 +67,43 @@
         "hooks": [
           {
             "type": "command",
-            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then exec python3 \"$D/hooks/stop_gate.py\"; fi; echo \"stop_gate stood down: $PWD is not in a git repository\" >&2; echo '{}'"
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=claude exec python3 \"$D/hooks/stop_gate.py\"; else echo \"v4 stop_gate: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=claude exec python3 \"$D/hooks/session_context.py\"; else echo \"v4 session_context: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "^(task-splitter|worker|reviewer|checker-author|monitor)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=claude exec python3 \"$D/hooks/session_context.py\"; else echo \"v4 session_context: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^worker$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=claude exec python3 \"$D/hooks/stop_gate.py\"; else echo \"v4 stop_gate: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
           }
         ]
       }

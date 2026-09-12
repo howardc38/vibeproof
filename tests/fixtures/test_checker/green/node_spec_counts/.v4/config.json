@@ -1,0 +1,4 @@
+{
+  "test_command": "python3 -c \"assert sum([1, 2]) == 3; print('ℹ tests 1\\nℹ pass 1\\nℹ fail 0\\nℹ cancelled 0\\nℹ skipped 0\\nℹ todo 0')\"",
+  "policy": "allow_accepted_risk"
+}

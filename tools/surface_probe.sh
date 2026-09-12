@@ -39,6 +39,7 @@
 # it -- it is kept rather than removed, which is what lets a test look inside
 # afterwards.
 set -euo pipefail
+export V4_SURFACE_PROBE_CWD="$(pwd -P)"
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [ -n "${V4_SURFACE_PROBE:-}" ]; then
@@ -67,7 +68,16 @@ echo "surface probe: the documented walkthrough, through bin/v4"
 v4 init > /dev/null
 say "init: $(ls .v4 | tr '\n' ' ')"
 
-out="$(v4 doctor 2>&1 || true)"
+set +e
+out="$(v4 doctor 2>&1)"
+doctor_exit=$?
+set -e
+if [ "$doctor_exit" -eq 1 ]; then
+  [[ "$out" == *"not wired -- the BAD lines above are silent in normal use" ]] || exit 1
+elif [ "$doctor_exit" -ne 0 ]; then
+  printf '%s\n' "$out" >&2
+  exit 1
+fi
 [ -n "$out" ] || { echo "doctor printed nothing" >&2; exit 1; }
 say "doctor: $(printf '%s' "$out" | grep -c '^  ') row(s)"
 
@@ -83,3 +93,18 @@ out="$(v4 status --task t-surface)"
 say "status: answered"
 
 echo "5 command(s) ran through the launcher and each printed what it did"
+
+# The checker injects a unique receipt path outside the judged source tree.
+# This block is reached only after the actual launcher operations above.
+if [ -n "${V4_SURFACE_RESULT:-}" ]; then
+  python3 - <<'RECEIPT'
+import json, os
+from pathlib import Path
+cases = ["init", "doctor", "task", "derive", "status"]
+Path(os.environ["V4_SURFACE_RESULT"]).write_text(json.dumps({
+    "schema": 1, "run_id": os.environ["V4_SURFACE_RUN_ID"],
+    "kind": "command", "cwd": os.environ["V4_SURFACE_PROBE_CWD"],
+    "planned": cases, "checks": [{"id": case, "status": "passed"} for case in cases],
+    "errors": []}))
+RECEIPT
+fi

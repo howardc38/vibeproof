@@ -357,6 +357,26 @@ def _subcommand(cmdname, args):
     return None
 
 
+def _stages_source(args):
+    """Ordinary git add reads its source paths and writes the Git index/objects.
+
+    Do not grant this classification to editors or a redirected Git metadata
+    directory. Git permissions and trusted repository configuration remain the
+    host's responsibility; this analyzer is not a shell sandbox.
+    """
+    i = 0
+    while i < len(args) and args[i].startswith("-C"):
+        i += 2 if args[i] == "-C" else 1
+    if i >= len(args) or args[i] != "add":
+        return False
+    options = args[i + 1:]
+    if "--" in options:
+        options = options[:options.index("--")]
+    return not any((a.startswith("--") and any(flag.startswith(a) for flag in ("--edit", "--interactive", "--patch"))) or
+                   (a.startswith("-") and not a.startswith("--") and any(c in a[1:] for c in "eip"))
+                   for a in options)
+
+
 def _in_place(args) -> bool:
     """Does this `sed`/`perl`/`awk`/`ruby` invocation edit its file in place?
 
@@ -459,6 +479,10 @@ def writes_to_protected(cmd: str, protected):
                 for t in args[args.index(sub) + 1:]:
                     if not t.startswith("-") and _protected(t, protected):
                         hits.append((t, f"`{cmdname} {sub}` writes it"))
+            if cmdname == "git" and sub == "add":
+                if _protected(".git/index", protected) or any(".git" in g.replace("\\", "/").split("/") for g in protected):
+                    hits.append((".git", "`git add` writes index/object metadata"))
+                known = _stages_source(args)
         if cmdname in WRITERS:
             named = _target_flag(args)
             if named is not None:

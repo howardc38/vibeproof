@@ -1,0 +1,4 @@
+{
+  "test_command": "python3 -c \"print('ℹ tests 0\\nℹ pass 0\\nℹ fail 0\\nℹ cancelled 0\\nℹ skipped 0\\nℹ todo 0')\"",
+  "policy": "allow_accepted_risk"
+}

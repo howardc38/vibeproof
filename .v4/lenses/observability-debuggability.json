@@ -2,41 +2,156 @@
   "name": "Observability & Debuggability",
   "source": "DEBUGGING_OBSERVABILITY_GUIDELINE.md",
   "checks": [
-    "All logs are JSON format with `trace_id` / `correlation_id`",
-    "Core paths (auth, billing, generation, data mutation) have structured success/failure logs",
-    "Errors include stack trace + request context",
-    "No PII or secrets in logs",
-    "Every request/task has a trackable ID (`trace_id`, `x-request-id`, `run_id`)",
-    "Production does NOT rely solely on unstructured `console.log`",
-    "Background jobs/workers produce unique `run_id` per execution",
-    "External dependency calls log: response time, status code, retry count",
-    "Failure paths have explicit instrumentation (not just generic error log)",
-    "Log event names are specific and stable (no `something happened`)",
-    "Debuggability does not depend on local reproduction only — production issues can be diagnosed from logs/traces/metrics without requiring local environment recreation",
-    "Upstream observability plan items have corresponding literal emit calls — events / trace identifiers declared in Step 1 Observability Plan are grep-verifiable in implementation code as literal `logger.*(<event_name>, ...)` / equivalent emit calls (see DEBUGGING_OBSERVABILITY_GUIDELINE §6A.5 Plan Literal-Match Rule)",
-    "High-risk flows have alert rules — critical paths (auth failure spikes, payment errors, data mutation failures) trigger automated alerts [SHOULD]",
-    "Key operations have Span recording — important operations emit distributed tracing spans with timing and metadata [SHOULD]",
-    "Cross-service requests are traceable end-to-end — trace IDs propagate across service boundaries for full request lifecycle visibility [SHOULD]",
-    "Log drain configured to external platform — logs shipped to external aggregation platform (not only local disk) [SHOULD]",
-    "Frontend Real User Monitoring (RUM) — when project has user-facing frontend",
-    "External dependency monitoring — when project depends on third-party services",
-    "Health check endpoint — when project is a deployed service",
+    {
+      "check": "Operational logs use the project’s structured event/correlation contract where cross-step diagnosis requires it; product/CLI output need not all be JSON.",
+      "id": "observability-debuggability:001"
+    },
+    {
+      "check": "Core paths (auth, billing, generation, data mutation) expose sufficient correlated success/failure observations through logs, traces or metrics to diagnose the promised behavior.",
+      "id": "observability-debuggability:002"
+    },
+    {
+      "check": "Unexpected errors include relevant stack/cause and sanitized context; do not expose secrets or unnecessary personal data to logs or public responses.",
+      "id": "observability-debuggability:003"
+    },
+    {
+      "check": "No PII or secrets in logs",
+      "id": "observability-debuggability:004"
+    },
+    {
+      "check": "Every request/task has a trackable ID (`trace_id`, `x-request-id`, `run_id`)",
+      "id": "observability-debuggability:005"
+    },
+    {
+      "check": "Production does NOT rely solely on unstructured `console.log`",
+      "id": "observability-debuggability:006"
+    },
+    {
+      "check": "Background jobs/workers produce unique `run_id` per execution",
+      "id": "observability-debuggability:007"
+    },
+    {
+      "check": "External dependency calls log: response time, status code, retry count",
+      "id": "observability-debuggability:008"
+    },
+    {
+      "check": "Failure paths have explicit instrumentation (not just generic error log)",
+      "id": "observability-debuggability:009"
+    },
+    {
+      "check": "Log event names are specific and stable (no `something happened`)",
+      "id": "observability-debuggability:010"
+    },
+    {
+      "check": "Production failures have diagnostic evidence appropriate to the operational needs; identify concrete gaps instead of promising every cause can be known without reproduction.",
+      "id": "observability-debuggability:011"
+    },
+    {
+      "check": "Verify that promised observability events/trace identifiers reach their intended emit path and are observed; generated names or wrappers are valid when traceable, and grep alone is not runtime proof.",
+      "id": "observability-debuggability:012"
+    },
+    {
+      "check": "High-risk flows have alert rules — critical paths (auth failure spikes, payment errors, data mutation failures) trigger automated alerts [SHOULD]",
+      "id": "observability-debuggability:013"
+    },
+    {
+      "check": "Where latency/causality diagnosis requires tracing, important operations emit spans with timing and relevant safe metadata [SHOULD].",
+      "id": "observability-debuggability:014"
+    },
+    {
+      "check": "Cross-service requests are traceable end-to-end — trace IDs propagate across service boundaries for full request lifecycle visibility [SHOULD]",
+      "id": "observability-debuggability:015"
+    },
+    {
+      "check": "Logs are retained and accessible to the responsible operators with appropriate access control; use external aggregation where the deployment requires it [SHOULD].",
+      "id": "observability-debuggability:016"
+    },
+    {
+      "check": "For a user-facing frontend, assess whether real-user performance/failure monitoring is required by operational needs and permitted by privacy constraints.",
+      "id": "observability-debuggability:017"
+    },
+    {
+      "check": "External dependency monitoring — when project depends on third-party services",
+      "id": "observability-debuggability:018"
+    },
+    {
+      "check": "A deployed service has a usable health/readiness observation appropriate to its host; it need not always be an HTTP endpoint.",
+      "id": "observability-debuggability:019"
+    },
     {
       "check": "Background and worker paths can answer: did it start, did it run twice, which step failed, and did checkpoint, retry and cleanup behave as intended.",
-      "from": "R-cdcd86db"
+      "from": "R-cdcd86db",
+      "id": "observability-debuggability:020"
     },
     {
       "check": "Logs distinguish provider failure from local failure.",
-      "from": "R-db5d131a"
+      "from": "R-db5d131a",
+      "id": "observability-debuggability:021"
     },
     {
-      "check": "Trace context is injected by middleware, not added by hand in each handler.",
-      "from": "R-9e7717b2"
+      "check": "Trace context propagates consistently through the supported request/job boundaries, using middleware or an equivalent shared mechanism.",
+      "from": "R-9e7717b2",
+      "id": "observability-debuggability:022"
     },
     {
       "check": "External writes leave an audit trail: actor, timestamp, trace id.",
       "from": "R-d1f420b9",
-      "why_not_a_checker": "要知邊個算 actor、邊個算 trace id，係逐個 repo 嘅詞彙。而 X/Y 實驗顯示呢條喺前閘度 25 次曝光只換到 2 句提及，喺後閘度提出 6 次兩臂都認真拒絕連理由 —— 佢係一個讀住 code 先諗得起嘅問題。"
+      "why_not_a_checker": "要知邊個算 actor、邊個算 trace id，係逐個 repo 嘅詞彙。而 X/Y 實驗顯示呢條喺前閘度 25 次曝光只換到 2 句提及，喺後閘度提出 6 次兩臂都認真拒絕連理由 —— 佢係一個讀住 code 先諗得起嘅問題。",
+      "id": "observability-debuggability:023"
+    },
+    {
+      "check": "Log event identity is stable and classifiable under the adopted logging contract; shared registries or equivalent structured emitters may generate it safely.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-336223dc",
+      "id": "prevention:052"
+    },
+    {
+      "check": "Log extras must not collide with standard log-record field names.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-6910bc54",
+      "id": "prevention:053"
+    },
+    {
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-21da107a",
+      "id": "prevention:054",
+      "same_as": "observability-debuggability:012"
+    },
+    {
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-ca562c2a",
+      "id": "prevention:055",
+      "same_as": "observability-debuggability:002"
+    },
+    {
+      "check": "Error observations preserve useful exception type/cause and sanitized context in the logger’s supported structured form; stringification must not discard needed diagnostics.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-e1e214fe",
+      "id": "prevention:056"
+    },
+    {
+      "check": "For production services, distinguish structured operational logs from CLI/user-facing output; missing diagnostic context is the concern, not every use of print.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-0c590532",
+      "id": "prevention:057"
+    },
+    {
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-ed99c8c9",
+      "id": "prevention:058",
+      "same_as": "observability-debuggability:019"
+    },
+    {
+      "check": "A result claiming failure must carry a non-empty reason and the step it failed at.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-49fb3917",
+      "id": "prevention:072"
+    },
+    {
+      "check": "Console noise: a small allowlist for known non-blocking errors, new uncategorised errors surfaced, and no automatic failure on noise alone unless acceptance criteria are violated.",
+      "from": "R-36bb34f9",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:111"
     }
   ],
   "anti_patterns": [
@@ -48,7 +163,7 @@
     "PII or secrets leaked in logs",
     "Errors silently caught and ignored (catch-and-swallow)",
     "Stub-as-proof: Step 5 commands_run 經 stub / placeholder ID / signature inspection / harness probe / low-level helper 旁路 production entrypoint，取代 truth-owner read-back → flag P1",
-    "Surface validation schema compliance gap: surface validation evidence commands_run 缺 schema validation script invocation；驗證 exit=0 與 PASS marker；空結果 → flag P1"
+    "Where surface proof requires a schema check, verify its actual invocation and result; an absent check is missing proof, and severity follows the affected contract"
   ],
   "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n"
 }

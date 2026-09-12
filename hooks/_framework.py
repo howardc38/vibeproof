@@ -50,6 +50,115 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+import json
+
+
+_CONTEXT = {}
+
+
+def set_context(payload):
+    """Capture this invocation, not a parent shell's exported task."""
+    global _CONTEXT
+    _CONTEXT = payload if isinstance(payload, dict) else {}
+
+
+def host():
+    return os.environ.get("V4_HOST") or (
+        "codex" if _CONTEXT.get("tool_name") == "apply_patch" else "claude")
+
+
+def operation_cwd():
+    data = _CONTEXT.get("tool_input") or {}
+    command_cwd = data.get("cwd") if isinstance(data, dict) else None
+    return Path(command_cwd or _CONTEXT.get("cwd") or Path.cwd()).resolve()
+
+
+def binding(root, payload):
+    mod = _module(root, "host_binding")
+    db = ledger(root)
+    if mod is None or db is None:
+        return None
+    conn = db.connect_readonly(root)
+    try:
+        return mod.lookup(conn, session=str(payload.get("session_id") or ""),
+                          agent=str(payload.get("agent_id") or ""), host=host())
+    finally:
+        conn.close()
+
+
+def binding_instruction(root):
+    """An executable remedy using this hook's host/session/agent identity."""
+    import shlex
+    args = ["./bin/v4", "--repo", str(Path(root).resolve()), "host", "bind",
+            "--host", host(), "--task", "<id>",
+            "--session", str(_CONTEXT.get("session_id") or "<session>")]
+    if _CONTEXT.get("agent_id"):
+        args += ["--agent", str(_CONTEXT["agent_id"])]
+    return shlex.join(args)
+
+
+def patch_root(names, root):
+    """An absolute patch may target one sibling worktree, never another repo."""
+    roots = set()
+    for name in names:
+        path = Path(name)
+        path = path if path.is_absolute() else operation_cwd() / path
+        probe = path.parent
+        while not probe.exists() and probe != probe.parent:
+            probe = probe.parent
+        r = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=probe,
+                           capture_output=True, text=True, check=True)
+        roots.add(Path(r.stdout.strip()).resolve())
+    if len(roots) != 1:
+        raise ValueError("a patch must target exactly one worktree")
+    target = next(iter(roots))
+    def common(where):
+        p = subprocess.run(["git", "rev-parse", "--git-common-dir"], cwd=where,
+                           capture_output=True, text=True, check=True).stdout.strip()
+        return (where / p).resolve()
+    if common(target) != common(Path(root)):
+        raise ValueError("patch targets a different Git repository")
+    return target
+
+
+def write_assignment(root, payload):
+    """A parent or subagent binding outranks ambient state; reject cross-tree use."""
+    named, stale = task_id(root)
+    if payload.get("session_id") and db_path(root) is not None:
+        bound = binding(root, payload)
+        if bound:
+            if Path(bound["worktree"]).resolve() != Path(root).resolve():
+                return bound["task_id"], stale, "this agent is bound to a different worktree"
+            return bound["task_id"], stale, ""
+    if named:
+        mod = _module(root, "lifecycle")
+        db = ledger(root)
+        if mod is not None and db is not None:
+            conn = db.connect_readonly(root)
+            try:
+                where = mod.worktree_of(conn, named)
+            finally:
+                conn.close()
+            if where and Path(where).resolve() != Path(root).resolve():
+                return named, stale, "V4_TASK names a task in a different worktree"
+    return named, stale, ""
+
+
+def open_task_ids(conn, root):
+    """Select tasks in this worktree; unlocated legacy tasks stay candidates."""
+    mod = ledger(root)
+    conn.row_factory = sqlite3.Row
+    ids = mod.open_task_ids(conn)
+    lifecycle = _module(root, "lifecycle")
+    if lifecycle is None:
+        return ids
+    here = Path(root).resolve()
+    selected = []
+    for tid in ids:
+        where = lifecycle.worktree_of(conn, tid)
+        if not where or Path(where).resolve() == here:
+            selected.append(tid)
+    return selected
 
 
 def home(repo_root: Path):
@@ -79,6 +188,16 @@ def home(repo_root: Path):
         marker = Path(repo_root) / ".v4" / "home"
         if marker.is_file():
             found = marker.read_text().strip()
+    if not found:
+        try:
+            common = subprocess.run(["git", "rev-parse", "--git-common-dir"],
+                                    cwd=repo_root, capture_output=True, text=True,
+                                    check=True).stdout.strip()
+            marker = (Path(repo_root) / common).resolve() / "v4/framework-home"
+            if marker.is_file():
+                found = marker.read_text().strip()
+        except (OSError, subprocess.SubprocessError):
+            pass
     return found or None
 
 
@@ -125,8 +244,8 @@ def repo_root() -> Path:
     cannot use: it allows, and says why. A hook that cannot tell must not block.
     """
     named = os.environ.get("V4_REPO") or ""
-    start = (Path(named).resolve() if named
-             else Path(__file__).resolve().parent.parent)
+    start = (Path(named).resolve() if named else operation_cwd()
+             if host() == "codex" else Path(__file__).resolve().parent.parent)
     if not start.is_dir():
         return start
     try:
@@ -388,7 +507,11 @@ def record_seen(repo_root: Path, task_id, rel: str, *, allowed: bool = True,
     # `doctor` reported all three alive off their filenames appearing in a JSON
     # file, which is the environment question answered from source that its own
     # heading says it exists to stop.
-    payload = {"path": rel, "allowed": bool(allowed), "hook": hook or ""}
+    payload = {"path": rel, "allowed": bool(allowed), "hook": hook or "",
+               "host": host(), "worktree": str(Path(repo_root).resolve())}
+    for key in ("hook_event_name", "tool_name", "tool_use_id", "turn_id", "agent_id", "agent_type", "stop_hook_active"):
+        if key in _CONTEXT:
+            payload[key] = _CONTEXT[key]
     if reason:
         payload["reason"] = reason
     if basis:
@@ -430,3 +553,11 @@ def record_seen(repo_root: Path, task_id, rel: str, *, allowed: bool = True,
         return f"{type(exc).__name__}: {exc}"
     finally:
         conn.close()
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 3 and sys.argv[1] == "--home":
+        print(home(Path(sys.argv[2])) or "")
+    else:
+        print("usage: _framework.py --home REPO", file=sys.stderr)
+        sys.exit(2)

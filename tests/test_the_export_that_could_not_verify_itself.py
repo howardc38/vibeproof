@@ -144,7 +144,17 @@ class TheExportVerifiesItself(unittest.TestCase):
             (json.dumps({"sentence": f"see {SECRET} here"}), L.GENESIS,
              L.EVENT_SCHEME))
         conn.commit()
-        _n, problems = L.verify_exported(self._export(tmp, conn))
+        # The historical writer did hash the original correctly. Give this
+        # fixture that real shape, then remove the new projection sidecar to
+        # exercise an old export that has no upgrade proof yet. A corrupt
+        # original hash is separately refused by the projection tests.
+        row = dict(conn.execute("SELECT * FROM event ORDER BY id DESC LIMIT 1").fetchone())
+        conn.execute("UPDATE event SET row_hash=? WHERE id=?",
+                     (L._event_hash(row["prev_hash"], row), row["id"]))
+        conn.commit()
+        out = self._export(tmp, conn)
+        L.projection_path(out).unlink()
+        _n, problems = L.verify_exported(out)
         self.assertTrue(problems, "an unverifiable row was reported clean")
         self.assertTrue(any("cannot be verified from the export alone" in p
                             for p in problems), problems)

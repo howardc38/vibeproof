@@ -346,7 +346,8 @@ class TheIdThatNamesAnExternalWrite(unittest.TestCase):
         self.assertEqual(code, 0, out.read_text() if out.is_file() else "")
         payload = json.loads(out.read_text())
         self.assertTrue(payload["run_id"].startswith("rt"))
-        self.assertEqual(sorted(payload), ["results", "run_id"])
+        self.assertEqual(sorted(payload), ["results", "run_id", "scope"])
+        self.assertEqual(payload["scope"]["status"], "unknown")
 
     def test_two_runs_differ_in_out_and_agree_on_stdout(self):
         """Said the way the gate asks it, rather than as a claim about one run."""

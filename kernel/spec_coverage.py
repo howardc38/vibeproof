@@ -105,7 +105,7 @@ CMD = re.compile(r"`v4 ([a-z][a-z-]*)")
 #: `bin/v4` and `tools/runtime_probe.sh`, and none of them was resolved: the
 #: hook loop below runs the other direction only, disk -> spec.
 PATH = re.compile(r"`((?:kernel|checkers|detectors|tests|docs|hooks|bin|tools"
-                  r"|\.v4|\.github|\.claude)/[\w./*-]+)`")
+                  r"|\.v4|\.github|\.claude|\.codex|\.agents)/[\w./*-]+)`")
 #: One grammar, shared with `design_pins`. Counting every `<!-- pinned:`
 #: here while that checker required a `::symbol` is why this file said 149
 #: and it said 136 -- two answers to "how many pins does SPEC carry", and
@@ -296,6 +296,13 @@ def check(root: Path, spec_text: str):
                     f".claude/{sub}/{f}.md is a {kind} anybody can invoke and the "
                     f"spec never mentions it")
 
+    # The Codex projections must be documented and match the maintained prompt sources.
+    if (root / ".codex/agents").is_dir():
+        from . import hosts
+        for rel, wanted in hosts.codex_assets(root).items():
+            p = root / rel
+            if not p.is_file() or p.read_text() != wanted:
+                problems.append(f"{rel} differs from the maintained host projection; run tools/render_host_assets.py --write")
     hooks_dir = root / "hooks"
     if hooks_dir.is_dir():
         for h in sorted(p.name for p in hooks_dir.glob("*.py")
@@ -1280,6 +1287,7 @@ def user_facing_docs(root: Path):
     # restating, or the table records them as a derived summary with SPEC as the
     # authority. That is a decision about what this repo's front door is.
     out += sorted(root.glob("README*.md"))
+    out += sorted((root / ".agents/skills").glob("*/SKILL.md"))
     return [d for d in out if d.is_file()]
 
 

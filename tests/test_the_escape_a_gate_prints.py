@@ -298,11 +298,12 @@ class EveryWayOfSpellingDoNothing(unittest.TestCase):
             with self.subTest(cmd=cmd):
                 code, said = self._surface(cmd)
                 self.assertEqual(code, 1, said)
-                self.assertIn("printed nothing", said)
+                self.assertIn("execution receipt", said)
 
-    def test_and_a_command_that_ran_something_still_answers(self):
+    def test_printing_test_counts_is_still_not_execution_evidence(self):
         code, said = self._surface("echo 3 specs, 3 passed")
-        self.assertEqual(code, 0, said)
+        self.assertEqual(code, 1, said)
+        self.assertIn("execution receipt", said)
 
 
 class ALensBriefWithNothingInItsLastBullet(unittest.TestCase):

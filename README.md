@@ -6,9 +6,9 @@
 
 You asked for a working change. The agent gave you a green test run. Did that run even touch the code it changed?
 
-vibeproof adds executable checks to Claude Code tasks and keeps the results tied to the code they examined. Start with a deliberately broken discount calculation: **100 − 20 returns 120, yet the tests pass.**
+vibeproof adds executable checks to Claude Code and Codex tasks and keeps the results tied to the code they examined. Start with a deliberately broken discount calculation: **100 − 20 returns 120, yet the tests pass.**
 
-**Built for Claude Code in a git repo. Best first fit: a Python project with an existing test suite.** Other tools can run the CLI; equivalent native hook integrations are not included.
+**Claude Code and Codex adapters for git repos. Best first fit: a Python project with an existing test suite.** The dual-host path is validated on macOS; host setup, trust and coverage limits are in [CODEX.md](docs/CODEX.md).
 
 ![Green tests can still leave a change untested. vibeproof reports the missing execution evidence.](docs/launch/assets/v4/images/hero-en.png)
 
@@ -22,7 +22,7 @@ The video was recorded for the 2026-09-05 demo baseline. Run the command below t
 |---|---|
 | “All tests pass”, but the new behavior was never tested | Runs your suite; for eligible Python changes, flags when the run executed none of the changed files |
 | Tests disappeared during a “refactor” | Compares live-test counts against the starting commit and reports decreases |
-| “Just fix this” turns into edits elsewhere | Claude Code Write/Edit hooks check the task's allowed paths |
+| “Just fix this” turns into edits elsewhere | Claude Write/Edit and Codex apply_patch hooks check the task's allowed paths |
 
 These checks have limits. A file being imported is not a behavior test. A test-count check does not establish assertion quality. Test deletion is report-only by default, and hooks are not a security boundary. [Read the exact limits](docs/REFERENCE.md).
 
@@ -75,7 +75,7 @@ Current claim states + policy → HELD, or SHIP with remaining reports
 
 | Included | What you get |
 |---|---|
-| Workflow helpers | Four agent prompt templates and `/run`, `/sweep`, `/wave` to help the coding-agent host operate the process |
+| Workflow helpers | Claude agent/command templates plus generated Codex roles and skills for run, sweep, wave and maintain |
 | Hooks | Earlier checks on supported writes, shell commands and stopping; scope is also checked against the resulting diff |
 | Detectors → checkers | Programs raise applicable questions; separate programs execute checks and record their results |
 | Review lenses | Structured review of design fit, request fidelity, test sufficiency and other areas beyond mechanical patterns |
@@ -110,7 +110,7 @@ Selected swallowed-error and external-write patterns; committed credential patte
 
 | Area | Current support |
 |---|---|
-| Automatic hooks | Claude Code |
+| Automatic hooks | Claude Code and Codex; see [host setup](docs/CODEX.md) |
 | Ordinary suite execution tracing | Python; file-level, not complete branch or assertion coverage |
 | Review repair proof | Python, Go and Node/V8 paths; runner-dependent |
 | Structural checks | Python, Go and TS/JS to different depths; limited Rust support |

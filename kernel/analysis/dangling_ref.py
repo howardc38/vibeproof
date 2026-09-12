@@ -19,7 +19,7 @@ import ast
 import re
 from pathlib import Path
 
-from . import resolve
+from . import pysource, resolve
 
 #: A Go build constraint that no ordinary build satisfies.
 #:
@@ -54,8 +54,8 @@ def _binds(node, names: set) -> None:
         names.add(node.name)
     elif isinstance(node, ast.Assign):
         for t in node.targets:
-            if isinstance(t, ast.Name):
-                names.add(t.id)
+            names.update(n.id for n in ast.walk(t)
+                         if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store))
     elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
         names.add(node.target.id)
     elif isinstance(node, (ast.Import, ast.ImportFrom)):
@@ -126,25 +126,25 @@ def scan(root: Path, files=None, subject=None):
         except (OSError, SyntaxError):
             continue
         for node in ast.walk(tree):
-            if not isinstance(node, ast.ImportFrom) or node.level:
-                continue          # relative imports need package context; skip
-            if not node.module:
+            if not isinstance(node, ast.ImportFrom):
                 continue
-            target = resolve.py_resolve(root, node.module)
+            module = pysource.import_from_module(node, p.relative_to(root))
+            if not module:
+                continue
+            target = resolve.py_resolve(root, module)
             if target is None:
                 continue          # not ours
             if target.is_dir():
                 # A namespace package binds exactly its children. Nothing else
                 # can be imported from it, and nothing else can be missing.
                 for al in node.names:
-                    if (target / f"{al.name}.py").is_file() or \
-                            (target / al.name).is_dir():
+                    if al.name == "*" or resolve.py_submodule(target, al.name) is not None:
                         continue
                     try:
                         rel = str(p.relative_to(root))
                     except ValueError:
                         rel = str(p)
-                    out.append((rel, node.lineno, node.module, al.name))
+                    out.append((rel, node.lineno, module, al.name))
                 continue
             defined = _defined(target)
             if defined is None:
@@ -164,16 +164,13 @@ def scan(root: Path, files=None, subject=None):
                 # children -- a green failure large enough to make the checker
                 # unusable, which is what the adversarial pass keeps catching in
                 # rules of this shape.
-                if target.name == "__init__.py":
-                    d = target.parent
-                    if (d / f"{al.name}.py").is_file() or \
-                            (d / al.name / "__init__.py").is_file():
-                        continue
+                if resolve.py_submodule(target, al.name) is not None:
+                    continue
                 try:
                     rel = str(p.relative_to(root))
                 except ValueError:
                     rel = str(p)
-                out.append((rel, node.lineno, node.module, al.name))
+                out.append((rel, node.lineno, module, al.name))
     return out
 
 

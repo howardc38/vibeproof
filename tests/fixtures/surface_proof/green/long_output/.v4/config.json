@@ -1,5 +1,8 @@
 {
   "test_command": "true",
   "policy": "allow_accepted_risk",
-  "surface_command": "python3 -c \"[print('spec %d ok' % i) for i in range(40)]\""
+  "surface_command": "python3 probe.py",
+  "surface_required": [
+    "reply"
+  ]
 }
