@@ -186,13 +186,7 @@ def _ts_comments_blanked(source: str) -> str:
     strings are left alone because they are what this reads.
     """
     from . import symbols
-    out = list(source)
-    for rx in (symbols._TS_BLOCK_COMMENT, symbols._TS_LINE_COMMENT):
-        for m in rx.finditer("".join(out)):
-            for i in range(m.start(), m.end()):
-                if out[i] != "\n":
-                    out[i] = " "
-    return "".join(out)
+    return symbols.ts_mask(source, strings=False)
 
 
 def ts_scan(source: str, path: str = "") -> list:

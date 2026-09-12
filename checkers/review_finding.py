@@ -155,6 +155,9 @@ def main():
     gone = (s.get("params") or {}).get("text_gone") or ""
     now = (s.get("params") or {}).get("text_now") or ""
     if gone or now:
+        if "rename_commits" in params or "coordinate_kind" in params:
+            print("FAIL: rename evidence belongs to executable proof, not text closure")
+            return 1
         return _text_closure(root, target, parent, gone, now, s)
 
     # The other way to be red, for a finding whose repair *is* the test. There
@@ -222,21 +225,57 @@ def main():
     argv = [c.format(path=test_path) for c in command] if isinstance(command, list) \
         else shlex.split(command.format(path=test_path))
 
+    execution_target = None
+    declaration = "coordinate_kind" in params
+    if declaration:
+        from kernel import review_coordinates
+        reason = params.get("coordinate_reason")
+        if (params.get("coordinate_kind") != "declaration" or "rename_commits" in params or
+                not isinstance(reason, str) or len(reason.strip()) < MIN_MARKER):
+            print("FAIL: invalid declaration-coordinate correction")
+            return 1
+        try:
+            execution_target = review_coordinates.resolve_declaration(root, target, symbol)
+        except ValueError as exc:
+            print(f"FAIL: {exc}")
+            return 1
+    if "rename_commits" in params:
+        from kernel import review_renames
+        try:
+            execution_target = review_renames.resolve_rename(root, target, symbol, params["rename_commits"],
+                                                            red_parent=None if mutation else parent)
+        except review_renames.InvalidRename as exc:
+            print(f"FAIL: invalid symbol rename evidence: {exc}")
+            return 1
+        symbol = execution_target["symbol"]
+        parent = execution_target.get("parent_commit", parent)
+
     try:
         res = redgreen.verify(root, command=argv, test_path=test_path,
                               target_file=target, target_symbol=symbol,
                               parent_commit=None if mutation else parent,
-                              mutation=mutation)
+                              mutation=mutation, declaration=declaration)
     except Exception as exc:                                    # noqa: BLE001
         print(f"red-green check failed to run: {exc}", file=sys.stderr)
         return 5
 
+    red_control = ({"mode": "mutation", "file": mutation[0]} if mutation
+                   else {"mode": "parent", "commit": parent})
     if a.out:
-        Path(a.out).write_text(json.dumps(res.as_dict(), indent=2))
+        output = {**res.as_dict(), "red_control": red_control}
+        if execution_target:
+            output["execution_target"] = execution_target
+        Path(a.out).write_text(json.dumps(output, indent=2))
+    red_basis = "under the declared mutation" if mutation else f"at {parent[:12]}"
+    if declaration:
+        print(f"verified declaration coordinate: {symbol} initializer at {target}:{execution_target['line']}")
+    elif execution_target:
+        print(f"verified symbol rename: {execution_target['original_symbol']} -> {symbol}")
 
     if res.ok:
-        print(f"{test_path} fails at {parent[:12]}, passes at HEAD, and executed "
-              f"{symbol or target} {res.calls} time(s)")
+        label = f"initialization of {symbol}" if declaration else symbol or target
+        print(f"{test_path} fails {red_basis}, passes at HEAD, and executed "
+              f"{label} {res.calls} time(s)")
         return 0
 
     # Three states, not two. `verify` computes them and this printed two: any
@@ -256,8 +295,14 @@ def main():
     # stays one whatever the tracer saw -- reading `symbol_executed is None`
     # alone would turn "your closing test is broken" into "unsupported", which
     # is the opposite mistake and the more dangerous one.
+    if (res.source_assertion_check and res.source_assertion_check["status"] == "unavailable"
+            and res.red_failed and res.green_passed):
+        print("UNSUPPORTED: execution/red-green do not replace an unavailable closing-test source-assertion check")
+        for note in res.notes:
+            print(f"  {note}")
+        return 4
     if res.symbol_executed is None and res.red_failed and res.green_passed:
-        print(f"UNSUPPORTED: {test_path} fails at {parent[:12]} and passes at "
+        print(f"UNSUPPORTED: {test_path} fails {red_basis} and passes at "
               f"HEAD, and nothing observed it running {symbol or target}. The "
               f"tracer never attached, so this says nothing about the repair "
               f"either way.\n")

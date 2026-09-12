@@ -2,6 +2,7 @@
 
 Start with the [standalone demo](../examples/first-proof/README.md). Then use this guide for **Claude Code in an existing git repository with a working test command**. Python currently has the broadest default test-execution tracing. This guide describes installed behavior, not a promise of complete correctness.
 
+Codex / 雙宿主 / 双宿主: [host setup](CODEX.md). The instructions below retain the default Claude workflow.
 ## Who does what
 
 | You decide | Your coding agent can execute |
@@ -34,6 +35,11 @@ This is one JSON property, not a complete replacement config. Keep the other fie
 
 The other initial questions concern the UI suite, runtime read-back, its query command, and acceptance criteria. A real UI or external write needs a real command and evidence. If a capability does not apply, record that decision explicitly using the documented config shape rather than leaving `TODO` or inventing a passing command. Acceptance criteria are needed when using measurement rounds.
 
+For a surface suite, connect its actual results using the [shipped integration
+guide](../.v4/surface/INTEGRATION.md). Naming a command or printing a passing
+summary is insufficient for surface proof. The optional Playwright helper does
+not install browsers; use your host's permissions and a disposable test environment.
+
 ## 2. Install
 
 ```sh
@@ -42,7 +48,7 @@ The other initial questions concern the UI suite, runtime read-back, its query c
 
 Installation runs the checkers' and conditional detectors' own fixtures. Expect minutes rather than an instant setup; one local Python example took about four minutes. This is an example measurement, not an installation SLA.
 
-**What changes:** the installer adds checkers, detectors, fixtures under `.v4/fixtures`, reviewer lenses, Claude prompts and a hook-settings template. It writes a launcher and a framework-location file. The kernel continues to live in your vibeproof checkout; keep it available or set `V4_HOME` to its new location. A tiny example received over 1,500 fixture files. Inspect the installation diff before committing it.
+**What changes:** the installer adds checkers, detectors, fixtures under `.v4/fixtures`, reviewer lenses, optional surface adapters, Claude prompts and a hook-settings template. It writes a launcher and a framework-location file. The kernel continues to live in your vibeproof checkout; keep it available or set `V4_HOME` to its new location. A tiny example received over 1,500 fixture files. Inspect the installation diff before committing it.
 
 Read the complete install result. A reported refusal or missing tool needs attention even if some components installed successfully.
 

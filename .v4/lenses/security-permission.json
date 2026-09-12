@@ -2,44 +2,205 @@
   "name": "Security & Permission",
   "source": "SECURITY_AUDIT_GUIDELINE.md",
   "checks": [
-    "All protected routes have authentication (middleware / route guard)",
-    "All non-public routes must be intercepted — no route is accidentally exposed without auth middleware",
-    "Sensitive data read/write has authorization (RLS / DAL / policy engine)",
-    "No client-trusted identity parameters without server-side verification (`userId`, `orgId`, `shopId`)",
-    "All webhooks have signature verification",
-    "Payment/webhook flows have idempotency (using provider event ID or equivalent)",
-    "API responses do not leak internal info (stack traces, internal paths, secret fragments)",
-    "Error handlers fail closed (deny on exception), NOT fail open (continue on exception)",
-    "Lockfile exists, committed, pinning exact dependency versions",
-    "Hash verification of dependencies — dependency integrity verified via hash/checksum, not just version pinning",
-    "No long-lived credentials where short-lived identity is possible",
-    "External writes have audit trail (`user_id` + `timestamp` + `trace_id`)",
-    "Automation systems have emergency stop / kill switch mechanism",
-    "Signed commits — code provenance is verifiable through commit signing",
-    "Dual control for high-risk operations — privileged operations (key rotation, production data deletion, permission escalation) require two-party approval",
-    "Immutable logs (WORM) for critical operations — audit logs for financial, auth, and data-deletion events cannot be retroactively modified",
-    "Network security: default deny ingress, egress filtering, critical zone isolation — network posture follows least-privilege principle",
-    "CI pipeline dependency audit: automated vulnerability scan on dependencies in CI [Growth]",
-    "Production DB dashboard write restriction: production DB writes restricted to application service accounts only, not human dashboards [Growth]",
-    "Rate limiting on sensitive endpoints: auth, payment, and admin endpoints have rate limits [Growth]",
-    "SBOM auto-generation in CI: Software Bill of Materials generated automatically during build [Scale]",
-    "Incident Response Playbook formalized: documented response procedures for security incidents [Scale]",
-    "Public Bucket Audit scheduled: periodic audit ensuring no storage buckets are unintentionally public [Scale]",
-    "Infrastructure scanning integrated: automated infra scanning (IaC, container images) in pipeline [Scale]",
-    "Dependency updates staged rollouts: dependency updates deployed progressively, not all-at-once [Scale]",
     {
-      "check": "Auth is applied through unified wrappers rather than re-implemented per route.",
-      "from": "R-730adf1b"
+      "check": "Client-supplied identity must be validated by the server-side authorization path before the query or write. Follow middleware and callers as well as the local function.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-6bffe12c",
+      "id": "prevention:010"
+    },
+    {
+      "check": "Webhook/callback events are authenticated according to their actual protocol before trusted effects; signature validation may require reading the raw body.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-e94b7848",
+      "id": "prevention:011"
+    },
+    {
+      "check": "Route registry, handler and auth contract must stay in three-way parity.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-72a1d264",
+      "id": "prevention:012"
+    },
+    {
+      "check": "No secrets or PII in logs or debug output: a credential- or PII-named value must not flow into a logging call, and log extras must be redacted before emission.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-ae7a0067",
+      "id": "prevention:020"
+    },
+    {
+      "check": "API responses must not carry exception text, stack traces or internal paths.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-f9d14a70",
+      "id": "prevention:021"
+    },
+    {
+      "check": "Production source maps must not be unintentionally exposed to unauthorized clients; private generation/upload for diagnostics is allowed when access and content are appropriate.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-f7f9f586",
+      "id": "prevention:022"
+    },
+    {
+      "check": "An UPDATE or DELETE without a WHERE clause requires an intentional whole-table operation and appropriate safeguards; INSERT syntax does not require a WHERE clause.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-6491a845",
+      "id": "prevention:024"
+    },
+    {
+      "check": "Dependency integrity is verified by hash or checksum, not by version pin alone.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-30ee4c11",
+      "id": "prevention:065"
+    },
+    {
+      "check": "Where the project requires signed provenance, commits or release artifacts carry verifiable signatures under that policy.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-fb77910f",
+      "id": "prevention:066"
+    },
+    {
+      "check": "Work follows the user’s authorized branch/worktree and protection policy; branch naming should make its scope understandable where that convention applies.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-4c6108d6",
+      "id": "prevention:067"
+    },
+    {
+      "check": "When a change introduces an outbound write, auth decision or surface, update the applicable facts/claim vocabulary and derive its actual obligations; missing vocabulary must remain visible.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-82b51da4",
+      "id": "prevention:069"
+    },
+    {
+      "check": "Approval and manual-review flows: durable approval states, blocked and regenerate paths, operator proof.",
+      "from": "R-96033a2b",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:083"
+    },
+    {
+      "check": "Human-authored free-text values (form fields, config edits, spreadsheet cells) are untrusted regardless of source and are parsed before use.",
+      "from": "R-e74a6251",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:090"
+    },
+    {
+      "check": "An approval gate present in the approved design must be enforced in the implementation.",
+      "from": "R-88b661ee",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:095"
+    },
+    {
+      "check": "All protected routes have authentication (middleware / route guard)",
+      "id": "security-permission:001"
+    },
+    {
+      "check": "All non-public routes must be intercepted — no route is accidentally exposed without auth middleware",
+      "id": "security-permission:002"
+    },
+    {
+      "check": "Sensitive data read/write has authorization (RLS / DAL / policy engine)",
+      "id": "security-permission:003"
+    },
+    {
+      "check": "No client-trusted identity parameters without server-side verification (`userId`, `orgId`, `shopId`)",
+      "id": "security-permission:004"
+    },
+    {
+      "id": "security-permission:005",
+      "same_as": "prevention:011"
+    },
+    {
+      "check": "Payment/webhook flows have idempotency (using provider event ID or equivalent)",
+      "id": "security-permission:006"
+    },
+    {
+      "check": "API responses do not leak internal info (stack traces, internal paths, secret fragments)",
+      "id": "security-permission:007"
+    },
+    {
+      "check": "Security/authorization/integrity checks fail closed when they cannot establish permission or validity; optional diagnostics may fail without blocking unrelated authorized work.",
+      "id": "security-permission:008"
+    },
+    {
+      "check": "Deployable dependency sets are reproducible through the ecosystem’s adopted lock/pinning mechanism; assess lockfile applicability for libraries and dependency-free projects.",
+      "id": "security-permission:009"
+    },
+    {
+      "check": "Hash verification of dependencies — dependency integrity verified via hash/checksum, not just version pinning",
+      "id": "security-permission:010"
+    },
+    {
+      "check": "No long-lived credentials where short-lived identity is possible",
+      "id": "security-permission:011"
+    },
+    {
+      "check": "External writes have audit trail (`user_id` + `timestamp` + `trace_id`)",
+      "id": "security-permission:012"
+    },
+    {
+      "check": "Automation systems have emergency stop / kill switch mechanism",
+      "id": "security-permission:013"
+    },
+    {
+      "id": "security-permission:014",
+      "same_as": "prevention:066"
+    },
+    {
+      "check": "High-risk operations follow the adopted approval controls, including two-party approval where required; document and enforce any authorized emergency path.",
+      "id": "security-permission:015"
+    },
+    {
+      "check": "Critical financial/auth/deletion audit records have the required tamper resistance and retention; use WORM or another mechanism meeting the adopted integrity contract.",
+      "id": "security-permission:016"
+    },
+    {
+      "check": "For the actual deployment, apply least-privilege network access and required ingress/egress restrictions or zone isolation.",
+      "id": "security-permission:017"
+    },
+    {
+      "check": "Where dependencies are deployed, assess and wire vulnerability auditing appropriate to the project’s risk and CI environment; verify the scanner actually runs.",
+      "id": "security-permission:018"
+    },
+    {
+      "check": "Production database writes use authorized service/operator paths with least privilege and auditability; routine human dashboards must not bypass application controls.",
+      "id": "security-permission:019"
+    },
+    {
+      "check": "Sensitive exposed endpoints have abuse/rate controls appropriate to their authentication, payment or administrative risk.",
+      "id": "security-permission:020"
+    },
+    {
+      "check": "Where dependency inventory is required for deployment, compliance or incident response, generate a usable SBOM or equivalent verified inventory through the build.",
+      "id": "security-permission:021"
+    },
+    {
+      "check": "Security incident response has documented ownership and usable procedures appropriate to the deployment and its recovery obligations.",
+      "id": "security-permission:022"
+    },
+    {
+      "check": "Where storage buckets exist, verify intended public/private access and periodic review appropriate to exposure risk.",
+      "id": "security-permission:023"
+    },
+    {
+      "check": "For deployed IaC/container surfaces, wire applicable infrastructure/image security checks according to the project’s threat and delivery model.",
+      "id": "security-permission:024"
+    },
+    {
+      "check": "Dependency update rollout matches failure impact and recovery needs; use staged deployment where required rather than imposing it on every package change.",
+      "id": "security-permission:025"
+    },
+    {
+      "check": "Authentication policy has a consistent owner across entrypoints, using shared wrappers or an equivalent mechanism that prevents policy drift.",
+      "from": "R-730adf1b",
+      "id": "security-permission:026"
     },
     {
       "check": "Each service has its own identity with fine-grained permissions rather than sharing a broad credential.",
-      "from": "R-9d67c6e1"
+      "from": "R-9d67c6e1",
+      "id": "security-permission:027"
     }
   ],
   "anti_patterns": [
-    "Catch-all error handlers that fail open instead of fail closed",
+    "Security/authorization failure handlers continue a protected operation without establishing permission",
     "Client-trusted identity parameters without server-side verification",
-    "Long-lived credentials where short-lived identity exchange is available",
+    "Unnecessarily long-lived credentials despite a supported shorter-lived mechanism appropriate to this host and threat model",
     "No kill switch for privileged automation",
     "Overly broad egress permissions",
     "Privileged writes with no audit trail",

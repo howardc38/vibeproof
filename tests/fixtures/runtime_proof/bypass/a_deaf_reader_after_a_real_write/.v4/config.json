@@ -1,0 +1,11 @@
+{
+  "test_command": "true",
+  "policy": "no_accepted_risk",
+  "truth_command": "python3 read_count.py",
+  "runtime_proof": [{
+    "name": "a real write with no current run ID",
+    "trigger": "python3 write_note.py",
+    "truth": "SELECT count(*) FROM notes WHERE run_id='{run_id}'",
+    "expect": "gt:0"
+  }]
+}

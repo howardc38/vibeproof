@@ -109,6 +109,11 @@ def resolve_symbol(root, file: str, symbol: str) -> str:
     # hand, which is a better place to learn it than a parser that cannot read
     # the language.
     if path.suffix.lower() != ".py":
+        from .analysis.review_coordinate import declaration, TS_SUFFIXES
+        if path.suffix.lower() in TS_SUFFIXES and declaration(path.read_text(encoding="utf-8"), symbol):
+            raise BadCoordinates(f"{symbol} is a value initializer, not a callable function. "
+                                 "Raise this finding without --symbol for file-level proof. "
+                                 "An existing mistaken coordinate can use review close --declaration --why with a real closing test.")
         return symbol
     try:
         tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
@@ -215,7 +220,7 @@ def _slot(lens: str, n: int) -> str:
     return (lens or "") if n == 1 else f"{lens or ''}{SLOT}{n}"
 
 
-def raise_finding(conn, cfg, *, task_id, file, symbol, note, lens=""):
+def raise_finding(conn, cfg, *, task_id, file, symbol, note, lens="", check_id=None):
     """Create a review claim.  The question comes from the template, as always.
 
     Returns `(id, created, siblings)` -- `siblings` being the findings already
@@ -275,21 +280,29 @@ def raise_finding(conn, cfg, *, task_id, file, symbol, note, lens=""):
     # `test_what_a_reviewer_is_handed_and_what_comes_back`, whose fixture repo
     # ships no lenses and uses `lens="l"` to exercise the sibling slots. The
     # rule is about a typo inside a corpus, so it needs one.
-    usable, _unusable = lens_files(cfg.root)
+    usable, _unusable = lens_files(cfg.root, include_legacy=True)
     if lens and usable and lens not in usable:
         raise BadCoordinates(
             f"no lens named {lens!r}. The slug becomes part of the claim id "
             f"and `claim` is append-only, so a finding filed under a lens "
             f"nobody has cannot be found by anybody looking for that lens. "
             f"This repo has: {', '.join(sorted(usable))}.")
+    identity = lens
+    if check_id:
+        from . import lens_catalogue
+        if lens not in usable or check_id not in {c.get("id") for c in usable[lens]["checks"] if isinstance(c, dict)}:
+            raise BadCoordinates("check identity does not belong to this lens")
+        identity = lens_catalogue.identity_lens(cfg.root, lens, check_id)
     symbol = resolve_symbol(cfg.root, file, symbol)
-    if task_id is None:
+    if task_id is None or task_id == ledger_mod.REVIEW_TASK:
         task_id = ensure_review_task(conn)
+    else:
+        ledger_mod.require_task(conn, task_id)
     note = note or ""
     siblings = []
     n = 1
     while True:
-        variant = _slot(lens, n)
+        variant = _slot(identity, n)
         cid = hashing.claim_id(task_id, KIND, file, symbol, variant)
         row = conn.execute("SELECT note FROM claim WHERE id = ?",
                            (cid,)).fetchone()
@@ -386,7 +399,7 @@ HOW_TO_NAME_A_TEST = (
 
 
 def bind_closing_test(conn, *, claim_id, test_path, command, parent_commit=None,
-                      mutation=None, root=None):
+                      mutation=None, root=None, rename_commits=None, declaration=False, why=None):
     """Record which test is offered as closing this finding, and how it goes red.
 
     An event rather than a column: the ledger takes no updates, and this is
@@ -402,9 +415,9 @@ def bind_closing_test(conn, *, claim_id, test_path, command, parent_commit=None,
     test, this command, and what makes it fail.
     """
     if root is not None:
-        why = why_not_a_test_file(root, test_path)
-        if why:
-            raise BadCoordinates(why)
+        problem = why_not_a_test_file(root, test_path)
+        if problem:
+            raise BadCoordinates(problem)
     if bool(parent_commit) == bool(mutation):
         raise BadCoordinates(
             "a closing test needs --parent (the tree before the repair) or a "
@@ -413,12 +426,39 @@ def bind_closing_test(conn, *, claim_id, test_path, command, parent_commit=None,
             "which one counts.")
     payload = {"closing_test": test_path, "test_one_file_command": command,
                "parent_commit": parent_commit or ""}
+    if declaration:
+        from . import review_coordinates
+        row = conn.execute("SELECT kind,file,symbol FROM claim WHERE id=?", (claim_id,)).fetchone()
+        if root is None or row is None or row["kind"] != KIND or rename_commits is not None:
+            raise BadCoordinates("declaration proof needs an existing review finding, its repository and no rename override")
+        if not isinstance(why, str) or len(why.strip()) < MIN_MARKER:
+            raise BadCoordinates(f"--declaration needs --why explaining the coordinate correction in at least {MIN_MARKER} characters")
+        try:
+            review_coordinates.resolve_declaration(root, row["file"], row["symbol"])
+        except ValueError as exc:
+            raise BadCoordinates(str(exc)) from exc
+        payload.update(coordinate_kind="declaration", coordinate_reason=why.strip())
+    elif why is not None:
+        raise BadCoordinates("--why on review close requires --declaration")
+    if rename_commits is not None:
+        from . import review_renames
+        row = conn.execute("SELECT kind,file,symbol FROM claim WHERE id=?", (claim_id,)).fetchone()
+        if root is None or row is None or row["kind"] != KIND:
+            raise BadCoordinates("rename proof needs an existing review finding and its repository")
+        try:
+            proof = review_renames.resolve_rename(root, row["file"], row["symbol"], rename_commits,
+                                                 red_parent=parent_commit or None)
+        except review_renames.InvalidRename as exc:
+            raise BadCoordinates(str(exc)) from exc
+        payload["rename_commits"] = proof["rename_commits"]
+        if "parent_commit" in proof:
+            payload["parent_commit"] = proof["parent_commit"]
     if mutation:
         rel, gone, now = mutation
         if root is not None:
-            why = why_not_a_mutation(root, rel, gone, test_path)
-            if why:
-                raise BadCoordinates(why)
+            problem = why_not_a_mutation(root, rel, gone, test_path)
+            if problem:
+                raise BadCoordinates(problem)
         payload.update({"mutation_file": rel, "mutation_gone": gone,
                         "mutation_now": now or ""})
     insert(conn, "event", task_id=None, claim_id=claim_id, kind="review_close",
@@ -638,6 +678,43 @@ def closing_params(conn, claim_id):
     return json.loads(row["payload"]) if row else {}
 
 
+RENAME_BINDING_KEY = "review_close:rename_binding"
+COORDINATE_BINDING_KEY = "review_close:coordinate_binding"
+
+
+def rename_binding_digest(params):
+    """Optional proof metadata in the subject key; legacy closures stay unchanged."""
+    if "rename_commits" not in params and "coordinate_kind" not in params:
+        return {}
+    import hashlib
+    encoded = json.dumps(params, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    key = COORDINATE_BINDING_KEY if "coordinate_kind" in params else RENAME_BINDING_KEY
+    return {key: hashlib.sha256(encoded.encode()).hexdigest()}
+
+
+def closing_binding_digest(params, root):
+    """Proof choices and the actual closing-test bytes belong to the answer.
+
+    A changed test or rebound mutation cannot keep a previous PASS. The same
+    helper is used before execution, after execution and when deriving state.
+    """
+    if not params:
+        return {}
+    import hashlib
+    test_sha = None
+    name = params.get("closing_test")
+    if isinstance(name, str) and name:
+        path = Path(root) / name
+        try:
+            test_sha = hashing.file_sha(path) if path.resolve().is_relative_to(Path(root).resolve()) else "outside-repo"
+        except OSError:
+            test_sha = "missing"
+    encoded = json.dumps({"params":params, "closing_test_sha":test_sha},
+                         sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return {**rename_binding_digest(params),
+            "review_close:proof_binding": hashlib.sha256(encoded.encode()).hexdigest()}
+
+
 def lenses(root):
     """The reviewer lenses, one file each.  SPEC.md §10.
 
@@ -707,7 +784,7 @@ def unusable(lens) -> str:
     return ""
 
 
-def lens_files(root):
+def lens_files(root, *, include_legacy=False):
     """`({slug: lens}, {slug: why it was skipped})`.
 
     One place that answers "is this a lens". It was a dict comprehension over
@@ -738,6 +815,12 @@ def lens_files(root):
             bad[p.stem] = why
         else:
             good[p.stem] = lens
+    if not bad:
+        try:
+            from . import lens_catalogue
+            good = lens_catalogue.resolve(root, good, include_legacy=include_legacy)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            return {}, {"catalogue": str(exc)}
     return good, bad
 
 
@@ -764,118 +847,57 @@ def check_text(check) -> str:
     return str(check)
 
 
-def lens_brief(lens, slug=None, task=None):
-    """What a reviewer agent is handed."""
+def lens_brief(lens, slug=None, task=None, *, repo=".", context=None, run=None):
+    """Render the same assignment coordinates into every evidence command."""
+    import shlex
+    from .lens_catalogue import resolve_checks
+    if any(isinstance(c, dict) and c.get("same_as") and not c.get("check") for c in lens["checks"]):
+        lens = {**lens, "checks": resolve_checks(lens["checks"])}
+    name = slug or lens.get("name", "<lens>")
+    task_arg = " --task " + shlex.quote(task) if task else ""
+    run_arg = " --run " + shlex.quote(run) if run else ""
+    command = "./bin/v4 --repo " + shlex.quote(str(repo))
+    context_task = task or (context or {}).get("task")
     lines = [f"# {lens['name']}", f"source: {lens['source']}", ""]
-    # `why` sat in the file and reached nobody. `LENS_KEYS` names the four
-    # fields a lens has to carry and this is not one of them, so it was never
-    # missing and never printed -- the dead-wiring shape in a field rather than
-    # a registry, which is why `dead-wiring` never saw it.
-    #
-    # Five of the twelve lenses carry one, and four of those five were written
-    # before this line existed: `devx`, `electrification`, `prevention`, and
-    # `general-rule-one-false-instance` -- which has no checklist at all, on
-    # purpose, and put its entire method in the field nothing printed. Every
-    # reviewer that ever ran that lens got a name, a source, and one check.
-    #
-    # Optional, not required: seven lenses have none and want none. A lens whose
-    # checks say what to look for does not owe an essay.
     if lens.get("why"):
-        lines.append(str(lens["why"]).strip())
-        lines.append("")
-    # Two modes, because there are two callers. `v4 sweep` runs the lenses
-    # periodically with no task -- `ledger.REVIEW_TASK` exists for exactly that
-    # -- so there is no diff and "the code as it stands" is the only thing that
-    # can be meant. A lens run against a named task has one, and some questions
-    # have no meaning without it: `request-fidelity` asks whether what was asked
-    # for arrived, and there is nothing to ask where there is no request.
-    #
-    # Printing the sweep's instruction to a task-scoped reviewer put two
-    # contradicting orders on one screen -- "not a diff review" above six checks
-    # about the diff -- which is the collision this line was written to end,
-    # arriving from the other side.
+        why = str(lens["why"]).strip().replace("$V4_TASK", shlex.quote(context_task) if context_task else "<context-task>")
+        lines.extend([why, ""])
     if task:
-        lines.append(f"Read the diff for task `{task}` against its base. "
-                     f"For anything that fails,")
-        lines.append("open one finding and nothing else:")
+        lines.append(f"Read the diff for task `{task}` against its base.")
+    elif context_task:
+        lines.append(f"Read the supplied change/request context for `{context_task}`; findings belong to repo-review.")
     else:
-        lines.append("Read the code as it stands -- this is the after-gate, not a")
-        lines.append("diff review. For anything that fails,")
-        lines.append("open one finding and nothing else:")
-    lines.append("")
-    # No `--task`: a periodic sweep has none by design (`ledger.REVIEW_TASK`
-    # exists for exactly that, and `lens_files` says so twelve lines up), so
-    # `$V4_TASK` is unset and the shell drops the argument -- measured, the
-    # printed command dies with "argument --task: expected one argument". It is
-    # optional anyway; `raise_finding` falls back to `ensure_review_task`.
-    #
-    # `--lens` is not optional even though the parser lets it be: `raise_finding`
-    # derives the claim id from it, so two lenses filing on one file+symbol
-    # without it land in one lens's slots and read as that lens having found
-    # both -- which is what `sweep` is counting. It no longer costs a finding
-    # (the second one opens `#2` rather than rewriting the first), but the
-    # attribution is still wrong, and the brief that hands out this command is
-    # the place that has to carry it.
-    # The slug, not `name`. `name` is the display string -- "Developer
-    # experience" -- and the claim id is derived from what `--lens` is given, so
-    # printing the display name hands the reviewer a value with a space in it
-    # that the shell splits and `raise_finding` would key on differently from
-    # every other finding in that lens.
-    # `./bin/v4`, not `v4`. Nothing puts `bin/` on a PATH, so the one action
-    # this brief hands out exited 127 for every reviewer that ran it as
-    # printed -- `command -v v4` returns nothing in this repo. `USING.md` says
-    # every command goes through `./bin/v4`; the brief that dispatches thirteen
-    # agents was the place that did not.
-    lines.append(f"    ./bin/v4 --repo . review add --lens {slug or lens.get('name', '<lens>')} "
-                 f"--file <path> --symbol <enclosing symbol> "
-                 f"--note \"<what is wrong, one sentence>\"")
-    lines.append("")
-    # The command that makes a review distinguishable from a no-show, and the
-    # brief never named it. `record_lens_reviewed` writes the only
-    # `lens_reviewed` row there is, and `v4 ship` and `v4 sweep` read that row
-    # to tell "ran and found nothing" from "never ran" -- so a reviewer who
-    # followed this brief exactly recorded neither.
-    #
-    # `--findings 0` is spelled out because zero is the answer the row exists
-    # for: a lens that ran and found nothing is a fact, and it is the fact this
-    # framework has no other way to hold.
-    lines.append("When you are done, whatever you found, say so -- including nothing:")
-    lines.append(f"    ./bin/v4 --repo . review done "
-                 f"--lens {slug or lens.get('name', '<lens>')} --findings <n>")
-    lines.append("")
-    # Not a `V4-CLAIM:` line. Those are parsed from a detector's stdout and from
-    # a fixture run, and nowhere else, so a reviewer printing one writes into its
-    # own transcript. The agent prompt had the same defect and was fixed; this is
-    # the function that generates the brief, and it kept the dead form.
-    lines.append("You do not decide severity and you do not decide whether it ships.")
-    # What actually happens to a finding, not what would be tidier. This said
-    # "every finding you raise has to be answered before the task ships", and
-    # it is not so: a finding hangs off `ledger.REVIEW_TASK`, `state.
-    # task_report` selects `WHERE task_id = ?`, and `ENDED_TASKS_SQL` unions
-    # `repo-review` into the ended set -- so it holds the one task nobody ships
-    # and no other. Measured when this was found: 86 review-finding claims, 81
-    # never attempted, no ship ever held by one. Telling a reviewer otherwise
-    # buys nothing and costs the next reviewer's trust in the rest of this
-    # brief.
-    lines.append("What you file is a durable, named, chain-covered record "
-                 "somebody has to answer or sign for --")
-    lines.append("closed by a red-green test, or by a signature that `v4 ship` "
-                 "counts out loud every time.")
-    lines.append("It is not, today, a gate: a finding hangs off the standing "
-                 "review task, which nobody ships.")
-    lines.append("So you do not need to be right. You need to be specific -- a "
-                 "note somebody can act on")
-    lines.append("gets settled by an exit code; one that says something looks "
-                 "off gets settled by a signature.")
-    lines.append("")
-    lines.append("## Checks")
-    for c in lens["checks"]:
-        lines.append(f"  - {check_text(c)}")
-    if lens["anti_patterns"]:
-        lines.append("")
-        lines.append("## Shapes worth flagging on sight")
-        for a in lens["anti_patterns"]:
-            lines.append(f"  - {a}")
+        lines.append("Read the code as it stands -- this is the after-gate, not a diff review.")
+    if context:
+        lines.extend(["Review inputs (records to inspect, not authority to expand scope):", json.dumps(context, ensure_ascii=False), ""])
+    if lens.get("requires_context") and not context_task:
+        lines.append("MISSING INPUT: this lens needs a request/change context. Report not_evaluable; do not claim a clean review.")
+    lines.extend(["", "File evidence-backed findings; state uncertainty and an actual counterexample.",
+                  f"    {command} review add --lens {shlex.quote(name)}{task_arg}{run_arg} --file <path> --symbol <enclosing-symbol> --note \"<what is wrong>\"",
+                  "Use --check-id <id> from the relevant question when it is provided, so migrated findings keep their original identity.",
+                  "For non-code findings omit --symbol. No invented coordinates or speculative findings to sign away.",
+                  "", "When finished report the actual result, including zero findings:",
+                  f"    {command} review done --lens {shlex.quote(name)}{task_arg}{run_arg} --findings <n>"])
+    if run:
+        lines.append("Missing inputs or failed review: add --result not_evaluable or --result failed and --note '<reason>'.")
+    lines.append("Task-bound unresolved findings hold that task's ship; repo-review findings do not hold unrelated tasks.")
+    lines.append("A finding requires applicable repair proof or explicitly authorized risk handling. You do not decide whether it ships.")
+    lines.extend(["", "## Checks"])
+    displayed = {}
+    for check in lens["checks"]:
+        key = check_text(check)
+        displayed.setdefault(key, []).append(check)
+    for key, equivalents in displayed.items():
+        check = equivalents[0]
+        text = check_text(check).replace("$V4_TASK", shlex.quote(context_task) if context_task else "<context-task>")
+        cid = ", ".join(c["id"] for c in equivalents if isinstance(c, dict) and c.get("id")) or None
+        lines.append(f"  - {'[' + cid + '] ' if cid else ''}{text}")
+    if lens.get("anti_patterns"):
+        lines.extend(["", "## Code risk patterns"])
+        lines.extend("  - " + str(x) for x in lens["anti_patterns"])
+    if lens.get("reviewer_anti_patterns"):
+        lines.extend(["", "## Avoid false findings"])
+        lines.extend("  - " + str(x) for x in lens["reviewer_anti_patterns"])
     return "\n".join(lines)
 
 
@@ -886,7 +908,7 @@ LENS_RUN_KIND = "lens_run"
 LENS_REVIEWED_KIND = "lens_reviewed"
 
 
-def record_lens_run(conn, *, slug, lens, task_id=None):
+def record_lens_run(conn, *, slug, lens, task_id=None, root=None, run_id=None):
     """A reviewer was handed this brief.  `sweep.ran_since` reads it.
 
     Here rather than in `kernel/cli.py`, which is where both of this domain's
@@ -909,13 +931,19 @@ def record_lens_run(conn, *, slug, lens, task_id=None):
     # the one distinction this row exists to make. One reviewer in the last
     # sweep noticed and deviated from its own prompt to avoid it; the other
     # twelve did not have to, because they were told to omit the flag.
+    payload = {"lens": slug, "checks": len(lens["checks"])}
+    if run_id:
+        from . import maintenance
+        r = maintenance.validate_run(conn, root, run_id, slug)
+        if task_id != r["task"]:
+            raise BadCoordinates("review task differs from assigned maintenance run")
+        payload.update(run_id=run_id, lens_sha=r["expected"][slug]["sha256"], snapshot=r["snapshot"])
     insert(conn, "event", task_id=task_id or None, claim_id=None,
-           kind=LENS_RUN_KIND, actor="reviewer",
-           payload={"lens": slug, "checks": len(lens["checks"])},
-           created_at=_now())
+           kind=LENS_RUN_KIND, actor="reviewer", payload=payload, created_at=_now())
 
 
-def record_lens_reviewed(conn, root, *, slug, findings, task_id=None):
+def record_lens_reviewed(conn, root, *, slug, findings, task_id=None, run_id=None,
+                         result="completed", note="", evidence=()):
     """A reviewer finished with this lens, and says what it found.
 
     `findings` is refused when absent rather than defaulted, and `0` is the
@@ -924,7 +952,7 @@ def record_lens_reviewed(conn, root, *, slug, findings, task_id=None):
     refusal that lives in the parser branch is a rule that only argv is held
     to.
     """
-    known, skipped = lens_files(root)
+    known, skipped = lens_files(root, include_legacy=True)
     if slug in skipped:
         raise BadCoordinates(
             f"lens {slug!r} is there and not usable: {skipped[slug]}")
@@ -938,9 +966,16 @@ def record_lens_reviewed(conn, root, *, slug, findings, task_id=None):
     # The same normalisation as its sibling, and this is the row that matters
     # more: `sweep` reads `lens_reviewed` to answer "did anybody review", and an
     # empty `--task` filed it where that query cannot see it.
+    payload = {"lens": slug, "findings": findings}
+    if run_id:
+        from . import maintenance
+        r = maintenance.get_run(conn, run_id)
+        if task_id != r["task"]:
+            raise BadCoordinates("review task differs from assigned maintenance run")
+        payload = maintenance.lens_result(conn, root, run_id, slug, result=result,
+                                          findings=findings, note=note, evidence=evidence)
     insert(conn, "event", task_id=task_id or None, claim_id=None,
-           kind=LENS_REVIEWED_KIND, actor="reviewer",
-           payload={"lens": slug, "findings": findings}, created_at=_now())
+           kind=LENS_REVIEWED_KIND, actor="reviewer", payload=payload, created_at=_now())
 
 
 # ── Deferring a finding ───────────────────────────────────────────────────

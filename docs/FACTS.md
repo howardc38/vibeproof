@@ -409,7 +409,7 @@ is not a terminal (who may sign), and the hooks emitting
 2026-08-20 a later sweep made it eight: `kernel/analysis/fail_closed.py`'s
 `_matches_auth`, the rule that decides what counts as an auth decision at all,
 which two checkers ask their question through and which was not in the auth
-table. So: 8 auth_decision rows. All eight decide who may do what; the subject
+table. So: 當時 8 auth_decision rows. All eight decide who may do what; the subject
 is the kernel rather than a user, which is why they were easy not to see -- and
 **the paragraph that named five while the file held four is the same failure one
 level out**, which is why `python3 -m kernel.facts verify` is a CI step rather
@@ -422,10 +422,19 @@ code; nothing read it against this document, because `spec_coverage::_reality`
 could count checkers, kinds, lenses, detectors, hooks, agents, subcommands and
 pins and could not count a facts table. It can now, per table, and
 `counted_claims` settles any sentence that names which table it is counting --
-which is why this one says `8 auth_decision rows` and not `8 rows`. A bare
+which is why that historical example says 當時 `8 auth_decision rows` and not `8 rows`. A bare
 number still settles nothing: measured over `docs/`, dropping that requirement
 turns 0 findings into 50, of which `v4 check` read as four checks is the
 shortest to explain.
+
+The current table has 14 auth_decision rows. They include committed-symbol
+rename validation, maintenance repair/dispatch correlation, Telegram recipient
+and callback acknowledgement checks, and receiver-service ownership. Telegram
+operations are classified by their actual method: identity/webhook inspection
+only reads; message delivery, callback UI acknowledgement and update polling
+that advances the provider cursor have external effects. Private file writes
+use the declared serialization/replacement primitives. Source citations remain
+call sites and are verified against the actual implementation.
 
 An eighth arrived the same way, and one had to come back out. `hooks/stop_gate.py`
 emits three `decision: block` refusals -- who may end a turn -- while both sibling
@@ -545,3 +554,13 @@ those three, and the one that read the table directly, went at `a9ae5fb`; the
 detectors that consume the table today are `external_write.py`,
 `surface_proof.py` and `runtime_proof.py`, and `tests/test_kernel.py` pins that
 set.)
+
+`v4 facts <subcommand> --help` and `-h` are handled before repository/table lookup
+or command dispatch. Asking for help cannot invoke `restate` or change citations;
+the same rule applies to `python3 -m kernel.facts` before an explicit `--`.
+
+With explicit arguments, `verify`, `restate` and `scan` require both the facts
+table and repository root. Flags may appear between positional arguments; a
+flag never supplies a missing root. Missing/extra arguments, unknown options
+and unknown scan tables return usage error (exit 2) before any `restate` write.
+`v4 --repo <root> facts verify --gone-only` still fills in that repo's paths.

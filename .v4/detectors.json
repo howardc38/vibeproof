@@ -18,16 +18,16 @@
     "sha256": "1e434b08617b2d437d524e8ac9448d5d1561e13614ea2973100ee7653085562e"
   },
   "fail_closed.py": {
-    "cases": 47,
+    "cases": 67,
     "fixtures": "tests/fixtures/fail_closed",
     "path": "detectors/fail_closed.py",
     "sha256": "fbd192533fcfcc04c2f7c48f91fc65c99c1a2cb2bdf27e5c7afa4eb0ba24ca1f"
   },
   "runtime_proof.py": {
-    "cases": 8,
+    "cases": 11,
     "fixtures": "tests/fixtures/runtime_proof_detector",
     "path": "detectors/runtime_proof.py",
-    "sha256": "3def7d60892d3a495f659f465e17f9f024fd9a832d777a86b173fae611f4d9e3"
+    "sha256": "f8ca9f88226f046211bf3628a6e63fe1d52b6b3152aee3c6a6aa056c163ffa26"
   },
   "signature_change.py": {
     "cases": 25,

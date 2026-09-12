@@ -39,6 +39,7 @@ import json
 import os
 import sqlite3
 import sys
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -61,11 +62,14 @@ except ImportError:                                             # noqa: E402
     # `record_seen` and `is_open` for the same reason as in `bash_guard`: this
     # hook reaches both on the path this fallback is for, and a stand-in that
     # is missing them fails a second time while reporting the first.
-    _framework = SimpleNamespace(on_path=lambda r: _WHY, ledger=lambda r: None,
+    _framework = SimpleNamespace(set_context=lambda p: None, host=lambda: "claude",
+                                 operation_cwd=Path.cwd, patch_root=lambda names, root: root,
+                                 open_task_ids=lambda c, r: [], on_path=lambda r: _WHY, ledger=lambda r: None,
                                  config=lambda r: None, why=lambda r: _WHY,
                                  home=lambda r: None, db_path=lambda r: None,
                                  record_seen=lambda *a, **k: _WHY,
-                                 is_open=lambda r, t: True,
+                                 write_assignment=lambda r, p: ["", "", ""],
+                                 is_open=lambda r, t: True, task_id=lambda r: ("", ""),
                                  repo_root=lambda: Path(__file__).resolve().parent.parent)
 
 WRITE_TOOLS = {"Write", "Edit", "NotebookEdit", "MultiEdit"}
@@ -449,7 +453,7 @@ def open_task(repo_root: Path):
         # one would too" -- and then this hook wrote it a fourth time in the
         # same batch of commits. Extracting the string and leaving the function
         # uncalled is what let that happen.
-        ids = ledger.open_task_ids(conn)
+        ids = _framework.open_task_ids(conn, repo_root)
         if len(ids) > 1:
             return AMBIGUOUS
         return ids[0] if ids else None
@@ -493,7 +497,7 @@ def _ambiguous_text(repo_root: Path) -> str:
     if db is not None and ledger is not None:
         conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         try:
-            ids = ledger.open_task_ids(conn)
+            ids = _framework.open_task_ids(conn, repo_root)
         except sqlite3.Error:
             pass
         finally:
@@ -504,7 +508,9 @@ def _ambiguous_text(repo_root: Path) -> str:
         f"Either finish the one that is done -- `v4 ship --task <id>`, or "
         f"`v4 abandon --task <id> --why '…'` if it will not ship -- or say "
         f"which one you are in:\n"
-        f"  export V4_TASK=<id>\n\n"
+        f"  {_framework.binding_instruction(repo_root)}\n\n"
+        f"V4_TASK is also read from the host's launch environment; exporting it "
+        f"inside a tool call does not change the host's hook environment.\n\n"
         f"This used to pick the newest and say nothing, which is right until "
         f"the write was for the other one. Then it checked the write against a "
         f"scope that was not its own and recorded it under a task that did not "
@@ -566,50 +572,22 @@ def refuse_the_write(reason: str) -> int:
     return 0
 
 
-def main():
-    try:
-        payload = json.load(sys.stdin)
-    except Exception as exc:                                    # noqa: BLE001
-        # Allowing is right -- a payload this hook cannot read is not evidence
-        # of a bad write. Allowing *silently* is not: it makes a dead guard and
-        # a clean write look the same, which is the state `bash_guard` was
-        # repaired out of and which this file still carried. The same
-        # `json.load` with the same silence sat in all three hooks.
-        print(f"v4 write_block: allowed without checking -- the payload did "
-              f"not read ({type(exc).__name__}: {exc})", file=sys.stderr)
-        print("{}")
-        return 0
-
-    if payload.get("tool_name") not in WRITE_TOOLS:
-        print("{}")
-        return 0
-
-    repo_root = _framework.repo_root()
-
-    # `NotebookEdit` is in WRITE_TOOLS and in the matcher this hook is
-    # registered under, and it does not send `file_path` -- its parameter is
-    # `notebook_path`. Reading one key meant every notebook write returned here
-    # before the scope check, the engagement gate and the mark, so it was
-    # allowed and left no `hook_seen` either. One key per tool is what the
-    # matcher promised to cover; this reads the keys the matcher names.
-    session = str(payload.get("session_id") or "")
-    tool_input = payload.get("tool_input") or {}
-    path = tool_input.get("file_path") or tool_input.get("notebook_path")
-    if not path:
-        print("{}")
-        return 0
-    try:
-        rel = str(Path(path).resolve().relative_to(repo_root))
-    except ValueError:
-        print("{}")            # outside the repo entirely; not this hook's business
-        return 0
-
+def _judge_write(payload, repo_root, rel):
     # Dropped, not obeyed, and not silently: the mark below carries the value
     # so that "the hook used the ledger because your shell was pointing at a
     # finished task" is answerable afterwards. `_framework` owns the rule now,
     # because it was written here and in `stop_gate` and the two disagreed
     # about what happens to the value that was dropped.
-    named, stale = _framework.task_id(repo_root)
+    session = str(payload.get("session_id") or "")
+    try:
+        named, stale, conflict = _framework.write_assignment(repo_root, payload)
+    except (OSError, sqlite3.Error) as exc:
+        print(f"v4 write_block: assignment unreadable ({exc})", file=sys.stderr)
+        named, stale, conflict = "", "", ""
+    if conflict:
+        _record_seen(repo_root, named or None, rel, allowed=False,
+                     reason=conflict, basis="wrong worktree", session=session)
+        return conflict + "; bind the assigned task from its worktree before editing"
     task_id = named or open_task(repo_root)
     if task_id is AMBIGUOUS:
         # Two tasks open and nothing saying which this write is for. Picking the
@@ -634,7 +612,7 @@ def main():
             # creates the file, runs the schema and the triggers, commits and
             # migrates, all to answer `open_task_ids`.
             conn = ledger.connect_readonly(repo_root) if ledger else None
-            ids = ledger.open_task_ids(conn) if conn else []
+            ids = _framework.open_task_ids(conn, repo_root) if conn else []
             if conn:
                 conn.close()
         except Exception:                                       # noqa: BLE001
@@ -643,7 +621,7 @@ def main():
             _record_seen(repo_root, tid, rel, allowed=False,
                          reason="ambiguous task", basis="two tasks open",
                          session=session, scattered=True)
-        return refuse_the_write(_ambiguous_text(repo_root))
+        return _ambiguous_text(repo_root)
     if task_id is UNREADABLE:
         # `open_task` has already said on stderr what it could not read. There
         # is no task id to check a scope against and none to record a mark
@@ -678,9 +656,8 @@ def main():
                   f"{_framework.why(repo_root) or 'the repo config was unreadable'}",
                   file=sys.stderr)
         elif is_protected(rel, guarded, repo_root):
-            return refuse_the_write(_protected_text(rel, guarded))
-        print("{}")
-        return 0
+            return _protected_text(rel, guarded)
+        return None
 
     globs = current_scope(repo_root, task_id)
     if globs is None:
@@ -691,8 +668,7 @@ def main():
         # stood down for a reason and a guard nobody can account for.
         _record_seen(repo_root, task_id, rel, allowed=True, basis="unreadable",
                      session=session)
-        print("{}")
-        return 0
+        return None
 
     # Decided before the mark is written, so the mark can say which it was.
     refusal, basis = None, ""
@@ -711,8 +687,7 @@ def main():
                  session=session)
 
     if refusal is None:
-        print("{}")
-        return 0
+        return None
 
     # PreToolUse takes `hookSpecificOutput.permissionDecision`, and the
     # top-level `decision` field this used to print is not supported for this
@@ -724,7 +699,67 @@ def main():
     # The predecessor knew: its spec says "rebuilding them with `exit 1 = block`
     # is incorrect and unsafe" and pins this exact shape. That sentence was in a
     # document nobody carried across.
-    return refuse_the_write(refusal[1])
+    return refusal[1]
+
+
+
+def main():
+    try:
+        payload = json.load(sys.stdin)
+        if not isinstance(payload, dict):
+            raise ValueError("expected an object")
+    except Exception as exc:
+        print(f"v4 write_block: allowed without checking -- the payload did not read ({exc})",
+              file=sys.stderr)
+        print("{}")
+        return 0
+    _framework.set_context(payload)
+    tool = payload.get("tool_name")
+    if tool not in WRITE_TOOLS and tool != "apply_patch":
+        print("{}")
+        return 0
+    root = _framework.repo_root()
+    data = payload.get("tool_input") or {}
+    if not isinstance(data, dict):
+        return refuse_the_write("Cannot inspect a non-object tool_input")
+    if tool == "apply_patch":
+        why = _framework.on_path(root)
+        if why:
+            return refuse_the_write(f"Cannot inspect the patch: {why}")
+        try:
+            from kernel.analysis.patch_paths import paths
+            names = paths(data.get("command"))
+            root = _framework.patch_root(names, root)
+        except (ValueError, ImportError, OSError, subprocess.SubprocessError) as exc:
+            return refuse_the_write(f"Cannot inspect the complete patch: {exc}")
+    else:
+        path = data.get("file_path") or data.get("notebook_path")
+        names = [path] if path else []
+    results = []
+    for name in names:
+        path = Path(name)
+        if not path.is_absolute():
+            path = (_framework.operation_cwd() if tool == "apply_patch" else Path.cwd()) / path
+        target_root = root
+        if tool != "apply_patch":
+            try:
+                target_root = _framework.patch_root([str(path)], root)
+            except (ValueError, OSError, subprocess.SubprocessError):
+                # Unrelated repositories remain outside this hook's remit.
+                target_root = root
+        try:
+            rel = str(path.resolve().relative_to(target_root))
+        except ValueError:
+            if tool == "apply_patch":
+                return refuse_the_write("Patch path is outside the guarded repository: " + name)
+            continue
+        results.append(_judge_write(payload, target_root, rel))
+    denied = [reason for reason in results if reason]
+    if denied:
+        return refuse_the_write("\n\n".join(dict.fromkeys(denied)))
+    else:
+        print("{}")
+    return 0
 
 
 if __name__ == "__main__":

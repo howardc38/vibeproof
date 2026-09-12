@@ -94,7 +94,7 @@ class TheRequestFidelityLensSaysWhereToGetTheRequest(unittest.TestCase):
                                        task="some-task")
 
     def test_the_command_is_in_the_brief(self):
-        self.assertIn("v4 --repo . cover --task $V4_TASK --show", self.brief)
+        self.assertIn("v4 --repo . cover --task some-task --show", self.brief)
 
     def test_it_says_the_request_is_readable_and_the_worker_is_not(self):
         """Blind reading has a boundary and it is not "read nothing": the
@@ -113,7 +113,7 @@ class TheRequestFidelityLensSaysWhereToGetTheRequest(unittest.TestCase):
     def test_it_refuses_to_report_doing_too_much(self):
         """One direction only. Doing too much is `scope`, and it already asks
         once per task -- a second mechanism asking it is noise with a quorum."""
-        joined = " ".join(self.lens["anti_patterns"])
+        joined = " ".join(self.lens.get("reviewer_anti_patterns", self.lens["anti_patterns"]))
         self.assertIn("scope", joined)
 
 
@@ -196,7 +196,7 @@ class AParkedCheckMovedRatherThanVanished(unittest.TestCase):
 
     def test_it_is_no_longer_parked_in_prevention(self):
         good, _ = review.lens_files(ROOT)
-        parked = [c for c in good["prevention"]["checks"]
+        parked = [c for c in good.get("prevention", {}).get("checks", [])
                   if isinstance(c, dict)
                   and c.get("check", "").startswith("Request fit:")]
         self.assertEqual(parked, [], "still parked, so it is asked twice")

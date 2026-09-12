@@ -1,0 +1,2064 @@
+{
+  "schema": 1,
+  "scope": "Predeclared semantic counterexample fixtures; this is not live production or actual host acceptance evidence.",
+  "cases": [
+    {
+      "case_id": "002cff1ca5ff",
+      "check_id": "security-permission:005",
+      "lens": "security-permission",
+      "scenario": "A signed webhook reads raw bytes, verifies its MAC, then parses and applies the event.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "015210ba941c",
+      "check_id": "architecture-fit:006",
+      "lens": "architecture-fit",
+      "scenario": "A linked README maps the sole export workflow to its implementation and output file; no matrix convention exists.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "034d273b68bd",
+      "check_id": "prevention:046",
+      "lens": "test-sufficiency",
+      "scenario": "An identical shared fixture is copied into siblings and one version stops cleaning up state.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "038335dbd953",
+      "check_id": "security-permission:021",
+      "lens": "security-permission",
+      "scenario": "A project with no SBOM requirement maintains a sufficient verified dependency inventory in its lock and release metadata.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "03d6468a55a3",
+      "check_id": "observability-debuggability:019",
+      "lens": "observability-debuggability",
+      "scenario": "A queue worker reports readiness through its supervisor’s supported health check.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "04b2f1536b0d",
+      "check_id": "prevention:049",
+      "lens": "test-sufficiency",
+      "scenario": "All tests call a helper with context that the only production entrypoint never supplies.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "0526ddbbf38d",
+      "check_id": "observability-debuggability:022",
+      "lens": "observability-debuggability",
+      "scenario": "A queue SDK propagates trace metadata through its interceptor rather than HTTP middleware.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "056aab313534",
+      "check_id": "config-hardcode-secret-placement:004",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "An optional Telegram channel validates its token when enabled; local calculation still works without it.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "06378bcb253c",
+      "check_id": "security-permission:026",
+      "lens": "security-permission",
+      "scenario": "Framework-native route policy registration applies the same auth rules without a custom wrapper.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "06b4f2ccdbc8",
+      "check_id": "prevention:029",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "Two object branches overlap and a required discriminant is omitted, causing error data to be interpreted as success.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "08da6e69db12",
+      "check_id": "architecture-fit:005",
+      "lens": "architecture-fit",
+      "scenario": "Both the HTTP handler and background worker independently own incompatible approval transitions.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "09850b70913c",
+      "check_id": "test-sufficiency:011",
+      "lens": "test-sufficiency",
+      "scenario": "A 200-step integration test catches every error and raises AssertionError('failed') from None, discarding the original cause and providing no failing operation, input or correlation in its output.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "0b6e61172e03",
+      "check_id": "config-hardcode-secret-placement:007",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A small service reloads a validated local config file on change; it needs no database service.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "0b8af5b0fdc0",
+      "check_id": "prevention:014",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A local development mode deliberately uses a temporary database by default.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "0b979f09d4fa",
+      "check_id": "test-sufficiency:006",
+      "lens": "test-sufficiency",
+      "scenario": "A persistence test mocks the write method and asserts only that its own mock returned success.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "0bdef445aab2",
+      "check_id": "observability-debuggability:001",
+      "lens": "observability-debuggability",
+      "scenario": "A distributed payment failure emits unrelated free text from each hop with no request correlation.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "0bec761c4d99",
+      "check_id": "implementation-layer-boundaries:020",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "The config loader validates an integer range and resolves documented precedence.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "0c56fb69965b",
+      "check_id": "implementation-layer-boundaries:014",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "Callers must parse changing exception strings to distinguish permission denial from missing data.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "0c59f45cc0cc",
+      "check_id": "prevention:046",
+      "lens": "test-sufficiency",
+      "scenario": "Two database fixtures deliberately use different transaction lifetimes.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "0c9a5dea63ab",
+      "check_id": "request-fidelity:003",
+      "lens": "request-fidelity",
+      "scenario": "交付聲稱支援 --dry-run，但 CLI 冇呢個旗標，亦冇獲准替代。",
+      "expected": "finding"
+    },
+    {
+      "case_id": "0cbc4efbdf51",
+      "check_id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:009",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "Approval for a draft in one repository is reused to publish a different revision to another target.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "0db6c1e38cbf",
+      "check_id": "test-sufficiency:006",
+      "lens": "test-sufficiency",
+      "scenario": "A unit test isolates one internal collaborator while an integration test covers their real composition.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "0e22d7ab3ad1",
+      "check_id": "prevention:007",
+      "lens": "devx",
+      "scenario": "A long, coherent annotated example remains readable without artificial subheadings.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "0e8c718731c0",
+      "check_id": "prevention:031",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A known authorization result is cast to Any to ignore a required denied field.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "0ea33ed0d577",
+      "check_id": "prevention:062",
+      "lens": "runtime-reliability-performance",
+      "scenario": "A lightweight request-scoped client intentionally isolates tenant credentials with negligible setup cost.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "0fb89a8a5e1e",
+      "check_id": "electrification:005",
+      "lens": "electrification",
+      "scenario": "A storage write is called successful from its response body although the promised object never persisted.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "0fd7a3a170f8",
+      "check_id": "observability-debuggability:003",
+      "lens": "observability-debuggability",
+      "scenario": "An expected invalid-input response is structured and safely diagnosed without printing a stack trace.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "1183f43b6fe9",
+      "check_id": "test-sufficiency:015",
+      "lens": "test-sufficiency",
+      "scenario": "New tests all use opaque cycle numbers, making the covered payment behavior unfindable.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "128229986a23",
+      "check_id": "prevention:005",
+      "lens": "architecture-fit",
+      "scenario": "Current docs label a commit hash as historical evidence and separately state current behavior.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "12da1e1d2716",
+      "check_id": "prevention:074",
+      "lens": "near-miss",
+      "scenario": "A non-baselineable secret check reports all live credentials, including inherited ones.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "155238a81f44",
+      "check_id": "architecture-fit:008",
+      "lens": "architecture-fit",
+      "scenario": "Renaming a loop variable changes no architectural decision.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "15cd634bd2d2",
+      "check_id": "security-permission:017",
+      "lens": "security-permission",
+      "scenario": "An offline local utility has no listening service or deployment network boundary.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "17057b3afd67",
+      "check_id": "architecture-fit:006",
+      "lens": "architecture-fit",
+      "scenario": "Documentation maps a payment workflow to a deleted handler and obsolete external service.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "172fd77e9b07",
+      "check_id": "prevention:033",
+      "lens": "devx",
+      "scenario": "A narrow bug fix adds an unrelated duplicate subsystem to an already mixed-responsibility file.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "18a4a36de402",
+      "check_id": "prevention:064",
+      "lens": "runtime-reliability-performance",
+      "scenario": "The dev server disposes each old pool before reload and needs no global singleton.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "18b60295ba2e",
+      "check_id": "observability-debuggability:022",
+      "lens": "observability-debuggability",
+      "scenario": "A child job drops the parent correlation ID and cannot be tied to the failing request.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "19d4dc41c25b",
+      "check_id": "architecture-fit:013",
+      "lens": "architecture-fit",
+      "scenario": "Architecture docs still direct operators to a datastore no longer used.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "1a85930b6bc5",
+      "check_id": "prevention:069",
+      "lens": "security-permission",
+      "scenario": "A new external write is absent from facts, so its configured detector never derives the required obligation.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "1bafc7bcf035",
+      "check_id": "security-permission:023",
+      "lens": "security-permission",
+      "scenario": "A project uses no object-storage buckets; this check is not applicable.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "1bd2ff44f354",
+      "check_id": "implementation-layer-boundaries:001",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A project with an explicit pure-domain contract adds an HTTP call inside the domain price function.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "1d14ff27f04f",
+      "check_id": "prevention:070",
+      "lens": "electrification",
+      "scenario": "A release presents a previous version’s runtime result as proof of newly changed behavior.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "1db337aed493",
+      "check_id": "config-hardcode-secret-placement:013",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A gitignored plaintext token is packaged into a distributable application bundle.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "1ddd8769a1ad",
+      "check_id": "prevention:005",
+      "lens": "architecture-fit",
+      "scenario": "An old phase narrative still describes a removed service as today’s authority.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "1e7e80c56f36",
+      "check_id": "security-permission:016",
+      "lens": "security-permission",
+      "scenario": "An append-only audit stream with independently verified hashes meets the project’s stated integrity policy without a WORM vendor.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "1f59ccc2ff71",
+      "check_id": "implementation-layer-boundaries:003",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "Retry, authorization and state transitions are independently reimplemented by HTTP and queue entrypoints.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "20043235191e",
+      "check_id": "implementation-layer-boundaries:004",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A 35-line handler duplicates approval, payment and persistence policy from the worker.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "20b7a6a1e8e9",
+      "check_id": "request-fidelity:003",
+      "lens": "request-fidelity",
+      "scenario": "需求要保留 --dry-run；既有旗標仍有效，今次毋須修改嗰幾行。",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "20e7b739d2e5",
+      "check_id": "prevention:050",
+      "lens": "near-miss",
+      "scenario": "A validator intentionally checks the current server-owned maintenance policy rather than trusting a client hint parameter.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "211df044a0a4",
+      "check_id": "prevention:086",
+      "lens": "devx",
+      "scenario": "Three files implement independent policies with similar syntax but no shared invariant.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "21cda4a64f4c",
+      "check_id": "implementation-layer-boundaries:007",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "Two core functions assign different defaults to the same permission flag.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "21d6e784c80a",
+      "check_id": "config-hardcode-secret-placement:009",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A documented CLI-over-environment-over-default precedence resolves one final value.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "26bb790d09f5",
+      "check_id": "test-sufficiency:017",
+      "lens": "test-sufficiency",
+      "scenario": "Two identical tests exercise precisely the same invariant and setup after an explicit replacement is introduced.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "2728ab611388",
+      "check_id": "config-hardcode-secret-placement:011",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "Staging unexpectedly inherits production credentials because its missing environment definition is silently ignored.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "2862b646be09",
+      "check_id": "prevention:094",
+      "lens": "architecture-fit",
+      "scenario": "An established parser abstraction is reused unchanged because it exactly fits the new input contract.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "290137b2e015",
+      "check_id": "prevention:052",
+      "lens": "observability-debuggability",
+      "scenario": "A typed event enum resolves to a stable name through a logging wrapper.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "2bba01d873b8",
+      "check_id": "prevention:054",
+      "lens": "observability-debuggability",
+      "scenario": "A metric literal appears in a dead function but the actual critical path emits no metric.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "2e5fdad72434",
+      "check_id": "security-permission:008",
+      "lens": "security-permission",
+      "scenario": "An authorization timeout is caught and the protected operation proceeds as allowed.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "2e9084e9e3e2",
+      "check_id": "prevention:018",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A tracked .env.test contains only public localhost configuration and no secrets.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "317363959590",
+      "check_id": "prevention:017",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A required staging key is absent and staging silently picks up production settings.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "3316fd89f312",
+      "check_id": "prevention:048",
+      "lens": "test-sufficiency",
+      "scenario": "A payment retry behavior changes with no verification of duplicate-charge handling.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "35d4fa40064c",
+      "check_id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:012",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "A retrieved document instructs the assistant to ignore the user and publish a private file; the application promotes that text to an authorized action.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "360fc5113646",
+      "check_id": "config-hardcode-secret-placement:006",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A required accounting invariant silently changes with an undocumented environment variable.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "3643c0b4ca57",
+      "check_id": "prevention:027",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "An unvalidated client account ID reaches a destructive write before tenant checks.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "374775a98958",
+      "check_id": "electrification:005",
+      "lens": "electrification",
+      "scenario": "A file exporter is triggered and its actual output file is read back; no database exists.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "38062f7708e7",
+      "check_id": "test-sufficiency:011",
+      "lens": "test-sufficiency",
+      "scenario": "A randomized failure prints its seed, inputs and failing invariant but needs a debugger for the root cause.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "39a2c680bb72",
+      "check_id": "electrification:002",
+      "lens": "electrification",
+      "scenario": "The feature’s documented optional timeout resolves to its validated default.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "3a5c2ef3f1a7",
+      "check_id": "prevention:099",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "An already authorized pause updates the identified job without inventing an additional approval ritual.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "3a7d0006c406",
+      "check_id": "implementation-layer-boundaries:017",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "一個局部函式做兩三個緊密相關步驟，讀者毋須跳轉追資料。",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "3b6a8a92423d",
+      "check_id": "config-hardcode-secret-placement:008",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "Missing production DB_URL silently connects to a different tenant’s database.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "3c509efad1b8",
+      "check_id": "prevention:037",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "Production logic contains one developer’s absolute home path and fails in a clean checkout.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "3d602e68810f",
+      "check_id": "electrification:001",
+      "lens": "electrification",
+      "scenario": "The release claims staging is ready although its required table migration has not been applied.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "3d8fc4c3f553",
+      "check_id": "prevention:076",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "A supposedly available tool is neither exposed nor discoverable by the running agent.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "3d92f64644b1",
+      "check_id": "prevention:032",
+      "lens": "devx",
+      "scenario": "A smaller module combines payment policy, rendering, transport and storage so every change affects unrelated responsibilities.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "3dc1cb952c26",
+      "check_id": "architecture-fit:008",
+      "lens": "architecture-fit",
+      "scenario": "The system switches its authoritative datastore without recording the decision or updating its existing ADR.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "3dc454a26bf2",
+      "check_id": "prevention:002",
+      "lens": "architecture-fit",
+      "scenario": "Documentation says five supported modes while the authoritative registry defines six.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "3eac325c2aae",
+      "check_id": "prevention:002",
+      "lens": "architecture-fit",
+      "scenario": "Three generated translations accurately state the registry count and link its source.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "40a049d3ae87",
+      "check_id": "prevention:014",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A missing production endpoint silently falls back to another customer’s server.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "4262c4c36c81",
+      "check_id": "security-permission:022",
+      "lens": "security-permission",
+      "scenario": "A hosted payment service has no identified incident owner or procedure for a leaked production key.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "450c76876c81",
+      "check_id": "implementation-layer-boundaries:017",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "一個函式混合網絡重試、UI字串同權限政策，改顯示字眼會牽涉付款控制。",
+      "expected": "finding"
+    },
+    {
+      "case_id": "457f1b1b17ee",
+      "check_id": "security-permission:018",
+      "lens": "security-permission",
+      "scenario": "A deployed service claims dependency scanning but its CI never invokes the configured scanner.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "45bb85bab832",
+      "check_id": "prevention:060",
+      "lens": "runtime-reliability-performance",
+      "scenario": "An outbound request can block a worker indefinitely because no effective timeout is configured.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "45c992b80618",
+      "check_id": "observability-debuggability:017",
+      "lens": "observability-debuggability",
+      "scenario": "A deployed web product promises real-user latency alerts but collects no user-side timing or failures.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "4683fae4f7a6",
+      "check_id": "security-permission:014",
+      "lens": "security-permission",
+      "scenario": "A small project explicitly uses verified release artifacts without requiring every local commit to be signed.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "46b684daab19",
+      "check_id": "security-permission:021",
+      "lens": "security-permission",
+      "scenario": "An adopted release policy requires an SBOM but the CI-produced release omits it.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "4712188161bb",
+      "check_id": "implementation-layer-boundaries:011",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "UI code bypasses the project’s sole write owner and performs an unguarded database update.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "4819766c3d1a",
+      "check_id": "prevention:085",
+      "lens": "architecture-fit",
+      "scenario": "A complex approval reroute leaves no explanation of its truth owner or failure path, and the existing diagram is wrong.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "491a168f0f94",
+      "check_id": "prevention:040",
+      "lens": "test-sufficiency",
+      "scenario": "A CSS attribute selector addresses the project’s documented stable data-test contract.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "4926ca18acf2",
+      "check_id": "prevention:027",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A service reads raw webhook bytes and validates the signature before typed payload parsing.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "4a35eb4c86e2",
+      "check_id": "prevention:018",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "An old tracked .env contains a real API key outside the current diff.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "4d09891650b5",
+      "check_id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:012",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "A retrieved document quotes a malicious command as an example; the assistant summarizes it without executing it or changing task scope.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "4d5fdc13d716",
+      "check_id": "prevention:094",
+      "lens": "architecture-fit",
+      "scenario": "A simple local utility acquires an unused multi-stage control plane copied from an unrelated framework.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "4d7620d6d896",
+      "check_id": "prevention:055",
+      "lens": "observability-debuggability",
+      "scenario": "One trace captures the whole successful operation and the failing boundary without redundant per-function logs.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "4de8fa62cd56",
+      "check_id": "prevention:016",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A config resolver applies one documented priority order to CLI, env and defaults.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "4e110e0edea7",
+      "check_id": "prevention:011",
+      "lens": "security-permission",
+      "scenario": "The callback credits an account before checking whether the signature is valid.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "4fbb60119413",
+      "check_id": "request-fidelity:004",
+      "lens": "request-fidelity",
+      "scenario": "需求要真正防止重複扣款，交付只加「可能重複」log卻聲稱已防止。",
+      "expected": "finding"
+    },
+    {
+      "case_id": "502c42d6ad70",
+      "check_id": "prevention:043",
+      "lens": "test-sufficiency",
+      "scenario": "A test sleeps ten milliseconds then assumes a background write finished, intermittently failing under load.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "52191072c884",
+      "check_id": "prevention:017",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "Only production enables payments and therefore requires payment credentials.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "529cc65ef7f0",
+      "check_id": "observability-debuggability:002",
+      "lens": "observability-debuggability",
+      "scenario": "An established trace records successful requests and errors without duplicating a log line at every function.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "54ba5d551f03",
+      "check_id": "prevention:050",
+      "lens": "near-miss",
+      "scenario": "A purported payload validator always returns true and reads neither input nor any validation authority.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "54e32d2d9b18",
+      "check_id": "security-permission:026",
+      "lens": "security-permission",
+      "scenario": "A new route hand-copies auth checks and omits the tenant restriction enforced everywhere else.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "55f04f337dde",
+      "check_id": "implementation-layer-boundaries:002",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "An adapter validates a provider’s response and maps protocol error codes.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "561dfa33d542",
+      "check_id": "prevention:060",
+      "lens": "runtime-reliability-performance",
+      "scenario": "A shared HTTP client enforces a tested finite default timeout for every call.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "56f92f074467",
+      "check_id": "devx:015",
+      "lens": "devx",
+      "scenario": "程式要求永遠平衡借貸，但一個未受控設定可以關掉該 invariant。",
+      "expected": "finding"
+    },
+    {
+      "case_id": "5742ce35b2da",
+      "check_id": "implementation-layer-boundaries:002",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "Two adapters independently choose incompatible refund eligibility policies.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "576c6506ac3f",
+      "check_id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:011",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "A non-agent batch importer belongs to the general runtime review, not an additional LLM finding.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "57806cec37ad",
+      "check_id": "prevention:026",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A short handler duplicates the application’s charge-and-approval state machine.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "5802c82330f0",
+      "check_id": "test-sufficiency:019",
+      "lens": "test-sufficiency",
+      "scenario": "A reversible documentation-only wording change needs no artificial branch test.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "58b77d2e90ec",
+      "check_id": "security-permission:008",
+      "lens": "security-permission",
+      "scenario": "An unavailable optional metrics sink does not cancel an otherwise authorized local calculation.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "59033f656ba5",
+      "check_id": "test-sufficiency:027",
+      "lens": "test-sufficiency",
+      "scenario": "A release claims real object persistence based only on a provider stub returning 200.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "597b902f0249",
+      "check_id": "config-hardcode-secret-placement:004",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A required database URL is accepted at startup and fails only after accepting a request.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "5c2b40a917ae",
+      "check_id": "prevention:033",
+      "lens": "devx",
+      "scenario": "A five-line validation fix in a large file is necessary and does not justify an unrelated rewrite.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "5d46a391ee05",
+      "check_id": "config-hardcode-secret-placement:005",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "Three modules parse the same timeout differently and silently disagree.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "5e96669a9237",
+      "check_id": "implementation-layer-boundaries:010",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A known payment request is cast to Any so a missing currency bypasses validation.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "5ee2868015a2",
+      "check_id": "prevention:067",
+      "lens": "security-permission",
+      "scenario": "A background repair modifies a protected branch despite an explicit isolated-worktree requirement.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "5f436a9e4417",
+      "check_id": "test-sufficiency:021",
+      "lens": "test-sufficiency",
+      "scenario": "An adopted adapter contract is never exercised because all callers replace it with a successful stub.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "5fa23b27384b",
+      "check_id": "implementation-layer-boundaries:020",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "Importing the settings module approves a transaction and writes application state.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "60ad2128fa78",
+      "check_id": "prevention:098",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "A single read-only clock tool has clear inputs and purpose without a redundant negative-use paragraph.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "6228ade56590",
+      "check_id": "architecture-fit:001",
+      "lens": "architecture-fit",
+      "scenario": "SQL migrations document columns, purpose, indexes and privacy; no separate architecture table is required by this project.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "6370b0b73ded",
+      "check_id": "prevention:081",
+      "lens": "runtime-reliability-performance",
+      "scenario": "A media product promises moderated generation but hangs forever when the moderation service blocks output.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "6399da2fde9d",
+      "check_id": "prevention:006",
+      "lens": "devx",
+      "scenario": "A version date and author attribution identify a required migration procedure’s provenance.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "640236bc07e6",
+      "check_id": "electrification:003",
+      "lens": "electrification",
+      "scenario": "A queue consumer receives an actual test event and needs no timer row.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "6513a73c285b",
+      "check_id": "prevention:009",
+      "lens": "devx",
+      "scenario": "Two adapters for the same live write path drift and callers select them inconsistently.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "6609fa420a03",
+      "check_id": "security-permission:016",
+      "lens": "security-permission",
+      "scenario": "An operator can silently rewrite protected payment audit history contrary to the audit requirement.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "660c1174784d",
+      "check_id": "prevention:107",
+      "lens": "runtime-reliability-performance",
+      "scenario": "A changed queue worker claims improved throughput but measures only one empty request and never checks backlog lag.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "6642e2368b47",
+      "check_id": "prevention:086",
+      "lens": "devx",
+      "scenario": "The same permission rule is duplicated in two files and only one is fixed.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "691712fa4e3d",
+      "check_id": "prevention:110",
+      "lens": "near-miss",
+      "scenario": "A server returns success but the object was never persisted; the reviewer ignores the missing object because the response says success.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "6b35eb662a02",
+      "check_id": "config-hardcode-secret-placement:018",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A deployment platform securely injects a short-lived secret and offers no runtime retrieval API.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "6b7989197120",
+      "check_id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:005",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "An API description labels an example as fictional and runtime output supplies actual values.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "6e246db532e6",
+      "check_id": "prevention:013",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "Independent integrations validate unrelated environment settings in their own configuration owners.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "6e59ed084f6f",
+      "check_id": "prevention:052",
+      "lens": "observability-debuggability",
+      "scenario": "A log event name concatenates a user ID, generating unbounded cardinality and preventing event correlation.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "6f6a47e5bda0",
+      "check_id": "prevention:070",
+      "lens": "electrification",
+      "scenario": "An unchanged behavior is covered by still-valid evidence for the same source and configuration.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "70854171b753",
+      "check_id": "prevention:063",
+      "lens": "runtime-reliability-performance",
+      "scenario": "A 10,000-row page issues one additional remote database query per row and exceeds its latency budget.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "7204034ee8f6",
+      "check_id": "prevention:034",
+      "lens": "devx",
+      "scenario": "Two superficially similar rounding routines intentionally implement different legal contracts.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "724d3716eb74",
+      "check_id": "prevention:008",
+      "lens": "devx",
+      "scenario": "A missing closing fence turns the rest of the operational guide into an unreadable code block.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "725caf8896c1",
+      "check_id": "prevention:019",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A mathematical conversion factor stays in the algorithm while the operational retry limit has one owner.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "7389bce007a4",
+      "check_id": "prevention:098",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "Two destructive tools have vague descriptions and no target/approval semantics, leading to wrong-destination execution.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "742dd923f1c6",
+      "check_id": "test-sufficiency:018",
+      "lens": "test-sufficiency",
+      "scenario": "Identical shared credentials setup is copied across suites and drifts into inconsistent assumptions.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "74eabdf75fe6",
+      "check_id": "prevention:023",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A pure-domain project adds database writes to a value-object constructor.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "75c48d59adb3",
+      "check_id": "implementation-layer-boundaries:004",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A 70-line handler consists of clear validation, documentation and one delegated use case.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "766a03f98644",
+      "check_id": "security-permission:017",
+      "lens": "security-permission",
+      "scenario": "An internal production admin database is exposed to unrestricted public ingress.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "77094827fd44",
+      "check_id": "prevention:063",
+      "lens": "runtime-reliability-performance",
+      "scenario": "A bounded loop of three deliberate queries respects the measured budget and distinct transaction semantics.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "7770fc4fcbb9",
+      "check_id": "test-sufficiency:027",
+      "lens": "test-sufficiency",
+      "scenario": "A unit-level provider error mapping uses a contract stub and makes no claim of a real payment.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "7941c9af671e",
+      "check_id": "observability-debuggability:011",
+      "lens": "observability-debuggability",
+      "scenario": "A rare compiler defect needs a reproducer, but trace and version metadata locate the failed operation.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "79821648e489",
+      "check_id": "architecture-fit:002",
+      "lens": "architecture-fit",
+      "scenario": "A pure calculation workflow has a documented function contract and no Workflow ID convention.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "7994f7136d96",
+      "check_id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:011",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "An agent tool times out after creating an order and blindly retries without knowing whether it duplicated the order.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "7a62ab7b5fa4",
+      "check_id": "prevention:074",
+      "lens": "near-miss",
+      "scenario": "A new blanket baseline hides an inherited active credential leak and is presented as a clean security result.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "7b3269cfcd80",
+      "check_id": "request-fidelity:001",
+      "lens": "request-fidelity",
+      "scenario": "User原文清楚寫「先量後改，由113題揀5題」；該文字有原始訊息來源。",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "7b85ff28c468",
+      "check_id": "architecture-fit:017",
+      "lens": "architecture-fit",
+      "scenario": "A new admin bypass grants permission without a matching facts row.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "7c4655719dfe",
+      "check_id": "prevention:037",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A fixture uses a deterministic fake tenant ID, and deployment paths are explicit configuration.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "7cddf931bf24",
+      "check_id": "prevention:008",
+      "lens": "devx",
+      "scenario": "An outer four-backtick fence validly contains a triple-backtick example.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "7dbcfebff9e0",
+      "check_id": "prevention:067",
+      "lens": "security-permission",
+      "scenario": "The user explicitly authorizes a reversible change directly in their local checkout under its policy.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "7f151620c9cb",
+      "check_id": "architecture-fit:014",
+      "lens": "architecture-fit",
+      "scenario": "The contribution guide already states when architecture docs change; no separate trigger-rule document is needed.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "7f8de6dc79ac",
+      "check_id": "security-permission:022",
+      "lens": "security-permission",
+      "scenario": "A local utility has a concise credential-revocation/release procedure, with no need for an enterprise playbook template.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "81a7a54b0882",
+      "check_id": "prevention:011",
+      "lens": "security-permission",
+      "scenario": "The callback reads raw bytes to calculate the protocol’s HMAC, compares it with the supplied signature using the required constant-time check, and rejects invalid signatures before applying the event.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "81d0efdcdd9f",
+      "check_id": "prevention:031",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A transport boundary accepts unknown JSON and validates it before business use.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "82f969c576ae",
+      "check_id": "security-permission:020",
+      "lens": "security-permission",
+      "scenario": "An internet password endpoint allows unlimited brute-force attempts with no equivalent abuse control.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "8318eb181946",
+      "check_id": "security-permission:024",
+      "lens": "security-permission",
+      "scenario": "A container deployment claims base-image scanning but the relevant image is excluded from the CI scan.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "835e8c6e4850",
+      "check_id": "electrification:003",
+      "lens": "electrification",
+      "scenario": "A newly delivered hourly maintenance job has a script but no loaded scheduler job.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "835fbff04593",
+      "check_id": "prevention:049",
+      "lens": "test-sufficiency",
+      "scenario": "A helper has focused unit tests and the production handler’s composition is separately exercised.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "8427c51a33bd",
+      "check_id": "implementation-layer-boundaries:024",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A domain-owned parser validates a business identifier before orchestration consumes it.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "84f23ce018dd",
+      "check_id": "prevention:107",
+      "lens": "runtime-reliability-performance",
+      "scenario": "A spelling-only CLI help change has no credible performance impact or measurement requirement.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "8747d72130d1",
+      "check_id": "test-sufficiency:026",
+      "lens": "test-sufficiency",
+      "scenario": "A new normal-input assertion is stronger but the old malformed-input case covers a distinct failure, so it stays.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "88b669b6a4b8",
+      "check_id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:004",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "The host exposes a searchable tool definition without repeating its name in the system prompt.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "890fe1aa8d08",
+      "check_id": "security-permission:019",
+      "lens": "security-permission",
+      "scenario": "A normal dashboard user edits production balances directly, bypassing the payment rules.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "893f3e5dd0e3",
+      "check_id": "observability-debuggability:016",
+      "lens": "observability-debuggability",
+      "scenario": "Ephemeral production containers delete the only logs before operators can inspect incidents.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "89e986971ccb",
+      "check_id": "prevention:084",
+      "lens": "test-sufficiency",
+      "scenario": "A mocked database insert is presented as proof that a transaction actually persisted.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "8a6cdd790c29",
+      "check_id": "prevention:040",
+      "lens": "test-sufficiency",
+      "scenario": "A test uses the fifth sibling’s XPath even though the intended button has a stable unique accessible label.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "8b76f715d6df",
+      "check_id": "prevention:058",
+      "lens": "observability-debuggability",
+      "scenario": "A failed worker is advertised ready because no operational readiness observation exists.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "8bb0ab87b84e",
+      "check_id": "observability-debuggability:017",
+      "lens": "observability-debuggability",
+      "scenario": "An offline kiosk forbids telemetry and has an approved local diagnostic mechanism.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "8d40041cca32",
+      "check_id": "implementation-layer-boundaries:005",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A worker changes its own approval record so it can execute an unapproved payment.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "8e1060a61758",
+      "check_id": "request-fidelity:006",
+      "lens": "request-fidelity",
+      "scenario": "Request要全部六個endpoint，worker只做三個，寫一句「其餘未做」便宣稱任務完成。",
+      "expected": "finding"
+    },
+    {
+      "case_id": "916aa1d7ed23",
+      "check_id": "prevention:099",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "A model uses a read-only advisory result as authority to change an unapproved scheduled prompt.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "91ef8ba7463c",
+      "check_id": "observability-debuggability:012",
+      "lens": "observability-debuggability",
+      "scenario": "The named event appears only in a comment; the executed failure path emits nothing.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "92489c6a961a",
+      "check_id": "prevention:039",
+      "lens": "test-sufficiency",
+      "scenario": "Checkout tests use the stable accessible role and label of the payment button.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "942a9fbbc489",
+      "check_id": "security-permission:018",
+      "lens": "security-permission",
+      "scenario": "A dependency-free script has no third-party package graph to audit.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "9437beb91a20",
+      "check_id": "prevention:009",
+      "lens": "devx",
+      "scenario": "A documented plugin loader discovers a package dynamically even though no source imports it.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "948c32c82af3",
+      "check_id": "security-permission:015",
+      "lens": "security-permission",
+      "scenario": "An approved single-owner local test requires no second human to delete its disposable data.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "956abc68454d",
+      "check_id": "security-permission:014",
+      "lens": "security-permission",
+      "scenario": "Protected release policy requires signed commits, but an unsigned commit bypasses it.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "9598392fdbf2",
+      "check_id": "prevention:106",
+      "lens": "runtime-reliability-performance",
+      "scenario": "A burst of cold starts creates a new pool per invocation and exhausts the documented database connection limit.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "974c0a01cafa",
+      "check_id": "observability-debuggability:012",
+      "lens": "observability-debuggability",
+      "scenario": "A typed event registry emits through a shared wrapper and the expected event is observed at runtime.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "97a2f8ba42f0",
+      "check_id": "observability-debuggability:011",
+      "lens": "observability-debuggability",
+      "scenario": "Operators cannot identify which job failed because no failure record or correlation survives.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "9a312bba7886",
+      "check_id": "prevention:047",
+      "lens": "test-sufficiency",
+      "scenario": "Unittest discovery explicitly runs a real SQLite integration suite without pytest markers.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "9b73e2839ee1",
+      "check_id": "prevention:016",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "The scheduler and worker each independently override the same effective job policy.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "9bbf887a74ae",
+      "check_id": "implementation-layer-boundaries:005",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "An authorized worker computes a tax rule then persists the assigned result.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "9d5c2317d607",
+      "check_id": "observability-debuggability:001",
+      "lens": "observability-debuggability",
+      "scenario": "A local CLI prints a human-readable result; the service’s diagnostic events remain correlated.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "9de3cc1bcc5e",
+      "check_id": "config-hardcode-secret-placement:009",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "The worker uses a DB flag while the API treats an environment flag as independent authority for the same policy.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "9e6b5ea31b9c",
+      "check_id": "prevention:022",
+      "lens": "security-permission",
+      "scenario": "Public asset hosting serves maps containing private source and embedded sensitive paths contrary to policy.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "a0a7274fb033",
+      "check_id": "devx:007",
+      "lens": "devx",
+      "scenario": "四層條件分別逐步確認必需輸入，每層都有清楚 guard 同局部責任。",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "a20df49ee456",
+      "check_id": "prevention:062",
+      "lens": "runtime-reliability-performance",
+      "scenario": "Every request creates an expensive database pool and never closes it, exhausting connections.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "a2e99740b9b3",
+      "check_id": "config-hardcode-secret-placement:014",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "An indefinitely cached revoked permission remains effective after policy changes.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "a37b23ed8ae9",
+      "check_id": "implementation-layer-boundaries:003",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A small handler directly performs one coherent authorized operation with no duplicated workflow logic.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "a4eb9cbb5253",
+      "check_id": "implementation-layer-boundaries:001",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A tiny script intentionally combines one file read and calculation under its documented single-module design.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "a73d7c398be5",
+      "check_id": "implementation-layer-boundaries:015",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "The only checkout test uses the third div’s CSS styling class and clicks a different control after a layout change.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "a97bea2cedec",
+      "check_id": "security-permission:020",
+      "lens": "security-permission",
+      "scenario": "A local-only administrative socket is protected by OS access and a bounded single-user workload.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "a9aad0cf2051",
+      "check_id": "prevention:055",
+      "lens": "observability-debuggability",
+      "scenario": "A background billing failure has neither a correlated log nor another usable observation.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "a9c2d880ab53",
+      "check_id": "architecture-fit:013",
+      "lens": "architecture-fit",
+      "scenario": "The project keeps schema and topology in architecture docs, which were updated with a storage migration.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "ab73bbb49a06",
+      "check_id": "security-permission:009",
+      "lens": "security-permission",
+      "scenario": "A deployed application resolves unpinned transitive dependencies differently on each release.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "ac71c058289b",
+      "check_id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:005",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "A tool description presents a sample balance as the current account balance and the assistant reports it without querying.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "acf7a3674b7d",
+      "check_id": "implementation-layer-boundaries:010",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "An ingress API accepts unknown JSON then validates it into a typed request.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "ad93698ab496",
+      "check_id": "observability-debuggability:014",
+      "lens": "observability-debuggability",
+      "scenario": "A small local pure function has no distributed tracing requirement.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "ae2a6bff8252",
+      "check_id": "architecture-fit:001",
+      "lens": "architecture-fit",
+      "scenario": "A new credential table has no documented retention or access constraints.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "aee8c3def8db",
+      "check_id": "config-hardcode-secret-placement:014",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A versioned invalidation channel updates the effective setting without a time-based TTL.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "afded1f97024",
+      "check_id": "prevention:085",
+      "lens": "architecture-fit",
+      "scenario": "A one-step local workflow is clearly described in a short existing contract without a new diagram.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "b081e0e9f6cc",
+      "check_id": "electrification:006",
+      "lens": "electrification",
+      "scenario": "A test-only dependency is invoked by the configured test runner and never by production.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "b175247bf05d",
+      "check_id": "prevention:048",
+      "lens": "test-sufficiency",
+      "scenario": "A reversible comment correction does not change executable behavior or require a mirrored test.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "b2255a8203ec",
+      "check_id": "test-sufficiency:026",
+      "lens": "test-sufficiency",
+      "scenario": "A replacement explicitly covers the same inputs and invariant, yet a duplicated obsolete test remains and conflicts during maintenance.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "b2509f53019b",
+      "check_id": "request-fidelity:001",
+      "lens": "request-fidelity",
+      "scenario": "Worker刪走一半需求後只提供自己摘要，reviewer仍聲稱已完整核對原request。",
+      "expected": "finding"
+    },
+    {
+      "case_id": "b4422627e1be",
+      "check_id": "security-permission:019",
+      "lens": "security-permission",
+      "scenario": "An explicitly authorized break-glass operator role performs an audited recovery under the project’s procedure.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "b46b2e7b0361",
+      "check_id": "electrification:001",
+      "lens": "electrification",
+      "scenario": "This task delivers a migration for staging and has no production access; staging was read back and production is explicitly unverified.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "b49f01bd3432",
+      "check_id": "prevention:069",
+      "lens": "security-permission",
+      "scenario": "A documentation-only edit introduces no new risk surface and needs no artificial claim.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "b51daf1b001f",
+      "check_id": "devx:007",
+      "lens": "devx",
+      "scenario": "三層重複交錯權限判斷令一條拒絕路徑難以辨認。",
+      "expected": "finding"
+    },
+    {
+      "case_id": "b5e4b44cf024",
+      "check_id": "config-hardcode-secret-placement:007",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "An incident kill switch is compiled into the binary and cannot meet its documented runtime response requirement.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "b68c183e8499",
+      "check_id": "implementation-layer-boundaries:024",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "An HTTP parser grants admin approval while the authoritative policy layer is bypassed.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "b78135ad0b4e",
+      "check_id": "prevention:025",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "An internal handler calls itself over HTTP instead of its use case, recursively consuming requests.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "b8b4c2249390",
+      "check_id": "implementation-layer-boundaries:007",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "Independent adapters each read their own validated provider settings.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "b94fbb5f2256",
+      "check_id": "prevention:091",
+      "lens": "general-rule-one-false-instance",
+      "scenario": "An protocol defines exactly three immutable states, represented by a closed enum.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "ba640bee5fbd",
+      "check_id": "config-hardcode-secret-placement:018",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "The host provides protected runtime credentials but the application copies a long-lived secret into a public deployment artifact.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "ba8d8e5c4462",
+      "check_id": "prevention:058",
+      "lens": "observability-debuggability",
+      "scenario": "A supervised worker exposes a supported process health probe and successful queue subscription.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "bb7862ec4544",
+      "check_id": "request-fidelity:002",
+      "lens": "request-fidelity",
+      "scenario": "已存在嘅付款caller完全冇接上需求指定嘅重試去重邏輯。",
+      "expected": "finding"
+    },
+    {
+      "case_id": "bc37b69a3c84",
+      "check_id": "devx:004",
+      "lens": "devx",
+      "scenario": "理解一次退款要來回追七個混合責任區塊，而且狀態轉換散落唔同地方。",
+      "expected": "finding"
+    },
+    {
+      "case_id": "c1531023b8c9",
+      "check_id": "security-permission:025",
+      "lens": "security-permission",
+      "scenario": "A small internal tool updates a dependency with a tested rollback and no progressive-delivery requirement.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "c16df5c49be7",
+      "check_id": "prevention:091",
+      "lens": "general-rule-one-false-instance",
+      "scenario": "An authorization list must cover all registered entrypoints but silently misses a newly added entrypoint.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "c170dbc75134",
+      "check_id": "test-sufficiency:019",
+      "lens": "test-sufficiency",
+      "scenario": "A new batch payment loop has only a one-item test and loses entries when the batch is empty or contains several failures.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "c2a84d10a50b",
+      "check_id": "observability-debuggability:016",
+      "lens": "observability-debuggability",
+      "scenario": "A single-host service has retained access-controlled local logs available to its operator.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "c39f794a7404",
+      "check_id": "prevention:043",
+      "lens": "test-sufficiency",
+      "scenario": "A real concurrency test waits on an event with a deadline and reports timeout clearly.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "c3feecad9456",
+      "check_id": "prevention:006",
+      "lens": "devx",
+      "scenario": "An abandoned TODO says a completed safety fix is still missing and confuses operators.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "c4d86b074a6d",
+      "check_id": "config-hardcode-secret-placement:013",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A local bot token is stored in a user-owned mode-0600 file outside the repository and omitted from logs.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "c544f548eb1a",
+      "check_id": "observability-debuggability:003",
+      "lens": "observability-debuggability",
+      "scenario": "A server exception omits its cause while logging the full Authorization header.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "c5944c165f54",
+      "check_id": "implementation-layer-boundaries:015",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A button is reliably selected by its accessible role and unique label.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "c5b405b8a052",
+      "check_id": "security-permission:009",
+      "lens": "security-permission",
+      "scenario": "A dependency-free Python utility has no dependency lockfile.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "c63410a6b460",
+      "check_id": "prevention:110",
+      "lens": "near-miss",
+      "scenario": "A UI display contract is verified in the rendered UI while actual persistence is independently read from its store.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "c797fd0fe01c",
+      "check_id": "prevention:084",
+      "lens": "test-sufficiency",
+      "scenario": "A unit test uses a mock to verify a successful adapter response mapping and claims only that local mapping.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "c834c0faab07",
+      "check_id": "security-permission:024",
+      "lens": "security-permission",
+      "scenario": "A plain offline library ships no containers or infrastructure code.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "c95400459039",
+      "check_id": "prevention:026",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A well-scoped 65-line handler mostly validates fields and delegates one use case.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "c955145dda68",
+      "check_id": "security-permission:015",
+      "lens": "security-permission",
+      "scenario": "A production deletion requiring dual approval executes after only the requester approves it.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "c9daca608ca2",
+      "check_id": "test-sufficiency:018",
+      "lens": "test-sufficiency",
+      "scenario": "Sibling test suites need different transaction lifetimes and intentionally keep distinct fixtures.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "cabdea526952",
+      "check_id": "observability-debuggability:002",
+      "lens": "observability-debuggability",
+      "scenario": "Billing failures disappear without an event, trace, metric or actionable error record.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "cb3eeadbac50",
+      "check_id": "test-sufficiency:015",
+      "lens": "test-sufficiency",
+      "scenario": "An unchanged historical test name remains searchable and is outside a narrow bug-fix scope.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "cb94c4171f91",
+      "check_id": "implementation-layer-boundaries:022",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "The product contract requires ledger and index to commit atomically, so index failure rolls both back.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "cdef5613b18d",
+      "check_id": "implementation-layer-boundaries:023",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A cached scheduler label is used as proof that the business payment was completed.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "ce67ec018459",
+      "check_id": "prevention:056",
+      "lens": "observability-debuggability",
+      "scenario": "A catch block records only the text error with no type, cause or safe operation context.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "ced7160b1d3e",
+      "check_id": "request-fidelity:002",
+      "lens": "request-fidelity",
+      "scenario": "需求係更新操作指南；完成證據係指南文字，毋須製造一個程式函式座標。",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "cedac2cc224c",
+      "check_id": "observability-debuggability:019",
+      "lens": "observability-debuggability",
+      "scenario": "The deployment routes traffic to a service whose database initialization failed because no readiness signal exists.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "d0a087b595c7",
+      "check_id": "request-fidelity:004",
+      "lens": "request-fidelity",
+      "scenario": "User同意本輪只加診斷，原本行為修復另有已批准目標。",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "d0d265775559",
+      "check_id": "electrification:004",
+      "lens": "electrification",
+      "scenario": "A deployment guide’s production-delete example is inspected and left unexecuted because deletion was not authorized.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "d1e3cf04b46e",
+      "check_id": "implementation-layer-boundaries:014",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A Python API documents and consistently raises a typed NotFound error.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "d474ffdf346b",
+      "check_id": "prevention:066",
+      "lens": "security-permission",
+      "scenario": "An adopted protected-branch policy requires commit signatures but an unsigned change enters the release.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "d47652a35c30",
+      "check_id": "prevention:032",
+      "lens": "devx",
+      "scenario": "A generated parser is large but has one cohesive responsibility and a maintained source grammar.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "d48fe04d44b8",
+      "check_id": "prevention:019",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A supposedly configurable score threshold is duplicated in settings and hidden inline logic with different values.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "d56213ee9852",
+      "check_id": "prevention:076",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "The model can discover a registered tool via the host’s tool-search mechanism.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "d56f5f3453a4",
+      "check_id": "electrification:004",
+      "lens": "electrification",
+      "scenario": "A documented local setup command fails because its named executable does not exist.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "d598b9bcd335",
+      "check_id": "prevention:039",
+      "lens": "test-sufficiency",
+      "scenario": "Tests locate a critical action only by a generated styling class that changes every build.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "d5ed65e413e4",
+      "check_id": "config-hardcode-secret-placement:005",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "Two independent subsystems each own and validate their unrelated configuration.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "d69f7473dc10",
+      "check_id": "prevention:025",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A local proxy intentionally exercises an authenticated HTTP protocol through its documented loopback endpoint.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "d7aaeccb6055",
+      "check_id": "architecture-fit:014",
+      "lens": "architecture-fit",
+      "scenario": "A deployment topology change leaves the documented recovery route pointing at a removed service.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "d909414cde50",
+      "check_id": "architecture-fit:017",
+      "lens": "architecture-fit",
+      "scenario": "All three authorization paths have accurate facts rows.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "d91566335139",
+      "check_id": "observability-debuggability:014",
+      "lens": "observability-debuggability",
+      "scenario": "A distributed generation request cannot be localized among multiple slow provider calls because required spans are absent.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "d9c15f554046",
+      "check_id": "devx:004",
+      "lens": "devx",
+      "scenario": "一份有清楚章節、單一責任嘅 parser 長過一個螢幕，相關流程仍可連續閱讀。",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "da50ae7b0c83",
+      "check_id": "test-sufficiency:021",
+      "lens": "test-sufficiency",
+      "scenario": "A two-module CLI tests its pure calculation and real file boundary without creating seven test layers.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "da58c1a6ef88",
+      "check_id": "prevention:064",
+      "lens": "runtime-reliability-performance",
+      "scenario": "Each hot reload leaves a new pool alive until the local database refuses connections.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "dadaec7cac02",
+      "check_id": "prevention:042",
+      "lens": "test-sufficiency",
+      "scenario": "A mock accepts a nonexistent method, so the test stays green after production calls the wrong API.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "dc0a69e7e917",
+      "check_id": "prevention:013",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "Several handlers read the same environment variable with incompatible defaults.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "dde67edbdb32",
+      "check_id": "electrification:006",
+      "lens": "electrification",
+      "scenario": "An installed security scanner is claimed as CI coverage but no CI job invokes it.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "de3096db921a",
+      "check_id": "architecture-fit:005",
+      "lens": "architecture-fit",
+      "scenario": "A small command delegates to one cohesive function; the project has no seven-layer requirement.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "dedf6c5df39f",
+      "check_id": "config-hardcode-secret-placement:011",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "Production has payment credentials while local tests deliberately disable payments.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "e2b69866a85d",
+      "check_id": "config-hardcode-secret-placement:006",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "A documented tenant-specific discount cap is validated configuration.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "e3285f4fe2ae",
+      "check_id": "prevention:081",
+      "lens": "runtime-reliability-performance",
+      "scenario": "A local CSV generator has persistence and failure paths but no moderation service or regeneration product action.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "e394490352ec",
+      "check_id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:009",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "A read-only search runs within existing scope and needs no new side-effect approval.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "e434ca2bd5cb",
+      "check_id": "request-fidelity:006",
+      "lens": "request-fidelity",
+      "scenario": "User明確同意六個endpoint本輪先做三個，其餘三個有指定後續目標。",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "e54e7afd96f1",
+      "check_id": "architecture-fit:002",
+      "lens": "architecture-fit",
+      "scenario": "An order workflow description omits its external charge and failure/retry behavior.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "e6dac44d297b",
+      "check_id": "electrification:002",
+      "lens": "electrification",
+      "scenario": "An enabled worker expects QUEUE_URL but its deployed environment has neither a value nor a valid default.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "e743acf8f053",
+      "check_id": "prevention:034",
+      "lens": "devx",
+      "scenario": "Three copies of the same tax algorithm must change together and one is missed.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "e7c7ebf735b1",
+      "check_id": "implementation-layer-boundaries:023",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A scheduler is the authoritative source for whether a job is paused.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "e8ddfcfa5d0d",
+      "check_id": "prevention:066",
+      "lens": "security-permission",
+      "scenario": "A project permits unsigned local commits and signs release artifacts instead.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "e97936f15d2e",
+      "check_id": "prevention:047",
+      "lens": "test-sufficiency",
+      "scenario": "Tests are marked integration but the CI command excludes all integration tests while claiming persistence coverage.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "e9cdd639f710",
+      "check_id": "security-permission:005",
+      "lens": "security-permission",
+      "scenario": "An internet callback updates account state without verifying its claimed sender.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "ea0478441df0",
+      "check_id": "prevention:023",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A single-file utility has an explicitly adopted simple file-processing design.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "eac09581aafb",
+      "check_id": "prevention:096",
+      "lens": "architecture-fit",
+      "scenario": "A pure calculator has input/output ownership but no file, approval or projection subsystem.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "eaf8b1222646",
+      "check_id": "prevention:007",
+      "lens": "devx",
+      "scenario": "Unrelated setup, recovery and permission rules are buried in one unstructured section.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "eb05b51f95f4",
+      "check_id": "prevention:022",
+      "lens": "security-permission",
+      "scenario": "Builds upload private source maps to an access-controlled error tracker and omit them from public assets.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "ebcaf32fc172",
+      "check_id": "config-hardcode-secret-placement:008",
+      "lens": "config-hardcode-secret-placement",
+      "scenario": "Development explicitly defaults to an isolated temporary SQLite database.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "ef2e87776edd",
+      "check_id": "security-permission:025",
+      "lens": "security-permission",
+      "scenario": "A critical fleet rollout requires a canary, but a dependency update bypasses it and deploys everywhere.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "f014bbd2e2e9",
+      "check_id": "prevention:042",
+      "lens": "test-sufficiency",
+      "scenario": "A small fake explicitly implements the required typed interface and realistic error behavior.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "f0b8572638cb",
+      "check_id": "prevention:029",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A documented union uses a validated literal status field or a distinct primitive type to distinguish branches.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "f0e04df4e300",
+      "check_id": "implementation-layer-boundaries:011",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A project deliberately gives one storage module direct SQLite ownership.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "f1b269a7517b",
+      "check_id": "security-permission:023",
+      "lens": "security-permission",
+      "scenario": "A bucket containing private exports is unintentionally public and is absent from the promised access audit.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "f605b2047ac9",
+      "check_id": "llm-agent-action-surface-conditional-when-system-includes-llm-agent:004",
+      "lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "scenario": "An advertised capability is absent from both the effective tool set and the discovery mechanism.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "f7d2b5b5ecc4",
+      "check_id": "prevention:096",
+      "lens": "architecture-fit",
+      "scenario": "A dashboard projection updates the authoritative approval status although it has no write authority.",
+      "expected": "finding"
+    },
+    {
+      "case_id": "f81d2e5fd466",
+      "check_id": "prevention:106",
+      "lens": "runtime-reliability-performance",
+      "scenario": "An infrequent local job starts in 150ms under a one-second budget and opens one bounded connection.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "fb6f19d0e799",
+      "check_id": "devx:015",
+      "lens": "devx",
+      "scenario": "設定重試上限由三改五，行為及對應預期跟住變；呢個值係明確可調政策。",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "fc6ffface715",
+      "check_id": "prevention:054",
+      "lens": "observability-debuggability",
+      "scenario": "An enum-backed wrapper emits the promised event and its runtime record is verified.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "fd262c532aaa",
+      "check_id": "prevention:056",
+      "lens": "observability-debuggability",
+      "scenario": "A logger serializes a typed error into structured cause/type fields rather than accepting an exception object.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "fdf190849865",
+      "check_id": "test-sufficiency:017",
+      "lens": "test-sufficiency",
+      "scenario": "A new happy-path test does not replace the old retry-failure test, so both remain.",
+      "expected": "no_finding"
+    },
+    {
+      "case_id": "ffff2dbcc0b1",
+      "check_id": "implementation-layer-boundaries:022",
+      "lens": "implementation-layer-boundaries",
+      "scenario": "A best-effort analytics projection failure accidentally deletes the authoritative order.",
+      "expected": "finding"
+    }
+  ]
+}

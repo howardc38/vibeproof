@@ -546,10 +546,7 @@ def ts_dotted_names(source: str):
     a call, and counting one is how a table row starts matching prose.
     """
     from . import symbols
-    masked = symbols._TS_STRING.sub(
-        lambda m: '"' + " " * max(0, len(m.group(0)) - 2) + '"',
-        symbols._TS_LINE_COMMENT.sub(
-            " ", symbols._TS_BLOCK_COMMENT.sub(" ", source)))
+    masked = symbols.ts_mask(source)
     for m in re.finditer(
             r"(?<![\w.$])([A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*)\s*[(<]",
             masked):
@@ -562,8 +559,7 @@ def ts_dotted_names(source: str):
 def _ts_regex_lines(source: str) -> dict[int, str]:
     """Source lines with TypeScript comments blanked, string literals kept."""
     from . import symbols
-    masked = symbols._TS_LINE_COMMENT.sub(
-        " ", symbols._TS_BLOCK_COMMENT.sub(" ", source))
+    masked = symbols.ts_mask(source, strings=False)
     return {i: line for i, line in enumerate(masked.splitlines(), start=1)}
 
 

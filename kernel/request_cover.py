@@ -133,7 +133,15 @@ def clauses(request: str):
 
 def spans_a_boundary(request: str, quote: str) -> bool:
     """Does this quote reach across two things that were separately asked for?"""
-    return not any(quote in c for c in clauses(request))
+    request = own(request)
+    start = 0
+    # Keep a clause's closing punctuation with that clause. Stripping it and
+    # then comparing an exact quote misreported one whole sentence as two.
+    for end in [m.end() for m in _CLAUSE.finditer(request)] + [len(request)]:
+        if quote in request[start:end]:
+            return False
+        start = end
+    return True
 
 
 def _now():

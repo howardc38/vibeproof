@@ -139,6 +139,15 @@ def main() -> NoReturn:
     # so does a runner that collected no tests: the ledger cannot tell either from a
     # suite that ran and passed. Bypass fixtures used all three shapes.
     out = (r.stdout or "") + (r.stderr or "")
+    # Node's default/spec reporter writes "ℹ tests N" and "ℹ pass N";
+    # TAP writes the same totals after "#". Neither puts N before "tests".
+    # Read the explicit totals rather than treating a skipped TAP "ok 1" as
+    # a passed test, or a test title mentioning "0 tests" as an empty suite.
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", out)
+    node_counts = {key: int(value) for key, value in re.findall(
+        r"(?m)^(?:ℹ|#)\s+(tests|pass|fail|cancelled|skipped|todo)\s+(\d+)\s*$", plain)}
+    if not {"tests", "pass", "fail", "skipped"} <= node_counts.keys():
+        node_counts = None
     # The zero has to be a whole number, not the last digit of one. `"0 tests"`
     # was matched as a substring, so `Ran 1260 tests` contained it and this
     # repo's own suite -- 1,260 passing tests -- was reported as having run
@@ -161,7 +170,12 @@ def main() -> NoReturn:
                   "not evidence -- `/usr/bin/true` proves process success, not that "
                   "anything was tested.", file=sys.stderr)
             sys.exit(1)
-        if COLLECTED_NOTHING.search(out):
+        if node_counts is not None and (node_counts["tests"] == 0 or node_counts["pass"] == 0
+                                        or node_counts["fail"] or node_counts.get("cancelled", 0)):
+            print("the Node test summary reports no passing tests, failures or cancelled tests: "
+                  + json.dumps(node_counts, sort_keys=True), file=sys.stderr)
+            sys.exit(1)
+        if node_counts is None and COLLECTED_NOTHING.search(out):
             print(f"the test command exited 0 having run nothing:\n{out.strip()[:400]}",
                   file=sys.stderr)
             sys.exit(1)
@@ -172,7 +186,7 @@ def main() -> NoReturn:
         RAN = re.compile(r"\b\d+\s+(tests?|passed|items?|examples?)\b"
                          r"|\b(ran|collected)\s+\d+\b|\bPASSED\b|\bok\s+\d+",
                          re.I)
-        if not RAN.search(out):
+        if node_counts is None and not RAN.search(out):
             print(f"the test command exited 0 without saying how much ran. A runner "
                   f"reports a count; this did not, so nothing distinguishes it from "
                   f"a command that tested nothing:\n{out.strip()[:400]}",
@@ -213,7 +227,7 @@ def main() -> NoReturn:
                 "no tests ran", "deselected")
     _lines = (r.stdout or r.stderr).strip().splitlines()
     _n = 12
-    if r.returncode != 0 and not any(m in ln for ln in _lines[-12:] for m in _COUNTED):
+    if r.returncode != 0 and node_counts is None and not any(m in ln for ln in _lines[-12:] for m in _COUNTED):
         _n = 80          # it died mid-run; the reason is above where the tail starts
     tail = _lines[-_n:]
     if tail:

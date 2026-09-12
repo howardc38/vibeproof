@@ -86,7 +86,8 @@ Each of these is a fail-open defect this rule structurally cannot report, so
    ``OUTBOUND_PREFIXES``, a DB write through an ORM method not in the tables.
    Coverage here is a vocabulary, not a proof.
 
-6. **Non-Python.**  Reported as exit 4, never as exit 0.
+6. **Other languages.** Go and JS/TS have narrower extractors below; a missing
+   extractor/toolchain is unverified, not Python-equivalent semantic coverage.
 """
 
 from __future__ import annotations
@@ -145,6 +146,11 @@ _TUPLES = ("outbound_roots", "receiver_hints", "path_hints",
            "outbound_prefixes", "auth_deny_roots")
 
 
+def _validate_reporting_calls(value):
+    if value is not None and not isinstance(value, (list, tuple, set, frozenset)):
+        raise ValueError("failure_reporting_calls needs an array of exact call targets")
+
+
 @dataclass(frozen=True)
 class Vocabulary:
     """What counts as an outbound call, a path, or an auth decision here."""
@@ -165,9 +171,29 @@ class Vocabulary:
     #: hooks return when they cannot read the ledger. `degraded` was the one
     #: that made a handler reporting a partial outcome read as a swallow.
     failure_values: frozenset
+    #: Exact JS/TS assignment targets the repo has verified as visible failure
+    #: channels (e.g. its own UI error state). Empty unless the adopter declares
+    #: them; a DOM property by itself is not evidence of error reporting.
+    failure_reporting_assignments: frozenset = frozenset()
+    #: Exact custom JS/TS reporting calls, verified by the adopter's behavior
+    #: tests. No project-specific helper is silently a global reporting word.
+    failure_reporting_calls: frozenset = frozenset()
+
+    def __post_init__(self):
+        _validate_reporting_calls(self.failure_reporting_calls)
+        for target in self.failure_reporting_assignments:
+            if not isinstance(target, str) or not re.fullmatch(
+                    r"[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+", target):
+                raise ValueError("failure_reporting_assignments needs exact dotted targets, "
+                                 "not patterns or expressions")
+        for target in self.failure_reporting_calls:
+            if not isinstance(target, str) or not re.fullmatch(
+                    r"[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*", target):
+                raise ValueError("failure_reporting_calls needs exact bare or dotted call targets, not patterns or expressions")
 
     @classmethod
     def of(cls, rows: dict) -> "Vocabulary":
+        _validate_reporting_calls(rows.get('failure_reporting_calls'))
         return cls(**{name: (tuple(rows.get(name) or ())
                              if name in _TUPLES
                              else frozenset(rows.get(name) or ()))
@@ -175,6 +201,7 @@ class Vocabulary:
 
     def union(self, rows: dict) -> "Vocabulary":
         """This table plus an adopter's own.  Never a replacement."""
+        _validate_reporting_calls(rows.get('failure_reporting_calls'))
         merged = {}
         for name in self.__dataclass_fields__:
             mine = getattr(self, name)
@@ -727,13 +754,36 @@ def _verdict_dict_says_failure(node: ast.Dict) -> bool:
     return False
 
 
+def _explicit_error_value(value) -> bool:
+    """A failure result keeps its meaning when carried in another result."""
+    if isinstance(value, ast.Call):
+        tail = dotted_name(value.func).split(".")[-1]
+        return any(w.startswith(s) for w in _words(tail) for s in ERROR_RESULT_STEMS)
+    return isinstance(value, ast.Dict) and _verdict_dict_says_failure(value)
+
+
+def _failure_pair(value) -> bool:
+    """A boolean refusal, or absent data accompanied by an explicit error."""
+    if not (isinstance(value, ast.Tuple) and len(value.elts) == 2
+            and isinstance(value.elts[0], ast.Constant)):
+        return False
+    payload, error = value.elts
+    if payload.value is False:
+        return not _says_no_error(error)
+    # None alone (or with arbitrary data/text) is ambiguous. A result already
+    # recognised as failure outside a tuple remains failure inside one.
+    return payload.value is None and _explicit_error_value(error)
+
+
 def _returns_explicit_error(body) -> bool:
     """The handler handed the caller a value it cannot mistake for success.
 
-    Three idioms, all of which mean the failure was reported rather than hidden::
+    Explicit failure results can use a constructor, dict or boolean verdict pair::
 
         return ToolResult.failure(...)              # a constructor that says so
         return {"ok": False, "error": str(exc)}     # a verdict dict
+        return False, f"Could not store: {exc}"     # an (ok, error) pair
+        return None, Result.failure(str(exc))       # a (data, error) pair
         summary["status"] = "failed"; ...; return summary
 
     This is the single biggest source of false positives on real code, and it is
@@ -741,6 +791,12 @@ def _returns_explicit_error(body) -> bool:
     question: the caller *is* told.
     """
     nodes = list(_walk_same_scope(body))
+    # Every returning path must report refusal, with no fall-through path. A
+    # dead/conditional pair beside a success return must not excuse a swallow.
+    if (body and isinstance(body[-1], ast.Return) and _failure_pair(body[-1].value)
+            and all(_failure_pair(n.value) for n in nodes if isinstance(n, ast.Return))
+            and not any(isinstance(n, (ast.Break, ast.Continue)) for n in nodes)):
+        return True
 
     assigned_failure = False
     for node in nodes:
@@ -771,12 +827,7 @@ def _returns_explicit_error(body) -> bool:
         if not isinstance(node, ast.Return) or node.value is None:
             continue
         value = node.value
-        if isinstance(value, ast.Call):
-            tail = dotted_name(value.func).split(".")[-1]
-            if any(w.startswith(s) for w in _words(tail)
-                   for s in ERROR_RESULT_STEMS):
-                return True
-        if isinstance(value, ast.Dict) and _verdict_dict_says_failure(value):
+        if _explicit_error_value(value):
             return True
         if assigned_failure and isinstance(value, (ast.Name, ast.Attribute)):
             return True
@@ -935,6 +986,13 @@ def _returns_only_exit_codes(fn) -> bool:
     return seen > 1
 
 
+def _nonzero_exit_literal(value) -> bool:
+    # POSIX exposes the low byte: 256 is an integer but exits successfully.
+    # A nonzero low byte also stays nonzero on wider exit-status platforms.
+    return (isinstance(value, ast.Constant) and type(value.value) is int
+            and value.value % 256 != 0)
+
+
 def _reports_by_exit_code(body, fn) -> bool:
     """`print(...); return 5` in a program whose answer is its exit code.
 
@@ -952,10 +1010,109 @@ def _reports_by_exit_code(body, fn) -> bool:
     if not _returns_only_exit_codes(fn):
         return False
     for node in _walk_same_scope(body):
-        if isinstance(node, ast.Return) and isinstance(node.value, ast.Constant):
-            if isinstance(node.value.value, int) and node.value.value != 0:
-                return True
+        if isinstance(node, ast.Return) and _nonzero_exit_literal(node.value):
+            return True
     return False
+
+
+def handlers_returning_cli_status(tree) -> set:
+    """A handler's literal failure code reaches the CLI's final return.
+
+    This is a bounded value-flow proof, not a rule about variables named code.
+    Require a direct, unshadowed __main__ exit call, a simple final assignment
+    in the handler and a straight-line tail without rebindings/early exits.
+    Loops, enclosing try/with blocks, decorators and nonlocal state stay out.
+    """
+    definitions = [n for n in tree.body if isinstance(n, ast.FunctionDef)]
+    rebound, attributes, declarations = set(), set(), {}
+    pending = list(tree.body)
+    while pending:
+        node = pending.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            declarations.setdefault(node.name, []).append(node)
+            continue
+        if isinstance(node, ast.Lambda):
+            continue
+        pending.extend(ast.iter_child_nodes(node))
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            rebound.add(node.id)
+        if isinstance(node, ast.Attribute) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            attributes.add(dotted_name(node))
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                if isinstance(node, ast.Import) and alias.name == 'sys' and alias.asname in (None, 'sys'):
+                    continue
+                rebound.add(alias.asname or alias.name.split('.')[0])
+        if isinstance(node, ast.ExceptHandler) and node.name:
+            rebound.add(node.name)
+    bound_exit = 'SystemExit' in rebound or 'SystemExit' in declarations
+    imported_sys = any(isinstance(n, ast.Import) and any(
+        a.name == 'sys' and a.asname in (None, 'sys') for a in n.names) for n in tree.body)
+    entries = set()
+    for guard in tree.body:
+        if not isinstance(guard, ast.If):
+            continue
+        test = guard.test
+        if not (isinstance(test, ast.Compare) and len(test.ops) == 1
+                and isinstance(test.ops[0], ast.Eq) and len(test.comparators) == 1):
+            continue
+        sides = [test.left, test.comparators[0]]
+        if not (any(isinstance(n, ast.Name) and n.id == '__name__' for n in sides)
+                and any(isinstance(n, ast.Constant) and n.value == '__main__' for n in sides)):
+            continue
+        for statement in guard.body:
+            call = statement.exc if isinstance(statement, ast.Raise) else statement.value if isinstance(statement, ast.Expr) else None
+            if not isinstance(call, ast.Call) or len(call.args) != 1 or call.keywords:
+                continue
+            target = dotted_name(call.func)
+            if not ((isinstance(statement, ast.Raise) and target == 'SystemExit' and not bound_exit)
+                    or (isinstance(statement, ast.Expr) and target == 'sys.exit' and imported_sys
+                        and 'sys' not in rebound and 'sys' not in declarations and 'sys.exit' not in attributes)):
+                continue
+            value = call.args[0]
+            if isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id not in rebound:
+                matches = [fn for fn in definitions if fn.name == value.func.id]
+                if len(matches) == 1 and len(declarations.get(value.func.id, [])) == 1 and not matches[0].decorator_list:
+                    entries.add(matches[0])
+
+    sealed = set()
+    linear = (ast.Assign, ast.AnnAssign, ast.Expr, ast.Pass)
+
+    def walk(block, tail):
+        for index, node in enumerate(block):
+            after = block[index + 1:] + tail
+            if isinstance(node, ast.If):
+                walk(node.body, after)
+                walk(node.orelse, after)
+            if not isinstance(node, ast.Try):
+                continue
+            following = node.finalbody + after
+            for handler in node.handlers:
+                if not handler.body or not all(isinstance(s, linear) for s in handler.body):
+                    continue
+                assignment = handler.body[-1]
+                if not (isinstance(assignment, ast.Assign) and len(assignment.targets) == 1
+                        and isinstance(assignment.targets[0], ast.Name)
+                        and _nonzero_exit_literal(assignment.value)):
+                    continue
+                name = assignment.targets[0].id
+                if not following or not (isinstance(following[-1], ast.Return)
+                    and isinstance(following[-1].value, ast.Name) and following[-1].value.id == name):
+                    continue
+                if not all(isinstance(s, linear) for s in following[:-1]):
+                    continue
+                if any(isinstance(n, ast.Name) and n.id == name and isinstance(n.ctx, (ast.Store, ast.Del))
+                       for n in _walk_same_scope(following[:-1])):
+                    continue
+                if any(isinstance(n, ast.Call) and _is_terminating_call(n)
+                       for n in _walk_same_scope(handler.body[:-1] + following[:-1])):
+                    continue
+                sealed.add(handler)
+
+    for fn in entries:
+        if not any(isinstance(n, (ast.Global, ast.Nonlocal, ast.Yield, ast.YieldFrom)) for n in ast.walk(fn)):
+            walk(fn.body, [])
+    return sealed
 
 
 def _branches_on_the_failure(handler, fn) -> bool:
@@ -1128,8 +1285,13 @@ class _Collector(ast.NodeVisitor):
         #: its name -- `_reports_by_exit_code` asks what else it returns.
         self.fns: list = []
         self.findings: list[Finding] = []
+        self.cli_status_handlers = set()
         # >0 while inside a region every path leaves by raising or exiting.
         self.sealed = 0
+
+    def visit_Module(self, node):
+        self.cli_status_handlers = handlers_returning_cli_status(node)
+        self.generic_visit(node)
 
     def _loop(self, node) -> None:
         sealed = node in self.sealed_loops
@@ -1206,6 +1368,8 @@ class _Collector(ast.NodeVisitor):
         trigger_line, trigger = risks[0]
         settled_later = node in self.sealed_trys
         for handler in node.handlers:
+            if handler in self.cli_status_handlers:
+                continue
             variant = classify_handler(handler.body, self.enclosing_fn, handler)
             if variant is None:
                 continue
@@ -1466,8 +1630,66 @@ TS_OUTBOUND = frozenset({
 TS_REPORTS = ("console.error", "console.warn", "logger.", "log.error",
               "log.warn", "captureException", "reportError", "Sentry.")
 
+
+def _ts_reporting_assignment(handler_code: str, vocab: Vocabulary) -> bool:
+    """Match a declared target's real assignment in comment/string-masked code."""
+    for match in re.finditer(
+            r"(?<![\w.$])([A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)+)\s*=(?!=|>)",
+            handler_code):
+        if handler_code[:match.start()].rstrip().endswith("."):
+            continue  # A suffix after a computed/optional receiver is not this target.
+        target = re.sub(r"\s+", "", match.group(1))
+        if target in vocab.failure_reporting_assignments:
+            return True
+    return False
+
+
+def _ts_reporting_call(handler_code: str, vocab: Vocabulary) -> bool:
+    """A real call to an exact declared channel; mentions/declarations do not count."""
+    from .test_expectation import _ts_balanced
+    for match in re.finditer(
+            r"(?<![\w.$])([A-Za-z_$][\w$]*(?:\s*\.\s*[A-Za-z_$][\w$]*)*)\s*\(", handler_code):
+        target = re.sub(r"\s+", "", match.group(1))
+        if target not in vocab.failure_reporting_calls or target in {"if", "for", "while", "switch", "catch", "with", "function"}:
+            continue
+        prefix = handler_code[:match.start()].rstrip()
+        if prefix.endswith('.') or re.search(r'\b(?:function\s*\*?|new)\s*$', prefix):
+            continue
+        end = _ts_balanced(handler_code, match.end()-1, '(', ')')
+        if end is None or re.match(r'\s*(?::[^;{}=]*)?\{', handler_code[end:]):
+            continue
+        return True
+    return False
+
 _TS_TRY = re.compile(r"(?<![\w.$])try\s*\{")
 _TS_CATCH = re.compile(r"\}\s*catch\s*(?:\(\s*([\w$]*)[^)]*\))?\s*\{")
+
+
+def _ts_throw_leaves_boundary(mask: str, end: int) -> bool:
+    """An immediate throw propagates unless surrounding try/finally can intercept.
+
+    This covers best-effort cleanup inside a handler that rethrows its primary
+    error. Unknown intervening statements/control flow remain unproved here.
+    """
+    from .test_expectation import _ts_balanced
+    if not re.match(r"\s*;?\s*throw\b", mask[end:]):
+        return False
+    for enclosing in _TS_TRY.finditer(mask, 0, end):
+        brace = enclosing.end() - 1
+        body_end = _ts_balanced(mask, brace, "{", "}")
+        if body_end is None:
+            return False
+        if brace < end < body_end:
+            return False  # A containing try body may catch/finalize this throw.
+        handler = _TS_CATCH.match(mask, body_end - 1)
+        if handler:
+            handler_end = _ts_balanced(mask, handler.end() - 1, "{", "}")
+            if handler_end is None:
+                return False
+            if handler.end() <= end < handler_end and re.match(
+                    r"\s*finally\b", mask[handler_end:]):
+                return False
+    return True
 
 
 def ts_findings(path: str, source: str, vocab: Vocabulary = None) -> list[Finding]:
@@ -1480,8 +1702,10 @@ def ts_findings(path: str, source: str, vocab: Vocabulary = None) -> list[Findin
 
     What answers for the failure -- and is therefore not a finding -- is
     `throw`, `return`, `process.exit`, a rejected promise, or a call in
-    `TS_REPORTS`. An empty catch is the strongest form: the author wrote the
-    handler and left the body out.
+    `TS_REPORTS`, or an exact assignment/call target declared by the repo as a
+    verified failure-reporting channel. An empty catch is the strongest form:
+    the author wrote the handler and left the body out. Reporting declarations
+    are vocabulary, not proof of the message or subsequent control flow.
 
     The vocabulary is the shared one. What makes a try body risky is the same
     table `analyse_source` reads, so a repo that widens it in its own facts
@@ -1533,7 +1757,10 @@ def ts_findings(path: str, source: str, vocab: Vocabulary = None) -> list[Findin
 
         stripped = handler.strip()
         if any(a in handler_code for a in TS_ANSWERS) or \
-                any(r in handler_code for r in TS_REPORTS):
+                any(r in handler_code for r in TS_REPORTS) or \
+                _ts_reporting_assignment(handler_code, vocab) or \
+                _ts_reporting_call(handler_code, vocab) or \
+                _ts_throw_leaves_boundary(mask, cend):
             continue
         line = source.count("\n", 0, catch.start()) + 1
         name = catch.group(1) or "e"

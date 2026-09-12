@@ -311,7 +311,7 @@
         "FRAMEWORK_CLEANUP_GUIDELINE.md L618"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/architecture-fit.json",
       "refuted_because": "no-instance-today",
       "refutation": "Fails green catastrophically and the 'v4_has_it: no' claim is factually wrong. MEASURED on adopter_a (620 docs): 6673 resolving vs 8222 flagged path tokens = 55.2% flag rate; the checker exits 1 forever and can never be adopted. Hand-triaging my best candidates in ACTIVE docs yielded zero true posi",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -334,7 +334,7 @@
         "FRAMEWORK_CLEANUP_GUIDELINE.md L86"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/architecture-fit.json",
       "refuted_because": "no-instance-today",
       "refutation": "No red exists on either half. Cross-document-duplicate half: V4 has ZERO (number, noun) pairs appearing in >2 of its 32 docs — not a single instance. The framework repo produces 146, but the entire top-25 is noise from ordinals, not counts: '1 contract' (51 docs), '5 runtime' (27), '7 review' (21), ",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -347,7 +347,7 @@
         "STEP_7_AUDIT_LENS.md L310"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "no-instance-today",
       "refutation": "Zero instances in either repo — the repos already follow the prescribed practice. V4 has ZERO `assert len(...) == N` in tests; its 8 unittest-style count assertions are all local per-scenario checks. adopter_a yields 35 (expr,value) pairs appearing in >1 test file, but every one is a false positive",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -359,7 +359,7 @@
         "FRAMEWORK_CLEANUP_GUIDELINE.md L79-80"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/architecture-fit.json",
       "refuted_because": "no-instance-today",
       "refutation": "Refuted three ways. (1) The marker infrastructure the rule presumes does not exist: I found ZERO `<!-- sync: ... -->` markers in any of the three repos. (2) The only real declared sync pairs are deliberately NOT verbatim, so the checker reds every one of them on day one. Compare FRAMEWORK_CLEANUP_GU",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -372,7 +372,7 @@
         "ARCHITECTURE_GUIDELINES.md L113"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/architecture-fit.json",
       "refuted_because": "no-instance-today",
       "refutation": "No red is constructible. Scanning all four active authority docs (TARGET_ARCHITECTURE.md 1429 lines, MANIFEST_SCHEMA.md 644, CLAUDE.md 381, ARCHITECTURE_GUIDELINES.md 435) for the rule's four named patterns returns ZERO hits for `Phase N`, ZERO for 7-hex commit hash, ZERO for before/after narrative,",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -384,7 +384,7 @@
         "FRAMEWORK_CLEANUP_GUIDELINE.md L56"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/devx.json",
       "refuted_because": "too-broad-as-stated",
       "refutation": "Criterion 2 fails catastrophically; criterion 1 fails under the rule's own 'stable docs' scope. I ran all four mechanical patterns over 1,113 .md files in adopter_a + auto-dev-v4 + adopter_b. AUTHOR ATTRIBUTION: 0 hits, all three repos. GENERATION/VERSION FOOTERS: 1 hit in the framework an",
       "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
@@ -396,7 +396,7 @@
         "FRAMEWORK_CLEANUP_GUIDELINE.md L53"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/devx.json",
       "refuted_because": "no-instance-today",
       "refutation": "Criterion 1 fails outright — there is no instance anywhere. I measured every `##` span that contains no `###` across all 1,113 markdown files in the three repos. The single longest is 193 lines. The threshold is 300; nothing in the corpus comes within 100 lines of it. Top five: 193 (10-build-from-ze",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -408,7 +408,7 @@
         "AUTHORITY_DOC_CLEANUP_GUIDELINE.md L246"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/devx.json",
       "refuted_because": "no-instance-today",
       "refutation": "Both criteria fail. FENCE HALF — criterion 1: zero files with an odd ``` count and zero with an odd ~~~ count across all 1,113 .md files in the three repos. The red_fixture ('seven ``` markers in one file') does not exist anywhere. SUBGRAPH HALF — criterion 2: the check misfires. My probe found 6 'i",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -420,7 +420,7 @@
         "FRAMEWORK_CLEANUP_GUIDELINE.md L581-591"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/devx.json",
       "refuted_because": "other",
       "refutation": "All four sub-checks fail. (a) The stated red fixture is fiction: there is no `kernel/ledger_v2.py`; `ls auto-dev-v4/kernel/` shows one `ledger.py`, and the only `*_v2.py` in either repo is a test named after a feature version. (b) NAME PATTERNS: every `new_`/`legacy_` hit in auto-dev-v4 is auto-dev-",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -448,7 +448,7 @@
         "STEP_7_AUDIT_LENS.md L158"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "refuted_because": "other",
       "refutation": "Criterion 1 fails — the pattern is structurally absent from both repos. I ran an AST taint probe over all 61 route handlers (client sources: payload/body/data/request.json/request.query_params plus untyped identity-shaped params; sinks: filter_by/execute/fetch*/repo./query/select/insert/update/delet",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -462,7 +462,7 @@
         "STEP_7_AUDIT_LENS.md L159"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "refuted_because": "other",
       "refutation": "紅唔起 + 綠唔起。① 兩個 repo 都冇 webhook/callback HTTP handler:`rg '@router\\.(post|get|put|patch)\\(\"[^\"]*(webhook|callback|hook)'` 喺 adopter_a 全 repo exit 1(零 hit);auto-dev-v4 連 HTTP server 都冇(FastAPI/Flask/http.server 零 hit)。adopter_a production code 入面唯一嘅 'webhook' 係 client.py:187 `delete_webhook()` —— 一個",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -474,7 +474,7 @@
         "baseline/pipeline-policies.md L77-78"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "refuted_because": "other",
       "refutation": "紅唔起 + 綠唔起,而且 v4_has_it 描述本身錯。① AST 掃過 web/api/routes/*.py 61 條 route:33 條 registry mutation 全部都有 auth decision(require_metadata_preauth / require_sensitive_preauth / Depends(resolve_brand_*))。零 auth 嘅只有 3 條 —— brands.py:37 `GET /brands`、dashboard.py:43 `GET /dashboard/registry`、dashboard.py:82 `POST",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -489,7 +489,7 @@
         "STEP_7_AUDIT_LENS.md L79"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/config-hardcode-secret-placement.json",
       "refuted_because": "too-broad-as-stated",
       "refutation": "紅唔起 + 綠唔起。① red_fixture 指定「a worker module outside the config-file set reading os.environ」:`rg 'os\\.environ|os\\.getenv' core/workers/ core/flow_engine/ core/orchestration/ app/chat/` → exit 1,零 hit。adopter_a 已經 100% 走 pydantic BaseSettings + KeychainSettingsSource(settings.py:32-62),config_file",
       "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
@@ -503,7 +503,7 @@
         "STEP_7_AUDIT_LENS.md L129"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/config-hardcode-secret-placement.json",
       "refuted_because": "other",
       "refutation": "紅唔起 + discriminator 係 name heuristic。① `rg 'getenv\\([^)]*,|environ\\.get\\([^)]*,' --type py` 掃全 adopter_a production code,two-arg env default 得 **一個**:ops/launchd/runner.py:57 `os.environ.get(\"PATH\", \"/usr/bin:/bin:/usr/sbin:/sbin\")` —— PATH 唔係 infra config,而且個 default 係正確嘅。其餘 3 個喺 tests/(tests/post",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -515,7 +515,7 @@
         "CONFIG_BEST_PRACTICES.md L103"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/config-hardcode-secret-placement.json",
       "refuted_because": "too-broad-as-stated",
       "refutation": "紅唔起 + 綠唔起,而且係最差嘅一種:pattern 存在但 100% 係綠。① 照字面搵 `environ.get(\"*SECRET|KEY|TOKEN|PASSWORD*\")`:全 repo 三個 hit,兩個係 auto-dev/CONFIG_BEST_PRACTICES.md:118/:389(守則自己嘅例子),一個係 docs/FLOWCHARTS.md:992(明文禁止)。source instance = 0。② 語意等價嘅形式喺 config module 入面存在 —— 而且係 3/3 全中:settings.py:94/159/167 三個 secret-named fie",
       "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
@@ -528,7 +528,7 @@
         "STEP_7_AUDIT_LENS.md L130"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/config-hardcode-secret-placement.json",
       "refuted_because": "too-broad-as-stated",
       "refutation": "綠唔起。red_fixture 寫嘅係「carrying a value in .env.example and also assigned a literal in a constants module」,即係 presence-in-both。實測:.env.example 17 個 key,**17/17** 喺 settings.py 都有 code default。命中率 100% —— 一條把整份 corpus 判紅嘅規則係 lens,唔係 checker。改成比較「值」嘅版本,真分叉只有一個:.env.example:18 `MAX_FANOUT_ITEMS=25` vs set",
       "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
@@ -540,7 +540,7 @@
         "STEP_7_AUDIT_LENS.md L132"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/config-hardcode-secret-placement.json",
       "refuted_because": "other",
       "refutation": "Criterion 1 fails outright: neither repo has a dev/staging/prod trio to compare. adopter_a has ONE env definition (.env.example) plus a gitignored .env.local; there is no staging tier anywhere — every 'staging' string in the repo is git-staging in artifacts/phases/*.json. auto-dev-v4 has none at al",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -553,7 +553,7 @@
         "CONFIG_BEST_PRACTICES.md L349"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/config-hardcode-secret-placement.json",
       "refuted_because": "other",
       "refutation": "Criterion 1 fails: adopter_a's entire index contains exactly one .env* path — .env.example, all-placeholder. brands/ ships only brand.toml.example. No live key is tracked anywhere. Criterion 2 then fails harder: the ONLY tracked env-suffixed file carrying a live-shaped key in either repo is auto-de",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -566,7 +566,7 @@
         "claude_baseline.md L115"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/config-hardcode-secret-placement.json",
       "refuted_because": "other",
       "refutation": "Criterion 1 passes — there is a real red instance: settings.py:363 `grouping_threshold: float = 0.75` is dual-written as grouper.py:396 `threshold: float = 0.75`, and the production caller at core/flow_engine/handlers/image_group.py:174-184 always passes settings explicitly, so those signature defau",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -583,7 +583,7 @@
         "STEP_7_AUDIT_LENS.md L123"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "refuted_because": "no-instance-today",
       "refutation": "Criterion 1 fails on both halves. Secrets: zero log calls in app/core/web/runtime pass a credential-named value — `logger.*(...settings.*)` returns nothing, and f-string logs interpolating a key/token/secret variable return nothing. The one hit, loader.py:535, logs field names not values. PII: socia",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -596,7 +596,7 @@
         "STEP_7_AUDIT_LENS.md L161"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "refuted_because": "no-instance-today",
       "refutation": "Criterion 1 fails: the stated red fixture has no instance. `traceback.format_exc()` is never called anywhere in adopter_a's runtime code, and auto-dev-v4 has no HTTP surface at all. The rule is not merely unviolated — it is already implemented correctly and deliberately: web/api/main.py:203-228 exi",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -608,7 +608,7 @@
         "SECURITY_GATE/templates/question-bank.json L16"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "refuted_because": "other",
       "refutation": "Criterion 1 fails cleanly: `sourcemap: true` does not appear in any build config in either repo, and cannot — auto-dev-v4 ships no frontend and adopter_a's two vite configs both leave build.sourcemap at Vite's default of false. A checker keyed on the literal `sourcemap: true` would never fire on an",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -620,7 +620,7 @@
         "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L32"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/implementation-layer-boundaries.json",
       "refuted_because": "no-instance-today",
       "refutation": "The rule needs a path→layer map that V4's fact schema cannot express and that no doctrine file supplies. Where the layer IS unambiguous (core/domain/, 11 files) the violation count is 0; where the count is nonzero (core/integrations/, 49 files) the code is correct by the same document. A checker wit",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -644,7 +644,7 @@
         "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L218"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "refuted_because": "no-instance-today",
       "refutation": "Zero instances in 148 real statements, and the 'mechanical floor' was invented in the extraction rather than read out of IMPLEMENTATION_CONFORMANCE_GUIDELINE.md:218. It would also miss the real form of the defect the source bullet is about — targeting the wrong rows with a WHERE that is present but ",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -657,7 +657,7 @@
         "STEP_7_AUDIT_LENS.md L102"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/implementation-layer-boundaries.json",
       "refuted_because": "no-instance-today",
       "refutation": "Zero instances in both named repos, and no fact key supplies a bind address to compare against (kernel/facts.py:37 has no port/bind field). IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md:181 itself frames self-HTTP as a legacy-migration inventory item ('既有 self-HTTP...列入 migration inventory'), i.e. a thin",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -670,7 +670,7 @@
         "STEP_7_AUDIT_LENS.md L76"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/implementation-layer-boundaries.json",
       "refuted_because": "too-broad-as-stated",
       "refutation": "A threshold the authoring document calls a heuristic, over a subject the fact table cannot identify, firing on 21% of existing entry-file functions. kernel/analysis/structural_lint.py:8-12 records the exact precedent: the tool this replaced reported 200 criticals on adopter_a, 'so on that repo *eve",
       "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
@@ -683,7 +683,7 @@
         "claude_baseline.md L70"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/implementation-layer-boundaries.json",
       "refuted_because": "no-instance-today",
       "refutation": "The evidence for compliance lives in the function signature and the framework's dependency-injection layer, not in a statement inside the body, so an in-body ordering check reads the wrong location. Zero true positives, 66 false positives, and the rule's own source text (claude_baseline.md:70) decla",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -695,7 +695,7 @@
         "claude_baseline.md L72"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/implementation-layer-boundaries.json",
       "refuted_because": "no-instance-today",
       "refutation": "CRITERION 1 FAILS — no red instance exists. I ran the rule as an AST checker over both repos. Loosest form (except handler with no raise/return, assigns a literal to a name, name later passed to any call in the same function): 886 handlers scanned in adopter_a, 13 hits, 1 in auto-dev-v4. I read the",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -708,7 +708,7 @@
         "claude_baseline.md L73"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/implementation-layer-boundaries.json",
       "refuted_because": "premise-absent",
       "refutation": "CRITERION 1 FAILS — the red shape does not exist. adopter_a has 110 real .ts/.tsx files (excluding node_modules), so the substrate is there, but `grep -rn -E '\\|\\s*\\{'` over all of them returns exactly ONE hit, PostDraftReview.test.tsx:28, and that union is complete in both branches (isLoading/erro",
       "note": "佢假設咗一個唔存在嘅機制。",
@@ -721,7 +721,7 @@
         "STEP_7_AUDIT_LENS.md L105"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/implementation-layer-boundaries.json",
       "refuted_because": "other",
       "refutation": "CRITERIA 1 AND 2 BOTH FAIL. I built the checker and ran it. Loose form (any repo-unique name): 248 'mismatches' on adopter_a — every one a name collision with a stdlib/builtin/nested symbol (`now`, `sha256`, `connect`, `walk`, `add`, `validate`, `retrieve`); on auto-dev-v4 itself the single nested ",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -734,7 +734,7 @@
         "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L206"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/implementation-layer-boundaries.json",
       "refuted_because": "too-broad-as-stated",
       "refutation": "CRITERION 2 FAILS DECISIVELY, and CRITERION 3 fails too. Red instances are trivially findable — that is the problem: 33.4% of every function in core/app/web trips it, 910 sites, against a debt registry whose 7 R-TYPE-ESCAPE entries are all already graduated. A gate that reds a third of the codebase ",
       "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
@@ -747,7 +747,7 @@
         "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L205"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/devx.json",
       "refuted_because": "other",
       "refutation": "CRITERION 2 FAILS. Criterion 1 passes (registry.py at 3,805 lines is an unambiguous red) and criterion 3 passes (structural_lint.py:63 RULES = PRIVATE_IMPORT, PRIVATE_MODULE_ACCESS, IMPORT_CYCLE — no size rule anywhere in checkers/ or kernel/). But the absolute form as filed produces 197 findings on",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -759,7 +759,7 @@
         "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L219"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/devx.json",
       "refuted_because": "other",
       "refutation": "CRITERION 2 FAILS. This is the strongest of the six — criterion 1 passes outright (92 real growth events in 120 commits) and criterion 3 passes (the note is correct: structural_lint's baseline is a sha256(rule‖path‖detail) id set at :95-120, so a 1,240→1,290 growth keeps the same id, is carried by `",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -772,7 +772,7 @@
         "claude_baseline.md L114"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/devx.json",
       "refuted_because": "other",
       "refutation": "RED passes, GREEN fails, and the framework already settled the severity against it. Red exists: core/integrations/feed_graph.py:617 _publish_story_image vs :627 _publish_story_video differ only in \"image_url\" vs \"video_url\" — exactly the fixture. But the framework's OWN reference implementation of t",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -785,7 +785,7 @@
         "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L142"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "refuted_because": "no-instance-today",
       "refutation": "No red fixture exists, and the stated red_fixture shape is correct code in this repo. AST-scanned all 968 first-party .py in adopter_a plus all of auto-dev-v4; I then READ every acquire site rather than trusting the scan. Every one is correctly released: core/integrations/postgres/coordination.py:9",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -798,7 +798,7 @@
         "IMPLEMENTATION_ARCHITECTURE_GUIDELINE.md L207"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "refuted_because": "no-instance-today",
       "refutation": "Zero red fixtures in either repo, and the question is already empirically closed. AST-scanned both repos for a module-level mutable written from >=2 functions in a file that also spawns threads/tasks/executors: 0 hits in adopter_a, 0 in auto-dev-v4. Dropping the concurrency-evidence requirement (th",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -811,7 +811,7 @@
         "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L200"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/config-hardcode-secret-placement.json",
       "refuted_because": "no-instance-today",
       "refutation": "Refuted as specified — it is a merged checker and half of it has no instances at all. The identifier family (TENANT_ID/account-id literals) returns ZERO hits in adopter_a and ZERO in auto-dev-v4; there is no such literal anywhere to red on. The path family: an AST scan of string constants matching ",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -823,7 +823,7 @@
         "baseline/reference.md L246"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/devx.json",
       "refuted_because": "no-instance-today",
       "refutation": "The hardest refutation of the six: the subject the checker would scan does not exist, and the cited source does not say what the rule claims. Empirically: the string 'TODO' appears ZERO times in all 968 first-party .py files in adopter_a. Zero matches for #.*(TODO|FIXME|HACK|XXX) in adopter_a .py,",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -837,7 +837,7 @@
         "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L273-275"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "other",
       "refutation": "Fails criterion 3 outright and criterion 1 on volume. V4 ALREADY HAS IT, verbatim: .v4/lenses/implementation-layer-boundaries.json check index 14 reads 'UI/Surface testability: stable selector strategy — UI components expose stable test selectors (data-testid or equivalent), not relying on CSS class",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -849,7 +849,7 @@
         "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L261-264"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "other",
       "refutation": "Criterion 1 fails outright: no real file in either repo makes this checker exit 1. Criterion 2 also fails independently — the cited source /path/to/adopter_b/PLAYWRIGHT_UI_TESTING_GUIDELINE.md:261-264 is a priority list, not a prohibition, and L264 reads \"CSS/XPath fallback on",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -874,7 +874,7 @@
         "STEP_7_AUDIT_LENS.md L276"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "other",
       "refutation": "Criterion 1 fails on volume: 1 instance in 4,418 tests is noise, not a rule worth a gate. Criterion 2 fails on the antecedent. The rule fires only on \"a thread-through invariant\", and V4 has no contracts, no invariants, no Plan — /path/to/repo/.v4/ holds claim_kinds.json, lenses",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -886,7 +886,7 @@
         "UNIT_TEST_GENERATION_GUIDELINE.md L119"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "other",
       "refutation": "Criterion 2 fails as hard as it can. Bare patch is not a violation in this repo, it is the universal convention — a checker firing here reds essentially every test file that mocks anything, which is the definition of a lens rather than a gate. It also misjudges real greens: at tests/test_f138_direct",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -898,7 +898,7 @@
         "UNIT_TEST_GENERATION_GUIDELINE.md L120"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "no-instance-today",
       "refutation": "One red across 4,418 tests, and a 2-of-3 false-positive rate on the raw pattern. Disjunct B has no instance at all. Disjunct C is not mechanically decidable: deciding \"module-level mutable state with no restore fixture\" means proving no autouse fixture anywhere in the conftest chain restores it — cr",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -913,7 +913,7 @@
         "STEP_7_AUDIT_LENS.md L282"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "other",
       "refutation": "The rule's three clauses contradict each other on real files, and resolving the contradiction requires knowing whether a token is a domain name or a phase artifact — undecidable from the filename. Every measured catch-all hit (2/2) is a false positive, and the marker half misfires on contract-versio",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -925,7 +925,7 @@
         "UNIT_TEST_GENERATION_GUIDELINE.md L167"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "too-broad-as-stated",
       "refutation": "綠得起 fails outright — there is no green instance anywhere. A literal checker reds 100% of adopter_a and 100% of V4's own suite, including names the framework author wrote deliberately. Any relaxed predicate is undecidable: `test_old_rows_still_verify_under_their_own_scheme` states behaviour+conditio",
       "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
@@ -937,7 +937,7 @@
         "UNIT_TEST_GENERATION_GUIDELINE.md L198"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "no-instance-today",
       "refutation": "紅得起 fails: zero instances in either repo. The closest near-hit is `mock_pool_factory` defined in /path/to/adopter_a/tests/web/api/conftest.py:27 and re-defined in three test files in the *same* directory (test_health.py:20, test_brands_routes.py:31, test_posts_error_paths.py:21) — not",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -949,7 +949,7 @@
         "UNIT_TEST_GENERATION_GUIDELINE.md L209"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "no-instance-today",
       "refutation": "Both sides fail. 紅得起: zero real reds — the repo is at 100% marker compliance for collected tests; the 3 apparent violations are uncollected support modules that a checker must special-case or false-positive on. 綠得起: the mechanical half is not mechanical — telling a live `requests.post` from a patche",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -961,7 +961,7 @@
         "UNIT_TEST_GENERATION_GUIDELINE.md L175"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "too-broad-as-stated",
       "refutation": "This is the only rule with genuine red and green instances, and it still dies — on the contract, not the data. V4 has no warning exit code and names an unconsumed severity column as V3's fake move by name. Forced to exit 1 it fires on 28% of V4's own commits, including 0fd2e5f and 430cce6 which are ",
       "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
@@ -973,7 +973,7 @@
         "baseline/pipeline-policies.md L170"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "refuted_because": "other",
       "refutation": "「V4 has it: no」 is factually wrong — the registered `lint` checker reports the cited fixture today, and I ran it to confirm. The proposed rule is a strict subset of existing output plus a qualifier that (a) needs a whole-repo call graph structural_lint.py:242-251 refuses on record (\"guessing is how ",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -985,7 +985,7 @@
         "baseline/pipeline-policies.md L172"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/near-miss.json",
       "refuted_because": "no-instance-today",
       "refutation": "紅得起 fails: zero production instances across 968 + V4 files. 綠得起 fails worse: the predicate is structurally wrong for the dominant Python validator idiom — raise on the bad path, return a constant on the good path — which is 8 of the 9 near-hits. Its single production hit is the repo's METADATA-tier ",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -998,7 +998,7 @@
         "SECURITY_GATE/tooling/scanners/static-pattern-scan.js L3-6"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/electrification.json",
       "refuted_because": "other",
       "refutation": "歷史實驗：只回傳 PASS 的 hollow checker 會被 red fixtures 拒絕，不能用「已註冊而永遠 PASS」作正常可達狀態。舊 _selftest prototypes 與未引用的 selftest fixture 目錄已移除；tests/test_kernel.py::RegistrationGate 會自行建立 real／hollow checker 及 red／green／bypass fixtures，實際執行 register.verify_checker，保留這條註冊拒絕的驗證。",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1011,7 +1011,7 @@
         "STEP_7_AUDIT_LENS.md L220"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/observability-debuggability.json",
       "refuted_because": "too-broad-as-stated",
       "refutation": "紅唔起:adopter_a 788 個 log call 入面,event-name position 嘅 f-string / concat / .format / %-format 全部係 0。proposal 個紅 fixture `logger.warning(f\"{self.domain}_sync_failed\", ...)` 喺真 repo 零實例。767/788 係 literal,只有 4 個帶空格,而嗰 4 個入面 3 個係 `%s` format string(core/orchestration/workflow_runtime.py:947、core/integra",
       "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
@@ -1023,7 +1023,7 @@
         "DEBUGGING_OBSERVABILITY_GUIDELINE.md L72-75"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/observability-debuggability.json",
       "refuted_because": "other",
       "refutation": "紅唔起:779 個 `extra=` dict,reserved-name 碰撞 0 個;auto-dev-v4 同 adopter_b 都係 0。呢個唔係巧合 —— stdlib Logger.makeRecord 一撞就即刻 raise KeyError,所以佢喺第一次執行就死,冇可能活到入 commit tree。「the failure is a crash, not a style preference」係支持佢自我執行,唔係支持起 checker:一個永遠捉唔到嘢嘅 gate 唔係 gate。而且 checker 喺最高風險位置係盲嘅:779 個入面有 67 個係",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1036,7 +1036,7 @@
         "DEBUGGING_OBSERVABILITY_GUIDELINE.md L59"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/observability-debuggability.json",
       "refuted_because": "too-broad-as-stated",
       "refutation": "紅得起但綠唔起。真係搵到 5 個 declared event literal 喺 source 度零命中 —— 但全部 5 個出自 f270 / f271,而呢兩份 phase doc 係兩日前(git 62d12f11)由 code health review 開出嚟、由未執行過嘅。即係話 100% 嘅紅都係「計劃咗未做」,唔係「聲稱做咗但冇」。要分開呢兩種,checker 要有 phase status 概念;而 V4 明確冇 phase doc、冇 contract、冇 status 欄(state 係每次由 ledger 重算嘅 query)。喺 V4 model 之下,每一份未收工",
       "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
@@ -1049,7 +1049,7 @@
         "STEP_7_AUDIT_LENS.md L212"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/observability-debuggability.json",
       "refuted_because": "other",
       "refutation": "綠唔起,兩邊都唔起。第一半(outbound write 冇 log):adopter_a 全 repo 963 個 function 帶 outbound_write pattern 而冇 log call,對 72 個有;淨計 production core/ 都係 54 對 42。判紅過半 production function 就係 lens 嘅定義。而且大量係設計上正確:core/config/secure_store.py:44 write_provider_secret 刻意唔 log(docstring:「without exposing its value」)、改為 rai",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1061,7 +1061,7 @@
         "STEP_7_AUDIT_LENS.md L213"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/observability-debuggability.json",
       "refuted_because": "other",
       "refutation": "紅唔起。adopter_a 有 265 個 log call 喺 except handler 入面,message position 係 exception 嘅 —— 即 proposal 個紅 fixture `except Exception as e: logger.error(str(e))` —— 0 個。265/265 全部係 named event + extra= 或者 exc_info。零實例。要令佢紅得起就要把門檻抬到「唔准用 str(exc),要 exception object」,而咁做即刻誤報 56 個位,嗰 56 個係呢個 codebase 明確嘅 house ",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1073,7 +1073,7 @@
         "STEP_7_AUDIT_LENS.md L216"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/observability-debuggability.json",
       "refuted_because": "other",
       "refutation": "紅唔起。red_fixture 講嘅『print(\"posted\", post_id) in a worker module』喺 adopter_a 完全唔存在 —— 每個 non-script entrypoint 目錄 print 數都係 0,而 core/ 91 個檔用 logger。17 個真係有 print 嘅檔全部係 CLI / migration / proof runner,print 就係佢哋嘅 output contract(db_migrations/apply.py 4 個 print,scripts/migrate_*.py),其中 6 個仲要喺 entrypoin",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1085,7 +1085,7 @@
         "STEP_7_AUDIT_LENS.md L235"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/observability-debuggability.json",
       "refuted_because": "other",
       "refutation": "紅唔起,而且綠得太貴。全 repo 只有一個 FastAPI app(web/api/main.py:105),佢已經有 /api/health(main.py:232-238);auto-dev-v4 係純 CLI,連 server 都冇。兩個 repo 加埋零個 red fixture。反方向就爆:web/api/routes/ 17 個檔入面 16 個零 health 提及,但佢哋全部正確 —— 佢哋係 APIRouter module,mount 入嗰個已經有 health 嘅 app。file-scoped checker = 16/17 false positive;app-sco",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1097,7 +1097,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L23"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "refuted_because": "other",
       "refutation": "紅唔起,一個實例都冇。AST 掃全部 non-test .py,requests.* / time.sleep 出現喺 async def 入面 = 0。放寬到 open/input/*.sleep/*.run/*.read_text/urlopen 得 11 hits,全部係 asyncio.sleep(正確)或者 proof script 嘅 read_text。原因係 repo 已經解決咗佢唯一嗰次,仲寫低咗:一個 API utils 模組入面二十行註釋講明一次 vendor client import 凍死 health route 嗰單,修法係將 route 宣告成 sync `def` 掉入 Fa",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1118,7 +1118,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L35"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "refuted_because": "other",
       "refutation": "紅得起但全部係 false positive,true positive 零。AST 掃晒 adopter_a 每個 HTTP call site:6 個 call-site 帶 timeout=,唯一冇嗰個 providers.py:228 嘅 client 喺六行之上 :222-223 就係 httpx.Client(timeout=self._timeout_s) 起嘅。repo 四個 HTTP 機制入面有三個係同一形狀 —— timeout 落喺 client/connection construction,唔喺 call site:store_client.py:685→687、d",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1130,7 +1130,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L35"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "refuted_because": "other",
       "refutation": "紅唔起。掃晒 non-test 嘅 while True: 共 10 個,零個嘅 except body 係 bare continue —— red_fixture 唔存在。最似 retry 嗰個已經有齊 budget 同 backoff:shared.py:1042-1060 有 deadline = time.time() + max_wait_sec、time.sleep(poll_interval_sec)、超時 raise,入面仲要 call retry_gemini_transient(..., attempts=attempts)。呢個 repo 做 retry 係經三個具名 ",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1142,7 +1142,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L43"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "refuted_because": "other",
       "refutation": "紅唔起。AST 掃 adopter_a 全部 61 個 @router handler body(web/api/routes/ 底下 8 個 module)+ facts.adopter_a.json entrypoint_globs 列嘅 107 個檔:heavy-client construction 命中 0。全 repo 只有兩處 construct heavy cl",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1154,7 +1154,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L53"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "refuted_because": "other",
       "refutation": "紅唔起、綠又爆誤報,兩樣都輸。Body-only AST 掃 968 個 py 檔,得 10 個 hit,冇一個係 N+1:db_migrations/apply.py:204-212 係 per-migration commit,apply.py:196-200 有註釋寫明點解一定要逐個 commit;media_assets.py:114 係一個 transaction 內 bounded positional UPDATE(update_positions,media_assets.py:104);content_drafts.py:118 係 DELETE 後同一 cursor 嘅 b",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1166,7 +1166,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L54"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "refuted_because": "other",
       "refutation": "紅得起嘅前提唔存在。`grep -rniE 'prisma|drizzle|typeorm|mongoose|sequelize'` 掃 adopter_a 全部 *.ts/*.tsx/*.js/*.json(除 node_modules)= 0 命中。web/ui/package.json 係 Vite+React SPA(react-router-dom / tanstack-query / zod),web/landing/package.json 淨係 react + vite,兩個都冇 server runtime、冇任何 DB dependency,所以根本冇一個 module ",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1178,7 +1178,7 @@
         "STEP_7_AUDIT_LENS.md L164"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "refuted_because": "other",
       "refutation": "V4 已經有咗,而且係經過裁決後刻意唔答。kernel/analysis/dependency_audit.py:20-25 白紙黑字:『verify integrity hash **not answered.** \"可行時\" is not a decidable predicate, and a checker that reports on a clause it cannot decide is the severity field nobody branches on. Integrity coverage is recorded on the report and touches ",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1190,7 +1190,7 @@
         "STEP_7_AUDIT_LENS.md L168"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "refuted_because": "too-broad-as-stated",
       "refutation": "綠唔起。三個 repo(adopter_a、auto-dev-v4、adopter_b)最近 5 個 commit 嘅 %G? 全部係 N,三個 repo 嘅 commit.gpgsign 同 user.signingkey 都係空。即係第一次跑就 100% 紅,永遠紅,包括出呢個 checker 嗰個 repo 自己。docs/SPEC.md:217-218 要求註冊時 green/ ≥5 個每個 exit 0 —— 只能靠合成 fixture 過關,而 SPEC.md:243 自己講明『呢個閘唔係邊界』。提案自己畀嘅出路(『must be per-repo opt-in",
       "note": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
@@ -1202,7 +1202,7 @@
         "baseline/git-checkpoint.md L28"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "refuted_because": "other",
       "refutation": "綠唔起,而且喺出佢嗰個 repo 度連 referent 都冇。auto-dev-v4 只有 main 一條 branch、過去 30 日 37 個 commit 全落 main、完全冇 remote(git symbolic-ref refs/remotes/origin/HEAD 返唔到嘢),所以『protected branch』喺嗰度指唔到任何嘢 —— 冇 branch protection 可言,checker 只能對住『HEAD 係 default branch』出紅,每個 task 都紅。adopter_a 一樣:HEAD=main,過去 30 日 319 個 commit 落",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1223,7 +1223,7 @@
         "baseline/step-1.md L106-110"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/request-fidelity.json",
       "refuted_because": "other",
       "refutation": "The rule is already implemented, in both directions, in the framework's own code — it is a description of shipped behaviour, not an extraction candidate. scripts/lib/deliverable-classification.js:247-250 raises `deliverable_classification[i].requirement_id does not reference requirements[]` (the dan",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1235,7 +1235,7 @@
         "baseline/step-3.md L23"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "refuted_because": "no-instance-today",
       "refutation": "Unfalsifiable in V4 — the check is X == X, so no red fixture can exist. Two independent reasons. (1) No input: the complete subject payload a checker receives is enumerated at kernel/register.py:161-169 and kernel/derive.py:76-83 — claim_id, claim_kind, task_id, repo_root, diff_base, subject_refs, s",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -1247,7 +1247,7 @@
         "baseline/step-6.md L31"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/electrification.json",
       "refuted_because": "other",
       "refutation": "No true red exists, and the observation half has no substrate. MEASURED RED: across the last 200 adopter_a commits, 12 touched web/ui/src/** or web/landing/src/**, and 11 of those touched a test/spec/e2e file or a docs/ui-testing artifact in the same commit. The single exception is a84fb175, whose ",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1271,7 +1271,7 @@
         "KIT_WEB_UI_PLAYWRIGHT/README.md L88-93"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/near-miss.json",
       "refuted_because": "no-instance-today",
       "refutation": "Zero red instances in the entire real corpus. I ran both the kit's own validator and an independent scan over all 38 result.json under /path/to/adopter_a/docs/ui-testing/. All 38 carry an `error` key, all 38 carry a `derivedAssertions` array, 31 are pass=true — and not one contradicts",
       "note": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
@@ -1283,7 +1283,7 @@
         "KIT_WEB_UI_PLAYWRIGHT/templates/result.schema.json L140-153"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/observability-debuggability.json",
       "refuted_because": "other",
       "refutation": "紅唔起：全個 adopter_a 冇一個檔 conform 呢個 schema —— `runType` 只喺 schema 自己出現,零 consumer。auto-dev-v4 343 個 JSON 冇一個有 `pass` key。掃 artifacts/ + runtime/ 全部 JSON:得 1 個檔有 top-level `pass`。綠唔起:嗰個唯一檔 artifacts/merge-integration/F209+F211.json 係 auto-dev/scripts/gates/merge-integration-gate.js 寫嘅,唔係 Playwright run",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1295,7 +1295,7 @@
         "baseline/reference.md L213"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "refuted_because": "other",
       "refutation": "紅唔起:掃 adopter_a 全部 audit-bundle events.jsonl 共 48,262 個 event,artifact_refs 重用次數 = 0。auto-dev-v4 完全冇 artifact/evidence 目錄(find 零結果)—— checker output 寫入 tempfile.TemporaryDirectory() 之後即刻消失(kernel/runner.py:86,101),per-attempt 檔案根本唔存在,overwrite 呢個 class 喺 V4 冇得發生。綠唔起:checker 契約只有 --subject/--facts 同",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1307,7 +1307,7 @@
         "ARCHITECTURE_GUIDELINES.md L129"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/near-miss.json",
       "refuted_because": "other",
       "refutation": "V4 已經有,而且係完整版(--emit-baseline、rename tracking、missing-baseline 唔給 amnesty、baseline 檔本身係 protected path 要簽名先落到 —— structural_lint.py:299)。紅唔起:實跑 `python3 checkers/structural_lint.py --subject … --emit-baseline` 對住成個 auto-dev-v4,出 `{\"findings\": [], \"version\": 1}` —— 零 violation。`.v4/lint_baseline.json",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1319,7 +1319,7 @@
         "STEP_7_AUDIT_LENS.md L325"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/llm-agent-action-surface-conditional-when-system-includes-llm-agent.json",
       "refuted_because": "other",
       "refutation": "紅唔起,實測過:adopter_a 49 個 spec / 49 個 typed handler / 0 個 spec 冇 handler / 0 個 hand-schema property 唔喺 model 入面。advertise 畀 LLM 嘅 schema 係由 execute_tool 真正 validate 嗰個 Pydantic model 生成,唔存在第二份 name/type/enum 宣告可以分叉。個 red_fixture(`{\"name\":\"days\"}` 而 handler 讀 `args[\"day_count\"]`)喺呢度構造唔到:handler signatu",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1331,7 +1331,7 @@
         "STEP_7_AUDIT_LENS.md L338"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/llm-agent-action-surface-conditional-when-system-includes-llm-agent.json",
       "refuted_because": "other",
       "refutation": "紅唔起 —— 由構造上唔可能紅。system prompt 嗰行 tool registry 本身就係由 TOOL_SPECS join 出嚟(context.py:109),一個新註冊嘅 tool 註冊嗰刻已經喺 prompt 度。adopter_a 仲已經有一條雙向 equality test 釘住(test_f217_contract_surface.py:205)。auto-dev-v4 冇 tool registry 亦冇 system prompt,零實例。連 `v4_has_it: \"no\"` 都錯:llm-agent lens 已經有 check #4「System prom",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1343,7 +1343,7 @@
         "baseline/step-1.md L139-142"
       ],
       "assigned": "2-checker",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/request-fidelity.json",
       "refuted_because": "other",
       "refutation": "綠唔起,而且係災難級:V4 每個 task 嘅 default scope 就係 `[\"**\"]`(checkers/scope.py:21),protected_paths 四條全部係 glob(.v4/config.json:12-17)。呢條規則會把 repo 入面每一個 task 判紅,包括冇改過任何嘢嗰啲 —— 定義上係 lens 唔係 checker。而且佢直接同 V4 設計相撞:kernel/scope.py:7-9 明寫「V3's shape: a contract declared the files a phase would touch, a gate enforced ",
       "note": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
@@ -1448,7 +1448,7 @@
         "baseline/pipeline-policies.md L101"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/electrification.json",
       "id": "R-9715fb46"
     },
     {
@@ -1457,7 +1457,7 @@
         "baseline/pipeline-policies.md L22"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/config-hardcode-secret-placement.json",
       "id": "R-2d960d9c"
     },
     {
@@ -1466,7 +1466,7 @@
         "baseline/pipeline-policies.md L61-62"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-9a45b89a"
     },
     {
@@ -1475,7 +1475,7 @@
         "baseline/pipeline-policies.md L65-68"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-845a501f"
     },
     {
@@ -1484,7 +1484,7 @@
         "baseline/pipeline-policies.md L69-70"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-d68c4bb7"
     },
     {
@@ -1493,7 +1493,7 @@
         "baseline/pipeline-policies.md L71-72"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "id": "R-96033a2b"
     },
     {
@@ -1503,7 +1503,7 @@
         "baseline/step-5.md L29-31"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/test-sufficiency.json",
       "id": "R-381a50a1"
     },
     {
@@ -1525,7 +1525,7 @@
         "baseline/step-1.md L194"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/architecture-fit.json",
       "id": "R-4b100ce0"
     },
     {
@@ -1534,7 +1534,7 @@
         "FRAMEWORK_CLEANUP_GUIDELINE.md L54"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/devx.json",
       "id": "R-1b5767ce"
     },
     {
@@ -1543,7 +1543,7 @@
         "FRAMEWORK_CLEANUP_GUIDELINE.md L567-577"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-a0109b9d"
     },
     {
@@ -1552,7 +1552,7 @@
         "FRAMEWORK_CLEANUP_GUIDELINE.md L605-608"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/devx.json",
       "id": "R-9473bd6e"
     },
     {
@@ -1561,7 +1561,7 @@
         "CODE_HEALTH_REVIEW_GUIDELINE.md L75-89"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/review_contract.json",
       "id": "R-cbcfe262"
     },
     {
@@ -1570,7 +1570,7 @@
         "claude_baseline.md L71"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "id": "R-e74a6251"
     },
     {
@@ -1579,7 +1579,7 @@
         "claude_baseline.md L116"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/general-rule-one-false-instance.json",
       "id": "R-971c1c69"
     },
     {
@@ -1588,7 +1588,7 @@
         "claude_baseline.md L140"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/request-fidelity.json",
       "id": "R-055fc959"
     },
     {
@@ -1598,7 +1598,7 @@
         "claude_baseline.md L142"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/request-fidelity.json",
       "id": "R-484c58ad"
     },
     {
@@ -1607,7 +1607,7 @@
         "claude_baseline.md L144"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/architecture-fit.json",
       "id": "R-8fe76a44"
     },
     {
@@ -1616,7 +1616,7 @@
         "claude_baseline.md L58"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/security-permission.json",
       "id": "R-88b661ee"
     },
     {
@@ -1625,7 +1625,7 @@
         "REQUEST_DOC_GUIDELINE.md L138"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/architecture-fit.json",
       "id": "R-bf69b6a0"
     },
     {
@@ -1634,7 +1634,7 @@
         "REQUEST_DOC_GUIDELINE.md L118"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/llm-agent-action-surface-conditional-when-system-includes-llm-agent.json",
       "id": "R-591511ee"
     },
     {
@@ -1643,7 +1643,7 @@
         "REQUEST_DOC_GUIDELINE.md L119"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/llm-agent-action-surface-conditional-when-system-includes-llm-agent.json",
       "id": "R-5a9f7c5e"
     },
     {
@@ -1652,7 +1652,7 @@
         "REQUEST_DOC_GUIDELINE.md L123"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/llm-agent-action-surface-conditional-when-system-includes-llm-agent.json",
       "id": "R-2082744d"
     },
     {
@@ -1725,7 +1725,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L53"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-1eb338a5"
     },
     {
@@ -1734,7 +1734,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L25"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-b04a8dde"
     },
     {
@@ -1743,7 +1743,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L27"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-6386a0e6"
     },
     {
@@ -1752,7 +1752,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L29"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-116980d0"
     },
     {
@@ -1762,7 +1762,7 @@
         "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L255"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-302fa020"
     },
     {
@@ -1771,7 +1771,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L31"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-20de5756"
     },
     {
@@ -1780,7 +1780,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L43"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-841915c7"
     },
     {
@@ -1790,7 +1790,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L64"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-1383e53a"
     },
     {
@@ -1799,7 +1799,7 @@
         "PERFORMANCE_OPTIMIZATION_GUIDELINE.md L93"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-9efd581f"
     },
     {
@@ -1917,7 +1917,7 @@
         "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L279-282"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/electrification.json",
       "id": "R-16f3cf2f"
     },
     {
@@ -1926,7 +1926,7 @@
         "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L206"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/near-miss.json",
       "id": "R-736b7a1e"
     },
     {
@@ -1935,7 +1935,7 @@
         "PLAYWRIGHT_UI_TESTING_GUIDELINE.md L300-302"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/observability-debuggability.json",
       "id": "R-36bb34f9"
     },
     {
@@ -1954,7 +1954,7 @@
         "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L217"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-eeced45b"
     },
     {
@@ -1964,7 +1964,7 @@
         "IMPLEMENTATION_CONFORMANCE_GUIDELINE.md L254"
       ],
       "assigned": "3-lens",
-      "landed": ".v4/lenses/prevention.json",
+      "landed": ".v4/lenses/runtime-reliability-performance.json",
       "id": "R-02226b12"
     },
     {

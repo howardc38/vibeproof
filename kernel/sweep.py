@@ -47,17 +47,33 @@ def config(cfg) -> dict:
     return out
 
 
+def complete_payload(payload):
+    """Coverage metadata, never an inference from a successful command exit."""
+    if not isinstance(payload, dict) or payload.get("complete") is False:
+        return False
+    if payload.get("run_id") and payload.get("cadence_complete") is not True:
+        return False  # Older selected-run records did not establish full cadence coverage.
+    expected, reviewed = payload.get("lenses"), payload.get("reviewed")
+    return (isinstance(expected, list) and bool(expected) and isinstance(reviewed, dict)
+            and set(expected) <= set(reviewed)
+            and all(isinstance(reviewed[x], int) and not isinstance(reviewed[x], bool) and reviewed[x] >= 0 for x in expected))
+
+
 def last(conn):
-    """When the last sweep was recorded, or None."""
-    row = conn.execute(
-        "SELECT created_at FROM event WHERE kind = ? ORDER BY id DESC LIMIT 1",
-        (KIND,)).fetchone()
-    if row is None:
-        return None
-    try:
-        return datetime.fromisoformat(row["created_at"])
-    except (ValueError, TypeError):
-        return None
+    """Last complete recorded sweep. Partial/unknown legacy coverage is not fresh."""
+    for row in conn.execute("SELECT created_at,payload FROM event WHERE kind=? ORDER BY id DESC", (KIND,)):
+        try:
+            if complete_payload(json.loads(row["payload"])):
+                return datetime.fromisoformat(row["created_at"])
+        except (ValueError, TypeError):
+            continue
+    return None
+
+
+def last_attempted(conn):
+    """Legacy evidence windows end at every attempt; cadence uses last complete."""
+    row = conn.execute("SELECT created_at FROM event WHERE kind=? ORDER BY id DESC LIMIT 1", (KIND,)).fetchone()
+    return datetime.fromisoformat(row[0]) if row else None
 
 
 def last_exported(root):
@@ -100,7 +116,11 @@ def last_exported(root):
                 continue
             r = json.loads(line)
             if r.get("_table") == "event" and r.get("kind") == KIND:
-                newest = max(newest, r.get("created_at") or "")
+                payload = r.get("payload", {})
+                if isinstance(payload, str):
+                    payload = json.loads(payload)
+                if complete_payload(payload):
+                    newest = max(newest, r.get("created_at") or "")
         if newest:
             break
     return datetime.fromisoformat(newest) if newest else None
@@ -290,7 +310,7 @@ def _lens_events(conn, kind, since):
             p = json.loads(r["payload"])
         except (ValueError, TypeError):
             continue
-        if p.get("lens"):
+        if p.get("lens") and not p.get("run_id"):
             out[p["lens"]] = p
     return out
 
@@ -430,14 +450,15 @@ def record(conn, *, lenses, findings=None, note=""):
     useless: a sweep that found nothing looks like it worked if somebody else
     filed three findings in between.
     """
-    since = last(conn)
+    since = last_attempted(conn)
+    payload = {"lenses": list(lenses), "ran": sorted(ran_since(conn, since)),
+               "reviewed": reviewed_since(conn, since), "findings": findings,
+               "raised_since_last_sweep": raised_since(conn, since), "note": note}
+    payload["complete"] = complete_payload(payload)
     insert(conn, "event", task_id=None, claim_id=None, kind=KIND, actor="worker",
-           payload={"lenses": list(lenses), "ran": sorted(ran_since(conn, since)),
-                    "reviewed": reviewed_since(conn, since),
-                    "findings": findings,
-                    "raised_since_last_sweep": raised_since(conn, since),
-                    "note": note},
-           created_at=datetime.now(timezone.utc).isoformat())
+           payload=payload, created_at=datetime.now(timezone.utc).isoformat())
+    return payload
+
 
 
 def history(conn, limit=10):

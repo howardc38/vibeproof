@@ -420,12 +420,12 @@ class TheTwoThirdsOfAcceptNobodyRan(unittest.TestCase):
         """
         root = self._repo()
         (root / "checkers" / "c.py").write_text(
-            "import argparse, os, sys\n"
+            "import argparse, os, sys, json\n"
             "p = argparse.ArgumentParser()\n"
             "p.add_argument('--subject'); p.add_argument('--facts')\n"
             "p.add_argument('--out'); p.parse_args()\n"
             "import kernel  # the import an adopter's checker makes\n"
-            "print(os.environ.get('PYTHONPATH', ''))\n"
+            "print(json.dumps({'adopter': os.getcwd() in os.environ['PYTHONPATH'].split(os.pathsep), 'framework': os.path.dirname(kernel.__file__)[:-len('/kernel')] in os.environ['PYTHONPATH'].split(os.pathsep)}))\n"
             "sys.exit(0)\n")
         reg = json.loads((root / ".v4" / "checkers.json").read_text())
         for cid in accept_mod.DOC_CHECKERS:
@@ -438,8 +438,9 @@ class TheTwoThirdsOfAcceptNobodyRan(unittest.TestCase):
         for cid in accept_mod.DOC_CHECKERS:
             ok, detail = rows[cid]
             self.assertTrue(ok, f"{cid}: {detail}")
-            self.assertIn(str(root), detail, "the tree under test")
-            self.assertIn(str(ROOT), detail, "the framework judging it")
+            observed = json.loads(detail)
+            self.assertTrue(observed["adopter"], "the tree under test")
+            self.assertTrue(observed["framework"], "the imported framework judging it")
 
 
 if __name__ == "__main__":

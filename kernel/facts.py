@@ -23,6 +23,7 @@ See docs/FACTS.md for where each field comes from and how to re-derive it.
 
 from __future__ import annotations
 
+import argparse
 import ast
 import json
 import subprocess
@@ -587,6 +588,14 @@ def tree_drift(facts: Facts, root: str | Path) -> list[str]:
 # --------------------------------------------------------------------------
 
 
+def help_requested(argv) -> bool:
+    """Recognise help before any path/config work; `--` ends option parsing."""
+    options = list(argv)
+    if "--" in options:
+        options = options[:options.index("--")]
+    return any(arg in {"-h", "--help"} for arg in options)
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     # `v4 facts`, not `python -m kernel.facts`. This module owns the rules and
@@ -610,23 +619,48 @@ def main(argv: list[str] | None = None) -> int:
         "\n"
         "`v4 facts` fills in this repo's table and root; spelled out, the same "
         "commands are\n"
-        "`python -m kernel.facts <command> <facts.json> [<repo-root>] ...`, "
-        "which is what this\n"
-        "module answers to directly."
+        "`python -m kernel.facts <command> <facts.json> <repo-root> ...`.\n"
+        "verify/restate/scan require both paths; validate needs only the table;\n"
+        "propose takes an optional root (default: current directory)."
     )
-    if not argv or argv[0] in {"-h", "--help"}:
+    if not argv or help_requested(argv):
         print(usage)
         return 0
 
     command, rest = argv[0], argv[1:]
+    if command not in ("propose", "validate", "verify", "restate", "scan"):
+        print(usage, file=sys.stderr)
+        return 2
+    # Validate before reading or rewriting a table. A flag in rest[1] used to
+    # become the repository root; filtering strings alone would still silently
+    # accept misspelled options and extra paths on the mutating restate route.
+    parser = argparse.ArgumentParser(prog=f"v4 facts {command}",
+                                     usage=usage.removeprefix("usage: "),
+                                     add_help=False, allow_abbrev=False)
+    if command == "propose":
+        parser.add_argument("root", nargs="?", default=".")
+    else:
+        parser.add_argument("table")
+        if command != "validate":
+            parser.add_argument("root")
+    if command == "verify":
+        parser.add_argument("--gone-only", action="store_true")
+    if command == "scan":
+        parser.add_argument("name", nargs="?", choices=SYMBOL_LISTS)
+        parser.add_argument("--tests", action="store_true")
+        parser.add_argument("--sites", action="store_true")
+    try:
+        args = parser.parse_intermixed_args(rest)
+    except SystemExit as exc:
+        return int(exc.code)
     try:
         if command == "propose":
-            print(json.dumps(propose(rest[0] if rest else "."),
+            print(json.dumps(propose(args.root),
                              indent=2, ensure_ascii=False))
             return 0
 
         if command == "validate":
-            facts = load(rest[0])
+            facts = load(args.table)
             print(f"ok: {facts.repo} @ {facts.generated_from_commit[:12]}")
             for name in SYMBOL_LISTS:
                 print(f"  {name}: {len(facts.entries(name))} patterns")
@@ -635,24 +669,24 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if command == "verify":
-            facts = load(rest[0])
-            gone_only = "--gone-only" in rest
-            for warning in tree_drift(facts, rest[1]):
+            facts = load(args.table)
+            gone_only = args.gone_only
+            for warning in tree_drift(facts, args.root):
                 print(f"WARN {warning}")
-            problems = check_seen_at(facts, rest[1], gone_only=gone_only)
+            problems = check_seen_at(facts, args.root, gone_only=gone_only)
             for problem in problems:
                 print(f"BAD  {problem}")
             what = "rows citing something that is gone" if gone_only else "bad seen_at"
             print(f"{'FAIL' if problems else 'ok'}: {len(problems)} {what}")
             if gone_only and not problems:
-                moved = len(check_seen_at(facts, rest[1]))
+                moved = len(check_seen_at(facts, args.root))
                 if moved:
                     print(f"     ({moved} row(s) moved rather than gone; "
                           f"`restate` rewrites them)")
             return 1 if problems else 0
 
         if command == "restate":
-            moved, refused = restate(rest[0], rest[1])
+            moved, refused = restate(args.table, args.root)
             for line in moved:
                 print(f"ok   {line}")
             for line in refused:
@@ -664,11 +698,11 @@ def main(argv: list[str] | None = None) -> int:
             return 1 if refused else 0
 
         if command == "scan":
-            facts = load(rest[0])
-            root = rest[1]
-            names = [rest[2]] if len(rest) > 2 and not rest[2].startswith("-") else list(SYMBOL_LISTS)
-            include_tests = "--tests" in rest
-            show = "--sites" in rest
+            facts = load(args.table)
+            root = args.root
+            names = [args.name] if args.name else list(SYMBOL_LISTS)
+            include_tests = args.tests
+            show = args.sites
             for name in names:
                 hits = scan_repo(facts, root, name, include_tests=include_tests)
                 total = sum(len(v) for v in hits.values())
@@ -683,10 +717,6 @@ def main(argv: list[str] | None = None) -> int:
     except FactsError as exc:
         print(f"FactsError: {exc}", file=sys.stderr)
         return 2
-    except IndexError:
-        print(usage, file=sys.stderr)
-        return 2
-
     print(usage, file=sys.stderr)
     return 2
 

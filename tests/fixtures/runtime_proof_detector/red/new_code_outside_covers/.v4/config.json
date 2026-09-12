@@ -1,0 +1,1 @@
+{"test_command": "true", "policy": "no_accepted_risk", "truth_command": "cat", "runtime_proof": [{"name": "old app probe", "covers": ["old/**"], "trigger": "true", "truth": "{run_id}", "expect": "gt:0"}]}

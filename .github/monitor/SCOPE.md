@@ -18,6 +18,8 @@ here to audit, so it must not repeat it.
 
     allowed    ./bin/v4 review add          raise a finding
                ./bin/v4 review lens         read a lens brief
+               ./bin/v4 review done         record the assigned lens result
+               ./bin/v4 maintain handoff    result for an assigned handoff only
                ./bin/v4 review defer        put one off, naming where the work went
                ./bin/v4 sweep --done        record that a sweep happened
                ./bin/v4 status              read state
@@ -81,9 +83,9 @@ actor deciding it has convinced itself.
     allowed    the repo · its history · the ledger · lens briefs
     refused    the working session's transcript
 
-The refusal is the whole point. A sub-agent of the working session shares its
-context and runs on a prompt that session wrote; independence here does not come
-from being a different model, it comes from not having heard the story.
+The refusal is the whole point. Use fresh context and the fixed monitor prompt with only the assigned inputs.
+Do not inherit the working transcript. Different agent/model names do not prove
+independence; the host must actually preserve this input boundary.
 
 ## Why this file is where it is
 
@@ -118,25 +120,27 @@ kernel does not authenticate its context or independence. A separate session is
 not proof of a different reasoning process.
 Whatever both fail to see, both fail to see.
 
-**Somebody has to open it, and nothing notices when nobody does.**
+**A due decision does not launch a reviewer.**
 `./bin/v4 sweep --if-due` is an alarm clock: it exits 1 when the interval has not
-elapsed and prints the briefs when it has, and nothing starts it. Measured across
+elapsed and prints the briefs when it has. Measured across
 two repos over ten days, before anything was built here: two sweeps.
 
 A claim kind was built for exactly this and then removed. It raised on every task
 and settled an overdue sweep as a FAIL that held `v4 ship`; `a9ae5fb`
 (2026-08-24) cut it on its own numbers -- 295 runs, one failure, and every one of
 those runs charged a task for a question about the repo rather than about the
-change. `docs/SPEC.md` §12.5 records the same removal in the row that owns this
-role, and says what this paragraph now has to say: **this layer has no automatic model reviewer.**
+change. `docs/SPEC.md` §12.5 records that historical removal. The kernel still
+does not schedule or launch model sessions by itself.
 
-So the limit is narrower in one place and wider in another. Something does
-schedule a reminder now, and nothing costs anybody anything for ignoring it.
-What is left is `v4 sweep`, which answers "is it due" when asked; the `sweep` row
-of `v4 doctor`, which reports when the last one was and not whether that is long
-ago; and the daily private maintenance `sweep` job in `.github/workflows/v4.yml`, which reads the
-committed ledger export, prints DUE or not due, and is labelled in its own
-comment as not a gate -- a green run there means the reminder was computed, not
-that anything was reviewed. **None of the three holds anything**, and a reader
-deciding how much this layer is worth should price it as what the sentence above
-says: worth what the last person to remember it was worth.
+An adopter can explicitly configure its host's scheduler to run the installed
+maintenance workflow. That workflow dispatches reviewers and this monitor,
+records actual receipts/results, and reports findings and authorized repair
+handoffs. Read `v4 maintain status` and the actual host job: a local observation
+is not proof that a job exists or fired, and installing this role does not create
+a schedule. Unconfigured notification transport cannot deliver an alert.
+
+The framework development repository also has a private reminder job in its own
+`.github/workflows/v4.yml`. That CI workflow is not installed into adopters and
+must not be assumed to exist in the repo being reviewed. Its green reminder
+result is not model-review evidence. Due-review status alone does not hold ship;
+actual findings follow their registered claim gates.

@@ -303,10 +303,9 @@ def ts_count(src: str) -> int:
     """Live tests in a TypeScript or JavaScript file.
 
     There is no parser here the way there is for Python and Go, so this reads
-    comment- and string-stripped source. Coarser, and enough for what the
-    caller asks: `test-weakened` compares a count before against the same count
-    after, so a bias landing on both sides cancels. What does not cancel is a
-    test that stays listed and stops judging, so those are excluded.
+    comment- and string-masked source. The comparison is deliberately coarse,
+    but unrelated literal contents must not change which code is visible.
+    Recognized tests that stay listed and stop judging are excluded.
 
     The other suppression shape needs no arithmetic. `_TS_CALL` requires the
     bracket immediately after the name, so `it.skip(` never matches it; and its
@@ -314,9 +313,8 @@ def ts_count(src: str) -> int:
     Both are absent from the total by construction rather than subtracted from
     it -- measured on `csstree`, which ships 23 of them.
 
-    Stripping first is not optional. `symbols.py` carries the three regexes
-    because an `it(` inside a comment or a doc string is not a test, and
-    counting one is how a file looks like it lost coverage it never had.
+    The shared lexical pass distinguishes quoted comment delimiters from real
+    comments and keeps quotes inside comments from consuming later code.
 
     What this does not see, stated rather than left to be discovered: a
     `describe.skip(…)` wrapping live `it(…)` calls. Those still count, because
@@ -325,9 +323,7 @@ def ts_count(src: str) -> int:
     loses its tests.
     """
     from . import symbols
-    src = symbols._TS_BLOCK_COMMENT.sub(" ", src)
-    src = symbols._TS_LINE_COMMENT.sub(" ", src)
-    src = symbols._TS_STRING.sub('""', src)
+    src = symbols.ts_mask(src)
     # Counted, then removed, so the call pattern cannot see them: `export
     # function test(tc)` matches both patterns, and a binding named exactly
     # `test` would otherwise be worth two.

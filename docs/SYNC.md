@@ -94,10 +94,14 @@ reports failures independently. Public CI validates product behavior and the
 manifest without requiring private operational records or private history.
 
 At migration, the sealed private export has three legacy engagement rows whose
-values were redacted after hashing. Its audit still fails; no rows, hashes or
-auditor verdicts were rewritten. This is known historical debt, not a clean
-audit. Public publication is gated on product CI and its own provenance; it
-does not assert that private operational history is fully verifiable.
+values were redacted after hashing. At that checkpoint its audit failed; no
+rows, hashes or auditor verdicts were rewritten. The framework now supports a
+separate redacted export commitment generated only after checking the original
+ledger (SPEC's export section). This does not retroactively certify that private
+history or mean its upgrade was executed. Public publication is gated on product
+CI and its own provenance, not a claim that every original historical hash can
+be re-derived from redacted public bytes. Projection sidecars are private
+operational exports too and are not included in the public distribution.
 
 `.github/workflows/publish-public.yml` can run after successful private main
 push CI, or by manual dispatch on main. It is **disabled until explicitly set up**.

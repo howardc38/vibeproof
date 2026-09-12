@@ -1,0 +1,29 @@
+{
+  "committed": [
+    "app.py",
+    "test_app.py",
+    ".v4/config.json",
+    ".v4/fixture.json"
+  ],
+  "parent_content": {
+    "test_app.py": "import unittest\nfrom app import calculate\nclass Arithmetic(unittest.TestCase):\n    def test_old(self):\n        self.assertEqual(calculate(5), 3)\n"
+  },
+  "commit_current": true,
+  "params": {
+    "closing_test": "test_app.py",
+    "test_one_file_command": "python3 -c \"import app; assert app.calculate(5)==3\"",
+    "mutation_file": "app.py",
+    "mutation_gone": "    return value - 2  # fixed deduction",
+    "mutation_now": "    return value + 2  # deliberately wrong",
+    "rename_commits": [
+      "HEAD"
+    ]
+  },
+  "subject_refs": [
+    {
+      "kind": "file",
+      "path": "test_app.py"
+    }
+  ],
+  "symbol": "test_old"
+}

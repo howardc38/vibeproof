@@ -4,52 +4,128 @@
   "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n三條問題,而唔係一張規則表。呢個 lens 曾經被判「唔需要」——理由係「主觀,冇 oracle」,而嗰個判斷係錯嘅:冇 oracle 正正係佢屬層 ③ 嘅原因,唔係佢應該消失嘅原因。\n佢係 debt 嘅上游。一個難理解嘅檔案唔會即刻壞,佢係下一個人改嗰陣先壞,而嗰陣冇人記得係邊個決定造成。\n**兩邊都要講。** 全部評低分係一個 pessimism trap —— 一份只有摩擦點嘅報告,同一份只有優點嘅一樣冇資訊。",
   "checks": [
     {
-      "check": "理解:一個新人打開呢個檔,幾耐先明個 intent?邊樣嘢阻住?"
+      "check": "理解:一個新人打開呢個檔,幾耐先明個 intent?邊樣嘢阻住?",
+      "id": "devx:001"
     },
     {
-      "check": "理解:function 名同佢做嘅嘢一致嗎?一個 setter 名嘅 function 入面做 query 加 mutation?"
+      "check": "理解:function 名同佢做嘅嘢一致嗎?一個 setter 名嘅 function 入面做 query 加 mutation?",
+      "id": "devx:002"
     },
     {
-      "check": "理解:命名有冇混住幾種風格?manager / service / handler 係咪隨手揀?"
+      "check": "理解:命名有冇混住幾種風格?manager / service / handler 係咪隨手揀?",
+      "id": "devx:003"
     },
     {
-      "check": "理解:一個檔大到要 scroll 先睇得完,就算每個 function 都改得好名,cognitive locality 已經爛咗。"
+      "check": "理解:一個檔嘅相關責任要跨多處追先睇得明，命名亦補唔返脈絡成本時，指出具體難理解嘅路徑；唔以要 scroll 作判準。",
+      "id": "devx:004"
     },
     {
-      "check": "理解:magic string / number 冇具名常數 —— 唔係「應該有常數」,係「呢個數對閱讀者嘅認知負荷」。"
+      "check": "理解:magic string / number 冇具名常數 —— 唔係「應該有常數」,係「呢個數對閱讀者嘅認知負荷」。",
+      "id": "devx:005"
     },
     {
-      "check": "理解:邏輯散落幾個檔,而其實集中得到嗎?"
+      "check": "理解:邏輯散落幾個檔,而其實集中得到嗎?",
+      "id": "devx:006"
     },
     {
-      "check": "理解:nested conditional 超過三層。"
+      "check": "理解:nested conditional 令條件組合或 failure path 難以追查時，指出實際難理解嘅分支；層數只係檢查線索。",
+      "id": "devx:007"
     },
     {
-      "check": "Debug:收到一個 bug report,幾耐搵到根因?"
+      "check": "Debug:收到一個 bug report,幾耐搵到根因?",
+      "id": "devx:008"
     },
     {
-      "check": "Debug:log 有用定係空泛?一句「operation failed」定位到邊個邊界?"
+      "check": "Debug:log 有用定係空泛?一句「operation failed」定位到邊個邊界?",
+      "id": "devx:009"
     },
     {
-      "check": "Debug:exception 可操作嗎 —— 佢話到你知下一步做乜?"
+      "check": "Debug:exception 可操作嗎 —— 佢話到你知下一步做乜?",
+      "id": "devx:010"
     },
     {
-      "check": "Debug:一個失敗分支留低嘅嘢,夠唔夠一個冇寫過呢段 code 嘅人重現?"
+      "check": "Debug:一個失敗分支留低嘅嘢,夠唔夠一個冇寫過呢段 code 嘅人重現?",
+      "id": "devx:011"
     },
     {
-      "check": "修改:要改行為 X,要掂幾多個檔?"
+      "check": "修改:要改行為 X,要掂幾多個檔?",
+      "id": "devx:012"
     },
     {
-      "check": "修改:個抽象穩唔穩定,定係每次加功能都要拆佢?"
+      "check": "修改:個抽象穩唔穩定,定係每次加功能都要拆佢?",
+      "id": "devx:013"
     },
     {
-      "check": "修改:如果改錯咗,有冇 test 會捉到?"
+      "check": "修改:如果改錯咗,有冇 test 會捉到?",
+      "id": "devx:014"
     },
     {
-      "check": "修改:改一個值要唔要同時改行為或者 test?要嘅話佢係 code 唔係 config。"
+      "check": "修改:呢個值係固定程式 invariant，定係有明確 owner／驗證嘅可調政策？改值會影響行為或 test，本身不足以判佢唔可以係 config。",
+      "id": "devx:015"
+    },
+    {
+      "check": "Keep stable documentation metadata and TODOs when they provide provenance or actionable context; remove abandoned or misleading metadata after checking its purpose.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-7c5ba74e",
+      "id": "prevention:006"
+    },
+    {
+      "check": "Sections have enough structure for readers to locate distinct responsibilities; length is a review signal, not a fixed 300-line failure threshold.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-1ed472a3",
+      "id": "prevention:007"
+    },
+    {
+      "check": "Markdown fences and diagrams parse with correctly matched delimiters and blocks; account for fence lengths, nesting and quoted examples rather than counting markers alone.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-ee376555",
+      "id": "prevention:008"
+    },
+    {
+      "check": "Inspect persistent placeholder names, empty packages, unreferenced directories and duplicated adapters for actual ownership/dead-path drift; names alone do not justify removal.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-cf16bf3d",
+      "id": "prevention:009"
+    },
+    {
+      "check": "Large files/functions warrant review for mixed responsibilities and costly navigation; size or lack of subheadings alone does not establish a god module.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-c8c23ca3",
+      "id": "prevention:032"
+    },
+    {
+      "check": "When touching a difficult legacy file, keep the authorized change understandable and avoid needless growth; do not forbid necessary fixes solely because the file grows.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-5ea8f257",
+      "id": "prevention:033"
+    },
+    {
+      "check": "Shared algorithms that must remain equivalent have a clear owner; avoid copied bodies that drift, while keeping independently evolving contracts separate.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-fd4558c0",
+      "id": "prevention:034"
+    },
+    {
+      "check": "Every temporary marker carries a decidable removal trigger — a version, an issue reference, a date or an event.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-0015f04c",
+      "id": "prevention:038"
+    },
+    {
+      "check": "Shotgun surgery: one rule or algorithm requires unrelated locations to change in lockstep; identify the shared invariant and drift risk rather than a fixed file-count threshold.",
+      "from": "R-1b5767ce",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:086"
+    },
+    {
+      "check": "Semantic entropy: one concept carrying several names, one name covering several concepts, or retired terminology reappearing in new code.",
+      "from": "R-9473bd6e",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:088"
     }
   ],
-  "anti_patterns": [
+  "anti_patterns": [],
+  "reviewer_anti_patterns": [
     "全部評低分。一份只有摩擦點嘅報告同一份只有優點嘅一樣冇資訊 —— 兩邊都要有具體 file:line。",
     "抽樣。呢個 lens 要讀晒 in-scope 嘅檔,但輸出要按 area / workflow / call path 聚合,唔係逐行。",
     "冇 scope 就自己去讀 root 文件推導。冇 scope 就講明冇 scope。"

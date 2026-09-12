@@ -36,6 +36,8 @@ def protected_for(config_obj) -> list:
     is the same shape one step on.
     """
     declared = (config_obj or {}).get("protected_paths") or []
+    if "codex" in (config_obj or {}).get("agent_hosts", []):
+        declared = [*declared, ".codex/**", ".agents/**", "hooks/**"]
     return sorted(set(PROTECTED_DEFAULT) | set(declared))
 
 

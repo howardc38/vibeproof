@@ -1,10 +1,10 @@
 {
   "repo": "vibeproof",
-  "generated_from_commit": "3cd8c2fe4c37ed9488c91db258600e6ca982d47f",
+  "generated_from_commit": "7a4d1fa57afd3cb62e9f2f20166aabcc61b6f9ba",
   "outbound_write": [
     {
       "pattern": ".write_text",
-      "seen_at": "kernel/doctrine.py:445",
+      "seen_at": "kernel/doctrine.py:497",
       "kind": "fs",
       "note": "生成 CLAUDE.md"
     },
@@ -16,10 +16,36 @@
     },
     {
       "pattern": "INSERT INTO",
-      "seen_at": "kernel/ledger.py:402",
+      "seen_at": "kernel/ledger.py:744",
       "kind": "db",
       "match": "regex",
       "note": "只喺 append_attempt 同 insert 入面"
+    },
+    {
+      "pattern": "\\bapi\\s*\\([^,\\n]+,\\s*\"(?:sendMessage|answerCallbackQuery|getUpdates)\"",
+      "seen_at": "kernel/notifications.py:178",
+      "kind": "http",
+      "note": "Telegram message/UI acknowledgement and update polling that advances the provider cursor. Classify by the literal operation; getMe/getWebhookInfo are read-only.",
+      "match": "regex"
+    },
+    {
+      "pattern": "os.replace",
+      "seen_at": "kernel/maintenance.py:90",
+      "kind": "fs",
+      "note": "Atomic replacement of private settings; receiver definitions use the same primitive."
+    },
+    {
+      "pattern": "json.dump",
+      "seen_at": "kernel/maintenance.py:86",
+      "kind": "fs",
+      "note": "Persist owned JSON settings and the checked redacted-export sidecar; os.replace publishes the sidecar atomically. json.dumps remains pure serialization."
+    },
+    {
+      "pattern": "\\bfs\\.writeFileSync\\b",
+      "seen_at": ".v4/surface/playwright-reporter.cjs:46",
+      "kind": "fs",
+      "note": "Optional Playwright reporter and fixture write private surface receipts and Chromium coverage records. Existing .write_text/subprocess.run patterns cover Python output/process execution; the JS adapter is reviewed explicitly outside the Python census.",
+      "match": "regex"
     }
   ],
   "outbound_read": [
@@ -30,15 +56,29 @@
     },
     {
       "pattern": "SELECT",
-      "seen_at": "kernel/ledger.py:396",
+      "seen_at": "kernel/ledger.py:1080",
       "kind": "db",
       "match": "regex"
     },
     {
       "pattern": ".execute",
-      "seen_at": "kernel/doctor.py:666",
+      "seen_at": "kernel/doctor.py:662",
       "kind": "db",
       "note": "每一次 ledger 讀寫都經呢個 call。個表本來只有 SQL 動詞 SELECT/INSERT INTO,而佢哋撞唔到多行 call —— `conn.execute(` 一行、`SELECT` 下一行,所以一個宣告咗嘅 surface 睇落似冇宣告。呢一行講嘅係個 call 本身。"
+    },
+    {
+      "pattern": "\\bapi\\s*\\([^,\\n]+,\\s*\"(?:getMe|getWebhookInfo)\"",
+      "seen_at": "kernel/notifications.py:94",
+      "kind": "http",
+      "note": "Read Telegram bot identity and webhook configuration; neither sends a notice nor removes a webhook.",
+      "match": "regex"
+    },
+    {
+      "pattern": "\\brequest\\.get\\b",
+      "seen_at": ".v4/surface/playwright-sourcemap.cjs:32",
+      "kind": "http",
+      "match": "regex",
+      "note": "Read the actual script source map from the same HTTP origin, without redirects; inline maps use no request. Hash sourcesContent in memory; never fetch source filenames."
     }
   ],
   "auth_decision": [
@@ -50,45 +90,81 @@
     },
     {
       "pattern": "assert_ruler_unmoved",
-      "seen_at": "kernel/cli.py:439",
+      "seen_at": "kernel/cli.py:456",
       "kind": "authz",
       "note": "一輪量度開咗之後,判準凍結;郁咗就拒絕量度。"
     },
     {
       "pattern": ".protected",
-      "seen_at": "hooks/bash_guard.py:165",
+      "seen_at": "hooks/bash_guard.py:219",
       "kind": "authz",
       "note": "邊啲路徑改動要一個簽名。`cfg.protected` 今日三個 call site,而**兩個**會拒絕:呢個(`hooks/bash_guard.py`,一句 shell 掂到 protected path),同埋 `hooks/write_block.py` —— 佢有自己嘅 `protected()` 同 `is_protected()`,去到 `permissionDecision: deny`。另外兩個唔拒絕:`kernel/doctrine.py` 把個 list render 落 CLAUDE.md,`kernel/scope.py` 淨係數 hit。\n\n呢行本來寫「三個 call site,得呢個會 deny」並引用兩個行號。三個係 `cfg.protected` 嘅數目而唔係會拒絕嘅數目,而兩個行號都郁咗 —— `facts verify` 只重新驗 `seen_at`,所以一個 note 入面嘅 file:line 冇任何嘢讀,而佢會靜靜咁過期。呢度改成講模組名唔講行號:一個模組名郁嗰陣有人會察覺,一個行號唔會。"
     },
     {
       "pattern": "judge_text",
-      "seen_at": "kernel/engagement.py:332",
+      "seen_at": "kernel/engagement.py:367",
       "kind": "authz",
       "note": "決定一句 engagement 收唔收。七條機械判準,冇判官。"
     },
     {
       "pattern": "writing",
-      "seen_at": "kernel/ledger.py:376",
+      "seen_at": "kernel/ledger.py:735",
       "kind": "authz",
       "note": "Ledger 寫入閘。六張 append-only 表每一句 INSERT 都要經佢 —— `v4_kernel_can_write` 加 `gate_insert_<t>` trigger,唔喺 gate 入面就 raise。"
     },
     {
       "pattern": "isatty",
-      "seen_at": "kernel/risk.py:268",
+      "seen_at": "kernel/risk.py:273",
       "kind": "authz",
       "note": "邊個簽得。`stdin` 唔係 TTY 就拒簽。摩擦,唔係邊界 —— pty 過得到,所以簽名同時記低當時 `isatty()` 嘅真值。"
     },
     {
       "pattern": "writes_to_protected",
-      "seen_at": "hooks/bash_guard.py:165",
+      "seen_at": "hooks/bash_guard.py:219",
       "kind": "authz",
       "note": "邊個寫得乜。Hook 判一句 shell 有冇寫 protected path,有就出 `permissionDecision: deny`;`hooks/write_block.py` 對 Write/Edit 做同一件事。"
     },
     {
       "pattern": "refuse_the_stop",
-      "seen_at": "hooks/stop_gate.py:457",
+      "seen_at": "hooks/stop_gate.py:475",
       "kind": "authz",
       "note": "邊個結束得一個 turn。四個拒絕(任務未明、冇 claim、全部答完但未 ship、仲有 claim 未閂)全部經呢個 symbol 出 `decision: block`。呢行本來寫「三個」而實際有四個:AMBIGUOUS 嗰個自己 print 同一個 dict,所以一個由呢張表追過嚟嘅讀者會搵到四個 call site 之中嘅三個。呢個檔喺 entrypoint_globs 入面,兩個 sibling hook 由 `.protected` 同 `writes_to_protected` 覆蓋,得佢一個會拒絕而喺呢張表度冇名。呢一行取代咗 `_matches_auth`:嗰個住喺 kernel/analysis/ 嘅純分類器返一個 label 或者 None,raise 唔到亦拒絕唔到,亦冇任何 entrypoint_glob 蓋到佢 —— 一張講「邊個做得乜」嘅表唔應該指住一個只係判「個名似乜」嘅 function。"
+    },
+    {
+      "pattern": "resolve_rename",
+      "seen_at": "checkers/review_finding.py:245",
+      "kind": "authz",
+      "note": "Committed symbol-rename evidence is validated at both closure offer and checker execution; only a unique same-file function continuation can supply the execution target. Original claim identity and red-green requirements remain unchanged."
+    },
+    {
+      "pattern": "repair_target",
+      "seen_at": "kernel/maintenance.py:536",
+      "kind": "authz",
+      "note": "Rechecks explicit repair grant, task ownership, real separate worktree and current source before new repair dispatch."
+    },
+    {
+      "pattern": "handoff",
+      "seen_at": "kernel/maintenance_cli.py:38",
+      "kind": "authz",
+      "note": "Validates run/claim/task correlation and dispatch state; worker/checker-author repair transitions enforce the configured scope grant."
+    },
+    {
+      "pattern": "process_updates",
+      "seen_at": "kernel/notifications.py:282",
+      "kind": "authz",
+      "note": "Callback acceptance checks recipient, authorized user, nonce and current revision before durable acknowledgement."
+    },
+    {
+      "pattern": "_manage",
+      "seen_at": "kernel/notification_receiver.py:66",
+      "kind": "authz",
+      "note": "Checks ownership of the existing launchd definition before replacing, stopping or removing this bot receiver."
+    },
+    {
+      "pattern": "deliver",
+      "seen_at": "kernel/notifications.py:340",
+      "kind": "authz",
+      "note": "Delivery checks the configured recipient authorization and current notice state before sending."
     }
   ],
   "entrypoint_globs": [
@@ -96,7 +172,11 @@
     "kernel/cli.py",
     "hooks/**",
     "checkers/**",
-    "detectors/**"
+    "detectors/**",
+    "kernel/maintenance_cli.py",
+    ".v4/surface/playwright-reporter.cjs",
+    ".v4/surface/playwright.cjs",
+    ".v4/surface/playwright-sourcemap.cjs"
   ],
   "ui_globs": [],
   "config_files": [
@@ -105,7 +185,9 @@
     ".v4/checkers.json",
     ".v4/control_plane_budget.json",
     ".claude/settings.template.json",
-    ".github/workflows/v4.yml"
+    ".github/workflows/v4.yml",
+    ".v4/lens_catalogue.json",
+    ".v4/review_contract.json"
   ],
   "protected_paths": [
     ".v4/**",

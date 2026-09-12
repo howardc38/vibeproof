@@ -151,6 +151,7 @@ class ASweepAnsweredWhereTheLedgerIsNot(unittest.TestCase):
     def setUp(self):
         self.tmp = _repo(self)
         conn = ledger.connect(self.tmp)
+        ledger.insert(conn, "event", kind="lens_reviewed", actor="reviewer", payload={"lens":"devx","findings":0}, created_at="2020-01-01T00:00:00+00:00")
         sweep.record(conn, lenses=["devx"], findings=0)
         ledger.export_jsonl(conn, self.tmp / ".v4" / "ledger_export.jsonl",
                             self.tmp)

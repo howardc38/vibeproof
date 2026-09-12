@@ -191,7 +191,9 @@ bytes 讀了 14.2 次，而它改變不了任何事。這裡下的賭注是：�
 修改要符合已授權 scope 及必要的 protected-path risk 決定；超出 scope 時用 `v4 scope widen` 記錄理由。這不是 OS 層面的禁止寫入：
 
 ```
+.agents/**
 .claude/settings.json
+.codex/**
 .github/**
 .v4/**
 checkers/**

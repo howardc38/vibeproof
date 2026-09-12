@@ -1,0 +1,1953 @@
+{
+  "schema": 1,
+  "baseline": "6b8e0ec40d3a5638bd7182d7a3c832afe87e7a56",
+  "entries": {
+    "architecture-fit:001": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 1,
+      "original_sha256": "85118a5fbae9857b1a59c6ad491ece0e11fa242f3bccd0cbb29146251917f661"
+    },
+    "architecture-fit:002": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 2,
+      "original_sha256": "55e32402822b387bf4bed627cf3d554238157830e19bd5d6288e556403201a80"
+    },
+    "architecture-fit:003": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 3,
+      "original_sha256": "290d4e031d1f0ca1dabc5c495ed606a183e955e592ff4981a7ab67b23115d2a2"
+    },
+    "architecture-fit:004": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 4,
+      "original_sha256": "e7aad0b6d3d0fd59873e8cdcb08515b843ade032251b58dee07a840fcf742daa"
+    },
+    "architecture-fit:005": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 5,
+      "original_sha256": "f75487d11fecc4040f6c75fb32463d292ceb94648f3909e529045cde491bdd85"
+    },
+    "architecture-fit:006": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 6,
+      "original_sha256": "51945ecc00d3211e35b04f1f615eff4ab3e5675ee8197f267a787e45dc7d9f84"
+    },
+    "architecture-fit:007": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 7,
+      "original_sha256": "db73dda7cc28e037380396639e871b080e8c57824ee6422ef0ddabd240bee384"
+    },
+    "architecture-fit:008": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 8,
+      "original_sha256": "627a7d1c532fd20b58394df6a6897cdfd71ed1567385ffc85bd6686637e705c5"
+    },
+    "architecture-fit:009": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 9,
+      "original_sha256": "7fc6a593f82dfb6c03d20176bf04a5dca843ea1ea9146f6f056f0bcb96f6f5cc"
+    },
+    "architecture-fit:010": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 10,
+      "original_sha256": "cc5f175005abd12439422cc264fc0370dddae89b73c66f17df5e321bb420b3db"
+    },
+    "architecture-fit:011": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 11,
+      "original_sha256": "ee07fea56655699f4c2926bedd977e63e5ac66bed94fe6d8932fa5a013b17b42"
+    },
+    "architecture-fit:012": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 12,
+      "original_sha256": "2a15deeb5ec3d2d5235d9b16eb1089e4ef063f0b7ae9113060e8fe4e6f5cd1c1"
+    },
+    "architecture-fit:013": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 13,
+      "original_sha256": "1b60b27a08d01d032db8dba8a0f755f634660968f3901a0c60c57d7d7ade3e00"
+    },
+    "architecture-fit:014": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 14,
+      "original_sha256": "9a0564c1bba7489d709ef62bb34215737b1968a22874794876566ca6d3c2101a"
+    },
+    "architecture-fit:015": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 15,
+      "original_sha256": "e30917e1bca098cd991c310d539a9108ec25b112db8bb5420b750a72d02ba6d8"
+    },
+    "architecture-fit:016": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 16,
+      "original_sha256": "9f9550d1e196f0ba0d03617700910acbc0f2a8988f0543152296443e5dce864f"
+    },
+    "architecture-fit:017": {
+      "owner": "architecture-fit",
+      "legacy_lens": "architecture-fit",
+      "legacy_index": 17,
+      "original_sha256": "2d9c73e65cd2e839a64751bc394e85984ced6bad26803c473acb1bcbdd35937a"
+    },
+    "config-hardcode-secret-placement:001": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 1,
+      "original_sha256": "0b37a178b47dac53f43cb68ddc5cbdb903de5db8381e78a5ffcecdf2c95a9da3"
+    },
+    "config-hardcode-secret-placement:002": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 2,
+      "original_sha256": "d7dc79075744c60c0f5acff3bff06d58cbd86c8b715e1c56d3bd0244aef5dd32"
+    },
+    "config-hardcode-secret-placement:003": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 3,
+      "original_sha256": "88f01a992001a89cc7e3dcee744d080878ab0a9d3897f5bd8ff45ec870c87956"
+    },
+    "config-hardcode-secret-placement:004": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 4,
+      "original_sha256": "ed9e59375d2112a0e58a173f782ed433b3d90b820b09f88c46a3d03df17d4692"
+    },
+    "config-hardcode-secret-placement:005": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 5,
+      "original_sha256": "892cd4929769ed119d8032a97be7525f3fa66dc5276c86492103916f37d12178"
+    },
+    "config-hardcode-secret-placement:006": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 6,
+      "original_sha256": "aaa6feb085ff4b25a1d569e71e734f4da04aa3c125750a11197521b10b11a959"
+    },
+    "config-hardcode-secret-placement:007": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 7,
+      "original_sha256": "d54b24b5d6b1658266670e8a8cda0d1821753ede357be3a1a045c1bec71984ee"
+    },
+    "config-hardcode-secret-placement:008": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 8,
+      "original_sha256": "36ca63101f5f7d05ba11aa7788ffa16c300e58c17078d5f01846bf72e850f93e"
+    },
+    "config-hardcode-secret-placement:009": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 9,
+      "original_sha256": "64e57e16b38bbb17aeaee78fed474c05bf907466ef228a842f0553f80845fd72"
+    },
+    "config-hardcode-secret-placement:010": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 10,
+      "original_sha256": "15a48c4db2bff753e4ea327dd62de81882240de82500fa220d15d480b669f7df"
+    },
+    "config-hardcode-secret-placement:011": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 11,
+      "original_sha256": "248497051a1fc6d8f0d6c9adbb8ef7d84e7201bfd8447762c1b3d30bc4c15465"
+    },
+    "config-hardcode-secret-placement:012": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 12,
+      "original_sha256": "775fcccffd7379365d5fe08ad4a044e7d15281beffb8c5b6c216fdd5e98bb5ee"
+    },
+    "config-hardcode-secret-placement:013": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 13,
+      "original_sha256": "a14e051a25ced5b498cae7d8a6c42c18260ef58f67db196dc0af0898573b744a"
+    },
+    "config-hardcode-secret-placement:014": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 14,
+      "original_sha256": "aeb35412339a195e21f9a12dab17cda38508922359680a24396f60bac31c08e1"
+    },
+    "config-hardcode-secret-placement:015": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 15,
+      "original_sha256": "a958b6b02b3213fbf214db0541489ef1a1ccc9eeec0595e21b5ecb953571ba79"
+    },
+    "config-hardcode-secret-placement:016": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 16,
+      "original_sha256": "f34283dca81e3cbd13e970a7bfffe381ecb32f03560d9db85b6375ad5e1f9b8b"
+    },
+    "config-hardcode-secret-placement:017": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 17,
+      "original_sha256": "41a8acc39f0e29a6b0dba342c7d91042cbf72e2f4e4765988c46d91d60a98f77"
+    },
+    "config-hardcode-secret-placement:018": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "config-hardcode-secret-placement",
+      "legacy_index": 18,
+      "original_sha256": "b012c18b3bd1804d8883d56090438085293f6304428e9b9d3bc77ec7146e15d0"
+    },
+    "devx:001": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 1,
+      "original_sha256": "ae3da15bf04b0a3a1d36e9b34f5cdfd3086f20871b9d5f5a3a6685c84478cea7"
+    },
+    "devx:002": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 2,
+      "original_sha256": "66014ff2b4137741eb9c8471a81607df713e2c70876a15d058c1690c90e61045"
+    },
+    "devx:003": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 3,
+      "original_sha256": "c16e32604a949712d2f4acd654da8bef2bae580534b7bd290f57032ddebcfbc4"
+    },
+    "devx:004": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 4,
+      "original_sha256": "d94199fc9ff761dcb68abf7e41d311531de18fc86f0240d2fd99d1ee6f760b2b"
+    },
+    "devx:005": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 5,
+      "original_sha256": "4a4d1515e54bf6068c031822253432e3cc299bcfa5a71d14f04b8a6478fdd8ce"
+    },
+    "devx:006": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 6,
+      "original_sha256": "17425fd36a7c9627efd43b34b57bc0ce7a72ccd3a595a5803adb24d923647b43"
+    },
+    "devx:007": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 7,
+      "original_sha256": "ef4773631eec76f775d11c7455ae872f8ae91fd120d91efc9d366f99aa8f7fd9"
+    },
+    "devx:008": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 8,
+      "original_sha256": "3d3b3a57f045492f8f2f0d7fc2fe6fdf98b9fde9c817d52e6688a05ff7551fe2"
+    },
+    "devx:009": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 9,
+      "original_sha256": "db35b06867c19cee45628ebf15856138eee0e1ce591bc07535ffdf84125a2744"
+    },
+    "devx:010": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 10,
+      "original_sha256": "fff8cb04cdd1fa10a8b874414471763dc86257cedcf162a9baf395a8dbad071a"
+    },
+    "devx:011": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 11,
+      "original_sha256": "a23906f235cba3baf1d7349c85328714faa3f6b55b9462e1c76fe0e95a54012b"
+    },
+    "devx:012": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 12,
+      "original_sha256": "5662efbdf9d87257f53edb933b47363cbc852bd7485f482ff485044ee3d62688"
+    },
+    "devx:013": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 13,
+      "original_sha256": "599ffd6fa3509ec709fa99c71557f7b8e47acdbde7d0ae2dd7fafaa85fac7091"
+    },
+    "devx:014": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 14,
+      "original_sha256": "8901eb092f5c9199fbd7a05c1818c69e840f03b9c50c1862e8f748ab1ef2dfb3"
+    },
+    "devx:015": {
+      "owner": "devx",
+      "legacy_lens": "devx",
+      "legacy_index": 15,
+      "original_sha256": "32f01f14e6b674a29152dfed2359d7010f09a24d05754273b0dd7154c1d2d1db"
+    },
+    "electrification:001": {
+      "owner": "electrification",
+      "legacy_lens": "electrification",
+      "legacy_index": 1,
+      "original_sha256": "96f7c809b5882e8f779f4eb51bb3018671bacaa08fcf39310dfe6ba9b265cf65"
+    },
+    "electrification:002": {
+      "owner": "electrification",
+      "legacy_lens": "electrification",
+      "legacy_index": 2,
+      "original_sha256": "9f8bdfc7dd612cb7811527c94ac4135f667813b2aece6a711e0db7d4b51c32ff"
+    },
+    "electrification:003": {
+      "owner": "electrification",
+      "legacy_lens": "electrification",
+      "legacy_index": 3,
+      "original_sha256": "727bea66017dd659d9f417c6371f93ec8bb915da272d5ccf7b77f0c92d2ae3c2"
+    },
+    "electrification:004": {
+      "owner": "electrification",
+      "legacy_lens": "electrification",
+      "legacy_index": 4,
+      "original_sha256": "ac3bdb42b7c397ff0e526a40a8be945d1c0c9c18634e4f567fcb6e8f0b3ba1b4"
+    },
+    "electrification:005": {
+      "owner": "electrification",
+      "legacy_lens": "electrification",
+      "legacy_index": 5,
+      "original_sha256": "afa086efc21cc2b59c6058309da00c7b94be499014b23634b5e75b39d9fca839"
+    },
+    "electrification:006": {
+      "owner": "electrification",
+      "legacy_lens": "electrification",
+      "legacy_index": 6,
+      "original_sha256": "50e6448d8338f93b2fb2eb69a263e5934d5e152dc6f430c78fa88cc427d51bf7"
+    },
+    "general-rule-one-false-instance:001": {
+      "owner": "general-rule-one-false-instance",
+      "legacy_lens": "general-rule-one-false-instance",
+      "legacy_index": 1,
+      "original_sha256": "c8fb21747ec52206eecce5d7da83b0148bb603470d0f63e7a74cc2af52ff3b34"
+    },
+    "general-rule-one-false-instance:002": {
+      "owner": "general-rule-one-false-instance",
+      "legacy_lens": "general-rule-one-false-instance",
+      "legacy_index": 2,
+      "original_sha256": "93ae4ea7c2d8836114d4737e2b3dcf66303d8793afb00f12f1b10d97c4d188bc"
+    },
+    "general-rule-one-false-instance:003": {
+      "owner": "general-rule-one-false-instance",
+      "legacy_lens": "general-rule-one-false-instance",
+      "legacy_index": 3,
+      "original_sha256": "f883fba649ed648310d1dda4a1479b59ff477bcd5207fe9ef3b315e1fea5f6fb"
+    },
+    "general-rule-one-false-instance:004": {
+      "owner": "general-rule-one-false-instance",
+      "legacy_lens": "general-rule-one-false-instance",
+      "legacy_index": 4,
+      "original_sha256": "ebb6022b19a0b0a2ad065d9ce8dac5d2f9fb98430f8d10c1c3c870bc303b3646"
+    },
+    "general-rule-one-false-instance:005": {
+      "owner": "general-rule-one-false-instance",
+      "legacy_lens": "general-rule-one-false-instance",
+      "legacy_index": 5,
+      "original_sha256": "f7130b4459b921a2136a561e78c81ad0bba1bff73d2cd5053ca7b9ad4dae3b6c"
+    },
+    "implementation-layer-boundaries:001": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 1,
+      "original_sha256": "c1980d0c6c047fd90cb655f5212af1460028a734425b3663de35afa7dbd4098a"
+    },
+    "implementation-layer-boundaries:002": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 2,
+      "original_sha256": "dc0bd2dc2daac49fa34b1e118d84b7440ee604139fce44ddbe6dfb56afadcb8e"
+    },
+    "implementation-layer-boundaries:003": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 3,
+      "original_sha256": "ad99b7c041300efb17b140decd9549da9e35554df8942c73e916b80c37a9d311"
+    },
+    "implementation-layer-boundaries:004": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 4,
+      "original_sha256": "1fc315d074ba6eae252eb9ac9411ca84e0cc59bd6e37e1ca969be4a47e158b3f"
+    },
+    "implementation-layer-boundaries:005": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 5,
+      "original_sha256": "443f05acc31456f9492420ce071526cbc78da20c1af438ec43a80c1d30d517ec"
+    },
+    "implementation-layer-boundaries:006": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 6,
+      "original_sha256": "752873ce6c7a6e3769267f39dc60eb256e36052d1e0a025e1213a276b4cae024"
+    },
+    "implementation-layer-boundaries:007": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 7,
+      "original_sha256": "d81d270dbc97b239b921ed90cd518e81dac695dbad4d9f7d46c278fff49df4f1"
+    },
+    "implementation-layer-boundaries:008": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 8,
+      "original_sha256": "673ae879e8747a6ed573689acc8c0e64902408ab0b3a7212d1e995083bc0fb2d"
+    },
+    "implementation-layer-boundaries:009": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 9,
+      "original_sha256": "015cbfe9268b99c73c3bf65dea8a814232eeac7a2b631fbaf2ba1f6ac4f80488"
+    },
+    "implementation-layer-boundaries:010": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 10,
+      "original_sha256": "63f94bfa820fbb8a0b8719d771b00eed7ee83d424222f25ae0454ff920834ff5"
+    },
+    "implementation-layer-boundaries:011": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 11,
+      "original_sha256": "118fe34239a9f2141c499e1222f1eac6d8afcf40a64584961f7f83a146e1aeca"
+    },
+    "implementation-layer-boundaries:012": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 12,
+      "original_sha256": "7c9fab4cd955b950dd74db7f513244229fff8f7695ae35cfc3ac30d839f54666"
+    },
+    "implementation-layer-boundaries:013": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 13,
+      "original_sha256": "e79b15ea48d45e197093f7f06eba553858e1cb6098104a0724f4c9dbc231cb85"
+    },
+    "implementation-layer-boundaries:014": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 14,
+      "original_sha256": "e17dbbda7eaf506d214a3329d2b5dd9614950ed908d1e8daf6adb729c969243e"
+    },
+    "implementation-layer-boundaries:015": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 15,
+      "original_sha256": "478320b583db535f6c81cb5d41bcb9db6d14dc01a61fa533f7436941fceafa20"
+    },
+    "implementation-layer-boundaries:016": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 16,
+      "original_sha256": "257e74a2f062e7dc7c90ac0b58b3aaf81b9050544cbc1ca8c62397ef18a17d8e"
+    },
+    "implementation-layer-boundaries:017": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 17,
+      "original_sha256": "1b4e3841bdd540e735372bb5a06e41a0d663d5a50865032a1557f3bbaf6db6b4"
+    },
+    "implementation-layer-boundaries:018": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 18,
+      "original_sha256": "eef496fbc6165c1af9a3bd31d4aedb57efac85b629c8f49f80c0026a98e03206"
+    },
+    "implementation-layer-boundaries:019": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 19,
+      "original_sha256": "2f60f6375b24fb619c35120a15727870c1307c4cacf963aab7091e78240db54d"
+    },
+    "implementation-layer-boundaries:020": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 20,
+      "original_sha256": "91af2efb081976b380820f3bb2dd57698d6ff1d59a6da3fc37becebbf6d98ebf"
+    },
+    "implementation-layer-boundaries:021": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 21,
+      "original_sha256": "ed6d1b4168c59ce33c0bced8bd195c423cebbb1888a4f9c6402a6e3d907c7a11"
+    },
+    "implementation-layer-boundaries:022": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 22,
+      "original_sha256": "0bb42bd2208028537fbcb2ed95d47ca6b8d8376c7b29d609d60819e87745b0cc"
+    },
+    "implementation-layer-boundaries:023": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 23,
+      "original_sha256": "bb146ed3998a90f9418806b345b35a0895bf4398f7740db785046ac5f3ba8821"
+    },
+    "implementation-layer-boundaries:024": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 24,
+      "original_sha256": "13a56077b5d0ee56ece4fedccf5375c323c252d48c979f22c26fb26a9bb12eeb"
+    },
+    "implementation-layer-boundaries:025": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 25,
+      "original_sha256": "b102b72ebab9bb8a6c26836f4c526c2733a6dd9a22a9d97cbe28f880d66b126c"
+    },
+    "implementation-layer-boundaries:026": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 26,
+      "original_sha256": "dd07ef9cb3d2a639692fdcc3267427b24c3c603c7410f77429a7ea977a12a4b9"
+    },
+    "implementation-layer-boundaries:027": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "implementation-layer-boundaries",
+      "legacy_index": 27,
+      "original_sha256": "51aac64bdd1a2643a6be1c43c66ed06ad8637bb2c2b71d601a050dc9095018ec"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:001": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_index": 1,
+      "original_sha256": "1a4ef4076cd55c7315a8ca48351a7c3eb35b04684f40497de25226b6df9bfcd8"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:002": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_index": 2,
+      "original_sha256": "8663d1c9025b0c29f6d96a23cd5c3b5b779d30210195c3a051165fcc1ebbdbfa"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:003": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_index": 3,
+      "original_sha256": "8045c46acf6bd22edbc93d1028512b723ecf239378598d70151f7acf79e6fa49"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:004": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_index": 4,
+      "original_sha256": "ea86b88a10d58a7c29a44eafa4f09ac2a6c85c8e2f2b1628fabdcca9f562b6e8"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:005": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_index": 5,
+      "original_sha256": "e6fbac5c4438e2256f72bfdbe4b50ba5b8c616e28399e4265d2d41c94d3d555f"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:006": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_index": 6,
+      "original_sha256": "00eb08e8e4b93a3cfb60860156419c970528fa0749b458c486a6722a29e0ceae"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:007": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_index": 7,
+      "original_sha256": "35005a437b49388c2bacf22f26e9509f5705d089143ae32b547e268c964e5489"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:008": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_index": 8,
+      "original_sha256": "757e0d4ea2426e453b6900954367d93d796efaea66be22629e277093b8796cc7"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:009": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_index": 9,
+      "original_sha256": "591eb656dd09f5dcb78154764a0157398ab33a3a1aca0ec0e737a1cfc9e0e585"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:010": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_index": 10,
+      "original_sha256": "5122bbdee40eaac9462bca0c14b6c8b3362e00e9b3ed4b7fc606a7ca0e515ed9"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:011": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_index": 11,
+      "original_sha256": "22df186260365aff8460c0239d8b253a55b0adeaca869ea2b65b987c174ff3ee"
+    },
+    "near-miss:001": {
+      "owner": "near-miss",
+      "legacy_lens": "near-miss",
+      "legacy_index": 1,
+      "original_sha256": "cb7551f2106b95548846edb9a855f7594985747a0c0af747f390c9c6af46fac3"
+    },
+    "near-miss:002": {
+      "owner": "near-miss",
+      "legacy_lens": "near-miss",
+      "legacy_index": 2,
+      "original_sha256": "fa42047d493cb9d3e55ff727c8fdc5e7cd930a5ac7956f936993a705ed53ae5c"
+    },
+    "near-miss:003": {
+      "owner": "near-miss",
+      "legacy_lens": "near-miss",
+      "legacy_index": 3,
+      "original_sha256": "4171076d6e762ad837578e68515a2957bc0c3ea714797831ba66d91a6084b533"
+    },
+    "near-miss:004": {
+      "owner": "near-miss",
+      "legacy_lens": "near-miss",
+      "legacy_index": 4,
+      "original_sha256": "094b8e2a11fadbe48a7fd833dcfb97f5bfb61dd804ef714efa56b87b57e2a286"
+    },
+    "near-miss:005": {
+      "owner": "near-miss",
+      "legacy_lens": "near-miss",
+      "legacy_index": 5,
+      "original_sha256": "2704906f1dd5384f16813def2f74230fef1ecb30d57114ac5e097dfa19d8b8b5"
+    },
+    "observability-debuggability:001": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 1,
+      "original_sha256": "97af7c1d4ba7b4e35a9de85943497d8cfd00723aaa8e0681a7e3905103a595bc"
+    },
+    "observability-debuggability:002": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 2,
+      "original_sha256": "878749e8b815b12adaa2d957f3c5bac42c286a1efa11401c54f2c7233daf2918"
+    },
+    "observability-debuggability:003": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 3,
+      "original_sha256": "b6c58f5e9a814c1c2e818058357a8c5c182ca8be3e6522822c1028502d815ff7"
+    },
+    "observability-debuggability:004": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 4,
+      "original_sha256": "36c2d513e3d85c2cf0104b4fc376cc97ea7d7f195310023daac811bb3895b01f"
+    },
+    "observability-debuggability:005": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 5,
+      "original_sha256": "5e6ce229343201a0381b93599529889b313b505395a58a514e73fb9d34a55929"
+    },
+    "observability-debuggability:006": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 6,
+      "original_sha256": "7deaf3d0d3ae526232966425e6f946d9e1ad4d913dd565e37cf3e36c468ee3eb"
+    },
+    "observability-debuggability:007": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 7,
+      "original_sha256": "aac665079679784f11307f34823290ca1c7a010c427b393147ac306737690d97"
+    },
+    "observability-debuggability:008": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 8,
+      "original_sha256": "191b89d8d0a364f29d132ffcd44e2f17cb3566419dc6a0f4fd7deef49379305c"
+    },
+    "observability-debuggability:009": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 9,
+      "original_sha256": "f8a967e827a071c1bdad9750712a874b5e8ed90db3e4b95a562ec09a728c1299"
+    },
+    "observability-debuggability:010": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 10,
+      "original_sha256": "04d3cde48ab7d104f4eaad1e12b3ee700173a8c296f6bba32b4f1ae1aa4f7f31"
+    },
+    "observability-debuggability:011": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 11,
+      "original_sha256": "6dd4d2f64ac8ea6ce013397a99d016d4b25c669c237095c0bc3c1a45807aacdb"
+    },
+    "observability-debuggability:012": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 12,
+      "original_sha256": "e8172e26cbfbc8941f6db25abd7cee23192aa9a7833957b27118dd10f4b53ce1"
+    },
+    "observability-debuggability:013": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 13,
+      "original_sha256": "6b67ae6934989084f56e0364a6d508dbe1deac5dccb11a06f4800d31a489294f"
+    },
+    "observability-debuggability:014": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 14,
+      "original_sha256": "c1e11a1432f4c6509e4e31afb1312241b906961e8ad2c11811dea34263d4de77"
+    },
+    "observability-debuggability:015": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 15,
+      "original_sha256": "40e56eb9eed570c3add60b15745060f378727ade08d210821d0550c1e7c80d67"
+    },
+    "observability-debuggability:016": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 16,
+      "original_sha256": "5d473c2e77ac48862f9e28edad7764c2b7329dc69778cbc1e825d1d17e16c44a"
+    },
+    "observability-debuggability:017": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 17,
+      "original_sha256": "287193bbcacec7e1564e266bfcc8b8c0c6a4c5da398d084dae08204ef246ebda"
+    },
+    "observability-debuggability:018": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 18,
+      "original_sha256": "eee5e5b4b25ad91dc2cc744327e562215f0039b61e8c5139f19f22bda4a97881"
+    },
+    "observability-debuggability:019": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 19,
+      "original_sha256": "7a65fdcdc7710535fbb4586afadd1c179be24b69f87d43e652798f8bd8097545"
+    },
+    "observability-debuggability:020": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 20,
+      "original_sha256": "cdcd86db08226bc193ce65b29afe2dd3061aab8b1ce93310334b0aaa32bb5aa3"
+    },
+    "observability-debuggability:021": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 21,
+      "original_sha256": "db5d131a3c389cdc1db7786f73a4a87776a3150f01efb89f06c4f14d177ecb65"
+    },
+    "observability-debuggability:022": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 22,
+      "original_sha256": "9e7717b2e9e01e58e6232417beb8298b95de4d7e3a83d19a9865787a63419e7c"
+    },
+    "observability-debuggability:023": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "observability-debuggability",
+      "legacy_index": 23,
+      "original_sha256": "d1f420b9208da76df805deedd9c767f9dc65b5ebbe9d076870c609bd7ea9109a"
+    },
+    "prevention:001": {
+      "owner": "architecture-fit",
+      "legacy_lens": "prevention",
+      "legacy_index": 1,
+      "original_sha256": "007bd7f5fd78cfa6dc3bc326fd0a493fda659859c325c87fe15b35fc627bfc92"
+    },
+    "prevention:002": {
+      "owner": "architecture-fit",
+      "legacy_lens": "prevention",
+      "legacy_index": 2,
+      "original_sha256": "2018a6e95cb82761ce0e951db5de54228e83c1ea2c5c6280cf374890c22d0d4d"
+    },
+    "prevention:003": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 3,
+      "original_sha256": "e7af16d6ba95000870710ffa7ab2dded2be858e082414b8ad715ae234a42f2b2"
+    },
+    "prevention:004": {
+      "owner": "architecture-fit",
+      "legacy_lens": "prevention",
+      "legacy_index": 4,
+      "original_sha256": "aff2caae68d3357b9466e7e76a520c923f8f61cd8b8940dd6e7a16f41c3034ab"
+    },
+    "prevention:005": {
+      "owner": "architecture-fit",
+      "legacy_lens": "prevention",
+      "legacy_index": 5,
+      "original_sha256": "d2cb66405ea6981c002701369a55184d2ebaafa2315faed17f0396660c7116ac"
+    },
+    "prevention:006": {
+      "owner": "devx",
+      "legacy_lens": "prevention",
+      "legacy_index": 6,
+      "original_sha256": "7c5ba74e9a0bbb782e78474b8df952fa3e61501e772ebf8ae59672ae0f68bfd8"
+    },
+    "prevention:007": {
+      "owner": "devx",
+      "legacy_lens": "prevention",
+      "legacy_index": 7,
+      "original_sha256": "1ed472a32144a6c7c323a8fef1e401eedf1fa1b9d334b8ae547cf4cbb85d1688"
+    },
+    "prevention:008": {
+      "owner": "devx",
+      "legacy_lens": "prevention",
+      "legacy_index": 8,
+      "original_sha256": "ee376555ad5c598546b062941036d1ac6bc1c774cf0d88b6d10950b9347808e7"
+    },
+    "prevention:009": {
+      "owner": "devx",
+      "legacy_lens": "prevention",
+      "legacy_index": 9,
+      "original_sha256": "cf16bf3dfa870a9c3177e5bb973070ff326f400b65f5d09a1b3bdd54d0dd6fcd"
+    },
+    "prevention:010": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 10,
+      "original_sha256": "0ef989d528033eb36cf1de58edbba577a5cdf6e1f7aabcdecc92a1b969bf69e7"
+    },
+    "prevention:011": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 11,
+      "original_sha256": "e94b78481d988d888dda1c12a291574ea548be5eddc805d873c1540052375412"
+    },
+    "prevention:012": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 12,
+      "original_sha256": "72a1d2645533a32a29b072e892ac860aad2b328e524fed33aceab8d3ad6d9212"
+    },
+    "prevention:013": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "prevention",
+      "legacy_index": 13,
+      "original_sha256": "c9f48fc8609129cd5184024eaefa804a37b047a4ac417c35e5381abab5fa0e36"
+    },
+    "prevention:014": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "prevention",
+      "legacy_index": 14,
+      "original_sha256": "93b692d8d8d005d19667ce7ba72ea219b17d188a154d2b8d38e65bb30921f51a"
+    },
+    "prevention:015": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "prevention",
+      "legacy_index": 15,
+      "original_sha256": "305723f70cf39c30f86412a8fa78a6fd31acebd929092117b0559b27b6bc8c97"
+    },
+    "prevention:016": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "prevention",
+      "legacy_index": 16,
+      "original_sha256": "65782d89e58cf7023252017cfd088b8b6e3f194f71dbcdf62b9fd351348146bd"
+    },
+    "prevention:017": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "prevention",
+      "legacy_index": 17,
+      "original_sha256": "c2cba66751dfc2635434c45323eb923a9ccd0ac731bc22d5023ab544f87c14a0"
+    },
+    "prevention:018": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "prevention",
+      "legacy_index": 18,
+      "original_sha256": "1ff783925716fb3b0a3b6d4be45d1096e3eb6dca89d75b786005e5aa9f665d57"
+    },
+    "prevention:019": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "prevention",
+      "legacy_index": 19,
+      "original_sha256": "340539650d747cecb14f29de4a9105262321fb4aeba3bba00ad326295d205d62"
+    },
+    "prevention:020": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 20,
+      "original_sha256": "ae7a0067dd664fcdf808fd1a4da1f0cba5d76616faf427c12365478cd51c2603"
+    },
+    "prevention:021": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 21,
+      "original_sha256": "f9d14a7035f076e851f62c783d2c761e24cd52c0e7905f51c653bc4522c88e4d"
+    },
+    "prevention:022": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 22,
+      "original_sha256": "f7f9f586dd2f4bc89170661ac87b8d570990a912236184c8da0fee018212667b"
+    },
+    "prevention:023": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "prevention",
+      "legacy_index": 23,
+      "original_sha256": "8677030994dba969d4567ca5e7313f35e6ea0ee10aa53761067fd410123ad8a6"
+    },
+    "prevention:024": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 24,
+      "original_sha256": "3a1df35a3c7caa3241560f6d0e14766d2774beb75e9aa20ad1bdeb4ff485cb12"
+    },
+    "prevention:025": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "prevention",
+      "legacy_index": 25,
+      "original_sha256": "1489dc048fd0ba697549c9f83cf302ff55d0ed51fc5b17c78256a2a837d094aa"
+    },
+    "prevention:026": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "prevention",
+      "legacy_index": 26,
+      "original_sha256": "c8173f0214a0118024968257d91b97b3a15f5a353dcbcf774016961e3af8c76a"
+    },
+    "prevention:027": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "prevention",
+      "legacy_index": 27,
+      "original_sha256": "a7b27bcc2b5b7147dfaaac12875d4681d35e4bc81053cdd936cbd1fdb3a2897d"
+    },
+    "prevention:028": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "prevention",
+      "legacy_index": 28,
+      "original_sha256": "de234a10a985f75c1f5dba1c4b7e62e1c452f0787db43dca74ff2a13d3d9a7c4"
+    },
+    "prevention:029": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "prevention",
+      "legacy_index": 29,
+      "original_sha256": "a2e8168d07570c3a86d893b23ba3766e50cb05e243c977454fbbcdd420e9411a"
+    },
+    "prevention:030": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "prevention",
+      "legacy_index": 30,
+      "original_sha256": "4dec9cbd207d2e2c677bf8c94b0b46c8f39c605a7234bc6269c533e306a7ab65"
+    },
+    "prevention:031": {
+      "owner": "implementation-layer-boundaries",
+      "legacy_lens": "prevention",
+      "legacy_index": 31,
+      "original_sha256": "c883d89229c2a58fa985958dd0917c40a0a6aa68bb74cc1d2aa694bc551833e4"
+    },
+    "prevention:032": {
+      "owner": "devx",
+      "legacy_lens": "prevention",
+      "legacy_index": 32,
+      "original_sha256": "c8c23ca3673d98ebedabc567046053417cdf10be299a7bbfc766ab114ee8326b"
+    },
+    "prevention:033": {
+      "owner": "devx",
+      "legacy_lens": "prevention",
+      "legacy_index": 33,
+      "original_sha256": "5ea8f257af6cabf6d5029bcfc530528bd2f3f0988674fb51544a32ca298adae3"
+    },
+    "prevention:034": {
+      "owner": "devx",
+      "legacy_lens": "prevention",
+      "legacy_index": 34,
+      "original_sha256": "fd4558c096a0863898e1f511b74283079e073e5536886e105fcd394436432620"
+    },
+    "prevention:035": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 35,
+      "original_sha256": "8a87e24ef025269caaf2970279b29ea1b67f6ab3d6bb36e3755dd7384ef5526c"
+    },
+    "prevention:036": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 36,
+      "original_sha256": "192afd2ca55e08eb38c8886e085d1a816b838baa02c5ffecf9e56e96cff4cf36"
+    },
+    "prevention:037": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "prevention",
+      "legacy_index": 37,
+      "original_sha256": "f08922bff72551c6694fff2e3a7274c940468dba897216be6b089d8489150509"
+    },
+    "prevention:038": {
+      "owner": "devx",
+      "legacy_lens": "prevention",
+      "legacy_index": 38,
+      "original_sha256": "0015f04c9fd30b1ef9d68b45c3478a6629b55e4d6c8995ae7274c786cb17fb05"
+    },
+    "prevention:039": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 39,
+      "original_sha256": "52c66720bb5058a1bb6b0963308e404cd06ec1e3fa9ced71def8d47621f456e7"
+    },
+    "prevention:040": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 40,
+      "original_sha256": "c928e22ab2421e6722453abc8b53cee950b26e7d0c17fb52bab87a848969ad5f"
+    },
+    "prevention:041": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 41,
+      "original_sha256": "25eff9aad4a1886d4a0ddd516e14d30d3dace45eb5c4717a298ceae99aec66ee"
+    },
+    "prevention:042": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 42,
+      "original_sha256": "e3af026153aae5d495b0e212549e9d0593d0021364d497e1ad07b1038841833f"
+    },
+    "prevention:043": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 43,
+      "original_sha256": "536cbde869009c600c6424e9c85d0f7be176f48649e4bf6df80efe1831ea82fd"
+    },
+    "prevention:044": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 44,
+      "original_sha256": "12792701655961414c89f5aeecb32571645a4b6acb86e1ee2584e33616334813"
+    },
+    "prevention:045": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 45,
+      "original_sha256": "d7736baecfc91955af3ca0c84266131d5fe4f53d8d9a616c0888b85d8c57c458"
+    },
+    "prevention:046": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 46,
+      "original_sha256": "75f091b4ea8879c76097aa49e757c88703e68196931aedad2c14744fd86002b2"
+    },
+    "prevention:047": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 47,
+      "original_sha256": "ac8e9f95e2a8c7d5b736a873322a06f701fc1821071f8b92df3b04b64557872f"
+    },
+    "prevention:048": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 48,
+      "original_sha256": "2dbfbe10e25354bf5e26b11b82a8a64f8d04bd9fa827e58d0bc8e9cf814e4a03"
+    },
+    "prevention:049": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 49,
+      "original_sha256": "9f298681d1958c85555edf87477d75fb7d86bba8d4caafe27e7f8709638aafe6"
+    },
+    "prevention:050": {
+      "owner": "near-miss",
+      "legacy_lens": "prevention",
+      "legacy_index": 50,
+      "original_sha256": "381df9814d09c2028450d22dff71792e537654a78fc9a2e0dcc069b79e73294e"
+    },
+    "prevention:051": {
+      "owner": "electrification",
+      "legacy_lens": "prevention",
+      "legacy_index": 51,
+      "original_sha256": "4f2b5ba57e59bd7b0e2b9e6a8d8981189801db55ada1381228e4a4985826d36f"
+    },
+    "prevention:052": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "prevention",
+      "legacy_index": 52,
+      "original_sha256": "336223dc4cdd5a73e5ad4063c505e00a79cbc9a1e80954e561ef755799a94fbb"
+    },
+    "prevention:053": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "prevention",
+      "legacy_index": 53,
+      "original_sha256": "6910bc5428d605ae7906b28c964f56f6a6dd356bb3feb534c47bd36b9ceec6dd"
+    },
+    "prevention:054": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "prevention",
+      "legacy_index": 54,
+      "original_sha256": "21da107a7a17ea0f3175b01755e447ef351c7667f6309bee3f9a1230a64fa11a"
+    },
+    "prevention:055": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "prevention",
+      "legacy_index": 55,
+      "original_sha256": "ca562c2a475c4e6ba5aa67c19f84d674c0bd83bf0c6738095b81d3ff8e93178a"
+    },
+    "prevention:056": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "prevention",
+      "legacy_index": 56,
+      "original_sha256": "e1e214fe47b5b2ff81bafb6b3679fb86a10208ef6a0d745bf07379e5e5e4fd5b"
+    },
+    "prevention:057": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "prevention",
+      "legacy_index": 57,
+      "original_sha256": "7910ff0b1b1e663519fd30d4065f6ac43cb6dc8617d549ad0f25018e4867563f"
+    },
+    "prevention:058": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "prevention",
+      "legacy_index": 58,
+      "original_sha256": "ed99c8c9df479fb214d154005cd5cec98f72dc16c998d92e90fda2ac6a436a5b"
+    },
+    "prevention:059": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 59,
+      "original_sha256": "fa70ac698b3407880e9ce753855531c84cc0fa195752bccc866cebcb8cecc7fa"
+    },
+    "prevention:060": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 60,
+      "original_sha256": "65e92a9b3dbf4908b655d7e30544a7cbd373ee5a66a95aec51cb101e5413a7de"
+    },
+    "prevention:061": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 61,
+      "original_sha256": "07ca083286d893dadbfc5b7fd426b73484552a8e53e06aced79535ee82683b45"
+    },
+    "prevention:062": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 62,
+      "original_sha256": "9d274718f846f38c7332d5a1e24a7be5701f8e1cb1ec4b7a5213428d9004ede7"
+    },
+    "prevention:063": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 63,
+      "original_sha256": "38ee930566008c0927215eaad97f143a75b444939effe87df98c99e84ba98362"
+    },
+    "prevention:064": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 64,
+      "original_sha256": "d8693d80360d46d7db27c11f6bf2e3ba519947713d46d870018cf7eee2dcd374"
+    },
+    "prevention:065": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 65,
+      "original_sha256": "30ee4c11102aa9287b46904be7fc56999826eb96ebda09435ea88a4017ac2a88"
+    },
+    "prevention:066": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 66,
+      "original_sha256": "fb77910fc701d031de6d4508f04aecfca992b7cf2b36d11169ee04385e394b25"
+    },
+    "prevention:067": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 67,
+      "original_sha256": "4c6108d60095aa72f0528d8f0325cf4c51d0306562a1c710fbc33e127d7c6edc"
+    },
+    "prevention:068": {
+      "owner": "request-fidelity",
+      "legacy_lens": "prevention",
+      "legacy_index": 68,
+      "original_sha256": "1acd1149aa1d15ddc52713b46b44dc89fb06789f339c0238563f8b63c942d734"
+    },
+    "prevention:069": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 69,
+      "original_sha256": "82b51da433b04b6fcf8eb441e1c4201ec941aa46af644d355cae310a07bcb6a1"
+    },
+    "prevention:070": {
+      "owner": "electrification",
+      "legacy_lens": "prevention",
+      "legacy_index": 70,
+      "original_sha256": "8bbb632e978447d98198c2f94ed505bacd182c477a555f2ba73545d6c8d91955"
+    },
+    "prevention:071": {
+      "owner": "near-miss",
+      "legacy_lens": "prevention",
+      "legacy_index": 71,
+      "original_sha256": "94d49c1927bda68cd2b9dc2e7d2705daa5f551a40be5512df7a1b6d2cada5b84"
+    },
+    "prevention:072": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "prevention",
+      "legacy_index": 72,
+      "original_sha256": "49fb3917db799e6c4343d9afcb5bab1c59b425dafca27ef664b8a00839dcbaab"
+    },
+    "prevention:073": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 73,
+      "original_sha256": "12232374103894299b1dc460ea5d2af27bf5dfc30b3309f2edf611564d24a4e1"
+    },
+    "prevention:074": {
+      "owner": "near-miss",
+      "legacy_lens": "prevention",
+      "legacy_index": 74,
+      "original_sha256": "a850c4dcfeeadfdbad8070cfe8c4fcbc344f9edab4be50403f6b67c6d3f189ea"
+    },
+    "prevention:075": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "prevention",
+      "legacy_index": 75,
+      "original_sha256": "d8bece09efe90ab0943d7f9988cdae1d331d5918d7832ba15b175731efc96604"
+    },
+    "prevention:076": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "prevention",
+      "legacy_index": 76,
+      "original_sha256": "64ae3807b34241720f58dfe995d602377fb6c69276b3996a7f920ea14d8b78d1"
+    },
+    "prevention:077": {
+      "owner": "request-fidelity",
+      "legacy_lens": "prevention",
+      "legacy_index": 77,
+      "original_sha256": "7e837e254cc699897c32ca3ee1db37c2a94ef946777b2a54dc4e1e4aa1406d49"
+    },
+    "prevention:078": {
+      "owner": "electrification",
+      "legacy_lens": "prevention",
+      "legacy_index": 78,
+      "original_sha256": "9715fb46cccc77bc37cb4f00370f323d3d491c690dcbd0913363edbd976b91fd"
+    },
+    "prevention:079": {
+      "owner": "config-hardcode-secret-placement",
+      "legacy_lens": "prevention",
+      "legacy_index": 79,
+      "original_sha256": "2d960d9c1cf8af4330ecd724f0576ab1b820e283e872f4e5dfa794d68594784a"
+    },
+    "prevention:080": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 80,
+      "original_sha256": "9a45b89a9b2b7d3e8bb8aa17c50f40768aade1e294be9c1572e47781f9793a41"
+    },
+    "prevention:081": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 81,
+      "original_sha256": "845a501f13ce2acb0a685299105cac3b1a3355fd0e7c15b7786ed13f22bc1099"
+    },
+    "prevention:082": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 82,
+      "original_sha256": "d68c4bb74bfcadd1a148d4998a2966cd524789a6ded93c1008c94ec41c00cd6d"
+    },
+    "prevention:083": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 83,
+      "original_sha256": "96033a2b51a87976937fb9240f8d23da0f3c9e533de1bd6d4dab14ac61ef36c0"
+    },
+    "prevention:084": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 84,
+      "original_sha256": "381a50a1d70881009260ae6f51fc3870099599324330826d78c1849247728239"
+    },
+    "prevention:085": {
+      "owner": "architecture-fit",
+      "legacy_lens": "prevention",
+      "legacy_index": 85,
+      "original_sha256": "4b100ce0db5572be4bb9995ff853034d2af4a8d1fec3f23789c765a09341b839"
+    },
+    "prevention:086": {
+      "owner": "devx",
+      "legacy_lens": "prevention",
+      "legacy_index": 86,
+      "original_sha256": "1b5767ceb9bba737e32606169579eed9932c5e93955eeaba91f05f1c1ba63f3a"
+    },
+    "prevention:087": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 87,
+      "original_sha256": "a0109b9db954cb62d085c74951a4cb6ef4a376c1a34b8adf392cd8da2620f41a"
+    },
+    "prevention:088": {
+      "owner": "devx",
+      "legacy_lens": "prevention",
+      "legacy_index": 88,
+      "original_sha256": "9473bd6e01fde102cbce8f19d7f294d35a65af2ddaf294469267c1748e0c4307"
+    },
+    "prevention:089": {
+      "owner": "review-contract",
+      "legacy_lens": "prevention",
+      "legacy_index": 89,
+      "original_sha256": "cbcfe26201a6b4dfe275f010fc402cf5def3ec681a3c33fcdd2cd052d4ae66e0"
+    },
+    "prevention:090": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 90,
+      "original_sha256": "e74a6251428fa3aaee43dda6ba400c16ea1e3b9c87e33a7013c701056688887b"
+    },
+    "prevention:091": {
+      "owner": "general-rule-one-false-instance",
+      "legacy_lens": "prevention",
+      "legacy_index": 91,
+      "original_sha256": "971c1c696a770b7818f7d5d954c36dab653a5e54faf78d248c4b5f1357d12983"
+    },
+    "prevention:092": {
+      "owner": "request-fidelity",
+      "legacy_lens": "prevention",
+      "legacy_index": 92,
+      "original_sha256": "055fc959707dbc4ff990b3ede2f2b938ee7c18657191cc8453535cf08447abef"
+    },
+    "prevention:093": {
+      "owner": "request-fidelity",
+      "legacy_lens": "prevention",
+      "legacy_index": 93,
+      "original_sha256": "484c58ad82374919460dc29d3bc46b9b926c040ade3008ed7a8f8b1e7d7a2583"
+    },
+    "prevention:094": {
+      "owner": "architecture-fit",
+      "legacy_lens": "prevention",
+      "legacy_index": 94,
+      "original_sha256": "8fe76a4480224226d79b4119da4e35912ac8c14ed7e04fa11070574691b879ad"
+    },
+    "prevention:095": {
+      "owner": "security-permission",
+      "legacy_lens": "prevention",
+      "legacy_index": 95,
+      "original_sha256": "88b661ee45e6d93225eea1527ca972e2d4d83ef4a50ea689ecde1df95e7527a3"
+    },
+    "prevention:096": {
+      "owner": "architecture-fit",
+      "legacy_lens": "prevention",
+      "legacy_index": 96,
+      "original_sha256": "bf69b6a0b7b95a31cbfa9336439d4098b36613fe8f27a8635f8632646e1af00f"
+    },
+    "prevention:097": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "prevention",
+      "legacy_index": 97,
+      "original_sha256": "591511ee6b72305260d445a20ca0803c5bba6dc306cf5302129d7ab2ce28f709"
+    },
+    "prevention:098": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "prevention",
+      "legacy_index": 98,
+      "original_sha256": "5a9f7c5e2d71c8fbd5956ba24f12736473fcc44f76959804a5076a967c8f7a28"
+    },
+    "prevention:099": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "prevention",
+      "legacy_index": 99,
+      "original_sha256": "2082744dd8c57d39d3f544fe85ea0b643ef0a1a69cc1774992656ad59ce634cb"
+    },
+    "prevention:100": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 100,
+      "original_sha256": "1eb338a5358e65df4006bcb9d4b6ad81eecfaca0ee9fab87913202081f904fa4"
+    },
+    "prevention:101": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 101,
+      "original_sha256": "b04a8dde35d8ca6d542b2cee52575443671e76b04bd46b0536366e5a0633a59f"
+    },
+    "prevention:102": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 102,
+      "original_sha256": "6386a0e692eac0d9aa6b8f0173aa871f1bd24f3055ff84059a5a330d33ff3808"
+    },
+    "prevention:103": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 103,
+      "original_sha256": "116980d02d8d93218257fed1771d23f0817b1933831f4a2ad1e19a077f5225a1"
+    },
+    "prevention:104": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 104,
+      "original_sha256": "302fa020297550097cd3aca066d2cc97ffd577e273b50db5a4ba798254716735"
+    },
+    "prevention:105": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 105,
+      "original_sha256": "20de57566d3fe724b74035be40e67b866997f4832536fde6da229cce40c9a0fb"
+    },
+    "prevention:106": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 106,
+      "original_sha256": "841915c7c512313374448b64555ec35da8c3fb2c8369621c145a8983f14c28bf"
+    },
+    "prevention:107": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 107,
+      "original_sha256": "1383e53a43f1cee55b3624a30026744d73eb89628a8c84d4b651dda4f293c0f9"
+    },
+    "prevention:108": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 108,
+      "original_sha256": "9efd581fe7357f20171e375cbd222376c00a7a2d3712ee11b2210581132a949c"
+    },
+    "prevention:109": {
+      "owner": "electrification",
+      "legacy_lens": "prevention",
+      "legacy_index": 109,
+      "original_sha256": "16f3cf2f169db75d6aca6d938784fc61a82f453307c9ee5a9c5027343ecbb2a1"
+    },
+    "prevention:110": {
+      "owner": "near-miss",
+      "legacy_lens": "prevention",
+      "legacy_index": 110,
+      "original_sha256": "736b7a1e4d056953d21dab18cf07e31927492730a778d287c5ffc2f23b86ec4d"
+    },
+    "prevention:111": {
+      "owner": "observability-debuggability",
+      "legacy_lens": "prevention",
+      "legacy_index": 111,
+      "original_sha256": "36bb34f98c8e28f6892512ac53d653c80a5fdf9bfe703acb36b4a2b23b720504"
+    },
+    "prevention:112": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 112,
+      "original_sha256": "eeced45b9578de9ea28412a3477acaeaf063e5b5ff2ba32bfaf557752a0a9151"
+    },
+    "prevention:113": {
+      "owner": "runtime-reliability-performance",
+      "legacy_lens": "prevention",
+      "legacy_index": 113,
+      "original_sha256": "02226b12474096d8874ae75c653e713b566da1b7c80ddeaed948eaa0dfec4903"
+    },
+    "prevention:114": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "prevention",
+      "legacy_index": 114,
+      "original_sha256": "3a4d5fb04db8eb9f207ebbe14686834541c3bbf6d4faf7dbb9cabd4ddf7f777b"
+    },
+    "request-fidelity:001": {
+      "owner": "request-fidelity",
+      "legacy_lens": "request-fidelity",
+      "legacy_index": 1,
+      "original_sha256": "c909908443fe75f0269aa77ac9dfc5250bd2f8c9a4e54b513679c8d6d0745476"
+    },
+    "request-fidelity:002": {
+      "owner": "request-fidelity",
+      "legacy_lens": "request-fidelity",
+      "legacy_index": 2,
+      "original_sha256": "f8219e7633e073f8f82414b92780c14f7cb75da23281cdae54f657f00d224e7e"
+    },
+    "request-fidelity:003": {
+      "owner": "request-fidelity",
+      "legacy_lens": "request-fidelity",
+      "legacy_index": 3,
+      "original_sha256": "93d5950bfc72c0440a32f825c43abcd79d5a2b41b07c019a466959c1e344d883"
+    },
+    "request-fidelity:004": {
+      "owner": "request-fidelity",
+      "legacy_lens": "request-fidelity",
+      "legacy_index": 4,
+      "original_sha256": "137329ff0e9803d781bd48e2f7e25f566b99549dc6f9d8df8943b2ae6f9e69d2"
+    },
+    "request-fidelity:005": {
+      "owner": "request-fidelity",
+      "legacy_lens": "request-fidelity",
+      "legacy_index": 5,
+      "original_sha256": "81ef37d68e27a6d302142c842ee71c675ed4c89518a1c59b80fbfb379a6bb572"
+    },
+    "request-fidelity:006": {
+      "owner": "request-fidelity",
+      "legacy_lens": "request-fidelity",
+      "legacy_index": 6,
+      "original_sha256": "8064b3e0a1b230cf23035deabd9450700b43455cfb1a3ed53eea9a784eb6866b"
+    },
+    "request-fidelity:007": {
+      "owner": "request-fidelity",
+      "legacy_lens": "request-fidelity",
+      "legacy_index": 7,
+      "original_sha256": "e005574897b6dbb210f8672d0f9d61470f0a9f1e1c3b5736a6283f2eb5ed3cba"
+    },
+    "security-permission:001": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 1,
+      "original_sha256": "b637963bf27c01c0e7656a4f0789479dbec6c907eb49a72bd5466d8ae12d4ea9"
+    },
+    "security-permission:002": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 2,
+      "original_sha256": "98b2016041f695ef67071b787fb7a2b77a52c58d2aeb8b4cdc57f1cb2be32123"
+    },
+    "security-permission:003": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 3,
+      "original_sha256": "95c06540b9939cc208e79b6fb1d178d6d2af2b0d3c3eb6207094f69f33238aa6"
+    },
+    "security-permission:004": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 4,
+      "original_sha256": "98b6611c3045f6070e828b1bb1bbfdc8d935f9a05d284437955e29f9961e06fe"
+    },
+    "security-permission:005": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 5,
+      "original_sha256": "1a06a54bcc3cb1e8b98fbc1d184c0177fe823120e734eef0b3001f28c10841f6"
+    },
+    "security-permission:006": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 6,
+      "original_sha256": "0d73a74d8c96ee11f2860c70118ab44ce883743a67ec613a2fc87c1f1fa94f03"
+    },
+    "security-permission:007": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 7,
+      "original_sha256": "4d9c1ef6b9d8c1de9cb0d01f28a1297309583198fc1123a3e3684b308eb77198"
+    },
+    "security-permission:008": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 8,
+      "original_sha256": "71370d46643b577935c347d81f3b2dd90a8c6443811ddcf9f56976b23916205e"
+    },
+    "security-permission:009": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 9,
+      "original_sha256": "62bde7391d0e2905a27e705ea95881cf336ba912a1c0eeaf8b45e5336ee774be"
+    },
+    "security-permission:010": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 10,
+      "original_sha256": "b6a10a89b5e42bb9beb40f8ce5510675eff448266b5d9afcb10ed4d2ae471bcd"
+    },
+    "security-permission:011": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 11,
+      "original_sha256": "4c9dc42e8f6efe0312acbb141d06670c47540b391a9309289a4ce5badcf66603"
+    },
+    "security-permission:012": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 12,
+      "original_sha256": "77c2073e45ca1d1f832ba5cbe9cf0a0dfc2f4fda7f477d548f54d9187b3d9ac9"
+    },
+    "security-permission:013": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 13,
+      "original_sha256": "07553947c3080317409036857c0211eea2202f704023dd703f37bd242692f570"
+    },
+    "security-permission:014": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 14,
+      "original_sha256": "d4d11bb3bde84e3c9ec8f7e720ddda9c872f896c7b7e2d44f07635c50089f1db"
+    },
+    "security-permission:015": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 15,
+      "original_sha256": "10eaae68831961ab343956c1a08a78e9692af2b04ecb6acd74c97289059e0229"
+    },
+    "security-permission:016": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 16,
+      "original_sha256": "81aabcd99d6455233b3c80f9ed2b69f46a2ad1ee34572571d2fa9197b564b77b"
+    },
+    "security-permission:017": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 17,
+      "original_sha256": "02db3f578a2e25ecae69e57200b49384c4da8c7eaef646f7996793d4e5012a64"
+    },
+    "security-permission:018": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 18,
+      "original_sha256": "af85098dcb212e89773b23f0674f527572046ca4a4d22b1f5c047c599cd67b53"
+    },
+    "security-permission:019": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 19,
+      "original_sha256": "e9f2adfd15ee9f766af2e4ef38eb4e9fde011ee08ca1d3da3f86695f36f95dec"
+    },
+    "security-permission:020": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 20,
+      "original_sha256": "52533a8ee73cc5288c88f17fca95bac1415410fa5eec515a81f2e9a4fd0eb7f0"
+    },
+    "security-permission:021": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 21,
+      "original_sha256": "2566ebfcd1ac07710e2ae443c578311d1c0f808c41109cf31b14705a8d22c0da"
+    },
+    "security-permission:022": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 22,
+      "original_sha256": "7a4f30a2bd7dae6cc16996de3f4215d1c74aa3e5ea207a9b39dcc8465135e690"
+    },
+    "security-permission:023": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 23,
+      "original_sha256": "0362358e7d03d95e69cf0216f3e4ad3f643949c8b0ab52ca45d15e662c648791"
+    },
+    "security-permission:024": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 24,
+      "original_sha256": "944c068909bf15fabb5bcebb880762241c310c23117ddc5f39944f0543f8a451"
+    },
+    "security-permission:025": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 25,
+      "original_sha256": "30d51a0cfba028508929edcda15949c05caf96a0553c2adb1e14ab32bf97f73d"
+    },
+    "security-permission:026": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 26,
+      "original_sha256": "730adf1bafae27d2a7123c89d94e92eec26ca1144dc2cc554caa4baf2c454710"
+    },
+    "security-permission:027": {
+      "owner": "security-permission",
+      "legacy_lens": "security-permission",
+      "legacy_index": 27,
+      "original_sha256": "9d67c6e1a01c59ba6fa2d1c5a9f8ad0e3d8c9bf818b78f1ed6562677288433c1"
+    },
+    "test-sufficiency:001": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 1,
+      "original_sha256": "d7fe22ae5ce4bfa36b2467a69b40d202aa821df1eafef6b956e6de455081ced0"
+    },
+    "test-sufficiency:002": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 2,
+      "original_sha256": "99e1a9b63d4f58df08179c1c7b8cb214a8a5905ee3169266ca3a82b70ae35f50"
+    },
+    "test-sufficiency:003": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 3,
+      "original_sha256": "7313c2122eed9044dbf0c20b3f4878cc0376abdae3abe60c747e69c079288e9f"
+    },
+    "test-sufficiency:004": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 4,
+      "original_sha256": "a86de892679840a221ec6aa636efbfc36ec615e7034e770c135dc74deebafc90"
+    },
+    "test-sufficiency:005": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 5,
+      "original_sha256": "8cc332f8cd0bbe128a2e56450b83f179600466857ad977dc17f89d13a7bac17b"
+    },
+    "test-sufficiency:006": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 6,
+      "original_sha256": "2c08e17986253ba2c46f9b8fe00cfb5b6050cbcdf91a639800e280c60d5d5c7a"
+    },
+    "test-sufficiency:007": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 7,
+      "original_sha256": "f8317d96bf1c0161821452880942901db40f47ff5ea96a4be6029e42cbfcb052"
+    },
+    "test-sufficiency:008": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 8,
+      "original_sha256": "bbc9b8ecb285ccda1ada4ea670e7f8762ec7fa07f33faa9b2e1a14badc12916e"
+    },
+    "test-sufficiency:009": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 9,
+      "original_sha256": "f997f3377a43797f09e3f47dbb69dd30c0229e9f415dbffc24e5ca5128a6b6e6"
+    },
+    "test-sufficiency:010": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 10,
+      "original_sha256": "65968b9c4293134cc3f63c4bfbc979a47631d572a03ee14708f3a8ff61480792"
+    },
+    "test-sufficiency:011": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 11,
+      "original_sha256": "052b99c6935f86d7cbc4e56cbdce672ddd12072a5b994cb3411a3ab13ca7ca3d"
+    },
+    "test-sufficiency:012": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 12,
+      "original_sha256": "38bc5b6ef0e591897370a02f237c69c415672d74f7893bdab8fb58f10222143b"
+    },
+    "test-sufficiency:013": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 13,
+      "original_sha256": "42a34f051851a0f8d222f499c5812d50ebd96eab9d91909146ecc5ff058bf576"
+    },
+    "test-sufficiency:014": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 14,
+      "original_sha256": "dbe0b10c5f38b2789ac37998374487ae765392c34e167a4da7cd6a980d967c42"
+    },
+    "test-sufficiency:015": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 15,
+      "original_sha256": "1325dff75d315a54c6c4873eed02f0ea69bb387001cb6ff195c48a6b94a61792"
+    },
+    "test-sufficiency:016": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 16,
+      "original_sha256": "59dc9caac345b463c3a88f9d409c38894c0d174f7eae9dfc886daf84b8e306f7"
+    },
+    "test-sufficiency:017": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 17,
+      "original_sha256": "2e4711e2ffab895b4e8353ade7d6ed53a32b05e43d995596bb0025205d1d3220"
+    },
+    "test-sufficiency:018": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 18,
+      "original_sha256": "bbac14b3d3962deb773e8f1cc36f95d702d7225ff3e4f8cd47bfa046d504517f"
+    },
+    "test-sufficiency:019": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 19,
+      "original_sha256": "ca90245dec363be4c93bb593d744687bf3e211d9deeacb957bc242230ab76548"
+    },
+    "test-sufficiency:020": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 20,
+      "original_sha256": "6a43fdcda177a3cccfc15df322e93ce542abb924b66bd55ff4aabe1bef712469"
+    },
+    "test-sufficiency:021": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 21,
+      "original_sha256": "9c450f4446833b56cccad41f1619f5f41d214c38f6bd7763d7b524efed8188a1"
+    },
+    "test-sufficiency:022": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 22,
+      "original_sha256": "ead47b5c3811096de74ebe553eccdc57e054396dbfd7d259d6ba4a7a74a191cb"
+    },
+    "test-sufficiency:023": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 23,
+      "original_sha256": "4bbba711aebe317b9834eb3510a5631468eef0263f35a25d342bc15fd523f5d3"
+    },
+    "test-sufficiency:024": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 24,
+      "original_sha256": "b072b1445b77f65014b51982997c05472af1c4e9009e9e9c325409aa78fff1b9"
+    },
+    "test-sufficiency:025": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 25,
+      "original_sha256": "9dd2a65a854b788ec5403d4087d1c53479677318187801ce8b3fca7c3df32e02"
+    },
+    "test-sufficiency:026": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 26,
+      "original_sha256": "c8b916edea133c0763e345272abf211a59f30534949403cd6f30a3db7704736c"
+    },
+    "test-sufficiency:027": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 27,
+      "original_sha256": "8fbde430e9a1ed6d2b508df687a197e66a75f2caf034bd212ac2ce33dbca68fc"
+    },
+    "test-sufficiency:028": {
+      "owner": "test-sufficiency",
+      "legacy_lens": "test-sufficiency",
+      "legacy_index": 28,
+      "original_sha256": "0845506a5a1593af9f5aa657f311c0218e564d2e50a9d44eec570c72ee247c89"
+    },
+    "llm-agent-action-surface-conditional-when-system-includes-llm-agent:012": {
+      "owner": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "legacy_lens": "llm-agent-action-surface-conditional-when-system-includes-llm-agent",
+      "introduced": "maintenance:F20"
+    }
+  },
+  "legacy": {
+    "prevention": {
+      "name": "Prevention",
+      "source": "前身 33 份守則 · 由 checker 候選降級落嚟",
+      "why": "Legacy Prevention view. Questions resolve from their current owners; this view is not dispatched again by normal sweeps. Existing claim IDs remain in the prevention namespace.\n\nReview guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n每一條都曾經被判「做得到 checker」,然後喺對抗核(要求提出真實 red 同 green)度企唔住。**企唔住唔等於規則假**,而四個理由要分開睇 —— 每條 check 帶住佢自己嗰個。\n最重要嗰個係「今日冇實例」:一條預防規則喺一個健康 repo 度應該就係揾唔到嘢。用「冇發生過」去否證一個防禦,就係 Wald 嗰架轟炸機 —— 你數緊飛得返嚟嗰啲。\n放喺 lens 唔放喺 checker,因為 reviewer 睇住一個 diff 判得到,而一個 checker 對住成個 repo 會誤報。",
+      "anti_patterns": [],
+      "check_ids": [
+        "prevention:001",
+        "prevention:002",
+        "prevention:003",
+        "prevention:004",
+        "prevention:005",
+        "prevention:006",
+        "prevention:007",
+        "prevention:008",
+        "prevention:009",
+        "prevention:010",
+        "prevention:011",
+        "prevention:012",
+        "prevention:013",
+        "prevention:014",
+        "prevention:015",
+        "prevention:016",
+        "prevention:017",
+        "prevention:018",
+        "prevention:019",
+        "prevention:020",
+        "prevention:021",
+        "prevention:022",
+        "prevention:023",
+        "prevention:024",
+        "prevention:025",
+        "prevention:026",
+        "prevention:027",
+        "prevention:028",
+        "prevention:029",
+        "prevention:030",
+        "prevention:031",
+        "prevention:032",
+        "prevention:033",
+        "prevention:034",
+        "prevention:035",
+        "prevention:036",
+        "prevention:037",
+        "prevention:038",
+        "prevention:039",
+        "prevention:040",
+        "prevention:041",
+        "prevention:042",
+        "prevention:043",
+        "prevention:044",
+        "prevention:045",
+        "prevention:046",
+        "prevention:047",
+        "prevention:048",
+        "prevention:049",
+        "prevention:050",
+        "prevention:051",
+        "prevention:052",
+        "prevention:053",
+        "prevention:054",
+        "prevention:055",
+        "prevention:056",
+        "prevention:057",
+        "prevention:058",
+        "prevention:059",
+        "prevention:060",
+        "prevention:061",
+        "prevention:062",
+        "prevention:063",
+        "prevention:064",
+        "prevention:065",
+        "prevention:066",
+        "prevention:067",
+        "prevention:068",
+        "prevention:069",
+        "prevention:070",
+        "prevention:071",
+        "prevention:072",
+        "prevention:073",
+        "prevention:074",
+        "prevention:075",
+        "prevention:076",
+        "prevention:077",
+        "prevention:078",
+        "prevention:079",
+        "prevention:080",
+        "prevention:081",
+        "prevention:082",
+        "prevention:083",
+        "prevention:084",
+        "prevention:085",
+        "prevention:086",
+        "prevention:087",
+        "prevention:088",
+        "prevention:089",
+        "prevention:090",
+        "prevention:091",
+        "prevention:092",
+        "prevention:093",
+        "prevention:094",
+        "prevention:095",
+        "prevention:096",
+        "prevention:097",
+        "prevention:098",
+        "prevention:099",
+        "prevention:100",
+        "prevention:101",
+        "prevention:102",
+        "prevention:103",
+        "prevention:104",
+        "prevention:105",
+        "prevention:106",
+        "prevention:107",
+        "prevention:108",
+        "prevention:109",
+        "prevention:110",
+        "prevention:111",
+        "prevention:112",
+        "prevention:113",
+        "prevention:114"
+      ]
+    }
+  }
+}

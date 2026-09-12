@@ -96,12 +96,11 @@ class WhatCountsAgainstARepoOwnCeiling(unittest.TestCase):
         self.assertGreater(sum(control_plane_budget.measure(home).values()), 0)
 
 
-class OneControlQueryPerInvocation(unittest.TestCase):
-    """"Run once, not per proof: it is a fact about the command."
+class AControlQueryObservesTheSameState(unittest.TestCase):
+    """The old once-per-invocation optimization compared different states.
 
-    The subprocess was inside `run_one`, which `main` calls once per declared
-    proof, so a repo declaring five proofs ran five identical control queries
-    against its own truth owner.
+    The real SQLite multi-proof regression is in test_runtime_proof_contract;
+    this checks the direct run_one caller also gets a post-trigger control.
     """
 
     def test_the_empty_query_is_its_own_step(self):
@@ -110,19 +109,15 @@ class OneControlQueryPerInvocation(unittest.TestCase):
         self.assertEqual(got.returncode, 0)
         self.assertEqual(got.stdout, "")
 
-    def test_and_run_one_takes_the_answer_rather_than_asking_again(self):
+    def test_run_one_asks_the_control_after_the_real_query(self):
         root = _repo(self, {})
         marker = root / "asked.txt"
-        cmd = f"cat >> {marker}; echo 1"
-        control = runtime_proof.empty_query(root, cmd)
-        before = marker.read_text().count("select") if marker.is_file() else 0
+        cmd = f"echo asked >> {marker}; cat >> {marker}; echo 1"
         runtime_proof.run_one(root, cmd,
                               {"name": "p", "trigger": "true",
                                "truth": "select {run_id};", "expect": "eq:1"},
-                              run_id="rt1", control=control)
-        after = marker.read_text().count("select") if marker.is_file() else 0
-        self.assertEqual(after - before, 1,
-                         "the trigger's query, and no second control")
+                              run_id="rt1")
+        self.assertEqual(marker.read_text(), "asked\nselect rt1;asked\n")
 
 
 class OnePlaceSaysWhereTheProbeRepoIs(unittest.TestCase):

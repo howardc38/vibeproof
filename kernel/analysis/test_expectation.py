@@ -322,20 +322,11 @@ TS_LIB0_CALLS = {"compare": 1, "compareStrings": 1, "compareArrays": 1,
 def _ts_mask(src: str) -> str:
     """`src` with comments and string bodies blanked, same length throughout.
 
-    Length has to hold, because the brace matching below runs on the mask and
-    the text is sliced out of the original. Replacing a string with `""` -- what
-    `ts_count` does, where offsets do not matter -- would shift every position
-    after the first quote.
+    Length has to hold, because brace matching runs on the mask and the text
+    is sliced out of the original. All JS readers share lexical boundaries.
     """
     from . import symbols
-    out = list(src)
-    for rx in (symbols._TS_BLOCK_COMMENT, symbols._TS_LINE_COMMENT,
-               symbols._TS_STRING):
-        for m in rx.finditer("".join(out)):
-            for i in range(m.start(), m.end()):
-                if out[i] != "\n":
-                    out[i] = " "
-    return "".join(out)
+    return symbols.ts_mask(src)
 
 
 def _ts_balanced(mask: str, start: int, open_ch: str, close_ch: str):

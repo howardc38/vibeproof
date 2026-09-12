@@ -1,18 +1,27 @@
-"""Eleven red cases cannot pin 170 names, and the gate should say so.
+"""Measure which vocabulary names the Python fixtures actually pin.
 
     python3 -m unittest tests.test_what_the_fixtures_can_and_cannot_pin -v
 
-`fail-closed`'s rule is a table: 12 tables, 170 names. Its fixture set is 11
-red-and-bypass cases and 14 green. Measured here rather than argued:
+The original Python-only census covered 12 nonempty tables, 170 names, and
+11 red-and-bypass Python cases plus 14 green. Its historical result was:
 
 * removing any single name leaves every fixture green in 168 of the 170 cases;
 * ten of the twelve tables can be emptied whole and the gate still passes;
 * emptying all twelve at once is what the gate finally catches.
 
+The executable census below uses every current Python fixture. The SQL verdict
+pair controls additionally pin `outbound_tails_weak:execute` and
+`receiver_hints:conn`: removing either stops all three new red/bypass cases
+from firing. Coverage is now four names and four whole tables, not two.
+
 That is arithmetic, not an oversight -- pinning every name would need a fixture
 per name. What was missing is that the verdict said `registrable` and left a
 reader to assume it covered the rule. This measures the gap and keeps it from
 getting quietly worse.
+
+The opt-in JS/TS reporting-assignment and reporting-call tables ship empty.
+Emptying them is not a mutation; their adopter behavior is covered by separate JS gate fixtures and
+test_failure_reporting_assignments. Keep that distinction explicit below.
 """
 
 from __future__ import annotations
@@ -66,7 +75,7 @@ class WhatTheFixturesActuallyPin(unittest.TestCase):
         """The number this file exists to keep honest.
 
         A name is 'reached' when removing it changes what a fixture reports.
-        Two of 170 are, and both are named here so that a change in either
+        Four of 170 are, and all are named here so that a change in either
         direction is a change to this test rather than a silent drift.
         """
         base_red, _ = _fires(fc.SHIPPED)
@@ -81,7 +90,8 @@ class WhatTheFixturesActuallyPin(unittest.TestCase):
         total = sum(len(v) for v in ROWS.values())
         self.assertEqual(total, 170, "the table changed size; re-measure")
         self.assertEqual(sorted(reached),
-                         ["auth_words:secret", "outbound_tails_strong:post"],
+                         ["auth_words:secret", "outbound_tails_strong:post",
+                          "outbound_tails_weak:execute", "receiver_hints:conn"],
                          f"{len(reached)} of {total} names are pinned by a "
                          f"fixture; this test records which, and a change here "
                          f"means the coverage moved")
@@ -89,13 +99,17 @@ class WhatTheFixturesActuallyPin(unittest.TestCase):
     def test_and_which_whole_tables_can_go_unnoticed(self):
         base_red, _ = _fires(fc.SHIPPED)
         unnoticed = []
-        for table in ROWS:
+        empty = {table for table, names in ROWS.items() if not names}
+        self.assertEqual(empty, {"failure_reporting_assignments", "failure_reporting_calls"})
+        nonempty = {table for table, names in ROWS.items() if names}
+        self.assertEqual(len(nonempty), 12)
+        for table in nonempty:
             thin = {k: ([] if k == table else v) for k, v in ROWS.items()}
             red, _ = _fires(fc.Vocabulary.of(thin))
             if red == base_red:
                 unnoticed.append(table)
-        self.assertEqual(len(unnoticed), 10,
-                         f"10 of 12 tables can be emptied with every fixture "
+        self.assertEqual(len(unnoticed), 8,
+                         f"8 of 12 tables can be emptied with every fixture "
                          f"still green; this run says {len(unnoticed)}: "
                          f"{unnoticed}")
 

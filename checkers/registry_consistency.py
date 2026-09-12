@@ -26,6 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from kernel import hashing  # noqa: E402
+from kernel.runner import V4_HOME  # noqa: E402
 
 
 #: How a rule id is written wherever it lands: the `from` field in a lens or a
@@ -88,6 +89,10 @@ def check(root: Path):
                 f"checker {cid!r} on disk ({on_disk[:12]}) is not the registered "
                 f"one ({str(entry.get('sha256'))[:12]}). Every claim it serves will "
                 f"refuse to run, one at a time.")
+        if (entry.get("program_sha") is not None
+                and hashing.program_sha(root, path, framework_root=V4_HOME) != entry["program_sha"]):
+            problems.append(f"checker {cid!r} program differs from its registered dependencies; "
+                            "re-register through its fixtures before running it")
         fx = entry.get("fixtures")
         if fx and not (root / fx).is_dir():
             problems.append(f"checker {cid!r} names fixtures at {fx}, which is gone")
@@ -315,6 +320,14 @@ def _dispositions_hold(root: Path):
                 # identical output. `kernel/review.lens_files` solves the same
                 # problem for lenses by returning the unusable ones by name.
                 unreadable.append(f"{f.relative_to(root)}: {exc}")
+    contract = root / ".v4/review_contract.json"
+    if contract.is_file():
+        try:
+            for c in json.loads(contract.read_text()).get("checks", []):
+                if isinstance(c, dict) and c.get("from"):
+                    landed_ids.add(c["from"])
+        except (OSError, json.JSONDecodeError) as exc:
+            unreadable.append(f".v4/review_contract.json: {exc}")
     kinds_path = root / ".v4" / "claim_kinds.json"
     if kinds_path.is_file():
         try:

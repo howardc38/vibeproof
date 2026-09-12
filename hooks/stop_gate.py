@@ -54,9 +54,13 @@ except ImportError:                                             # noqa: E402
     # better guess than the caller's cwd -- which is the value this whole
     # repair is removing. The hook stands down either way; it should stand
     # down naming the right tree.
-    _framework = SimpleNamespace(on_path=lambda r: _WHY, ledger=lambda r: None,
+    _framework = SimpleNamespace(set_context=lambda p: None, host=lambda: "claude",
+                                 operation_cwd=Path.cwd, patch_root=lambda names, root: root,
+                                 open_task_ids=lambda c, r: [], on_path=lambda r: _WHY, ledger=lambda r: None,
                                  config=lambda r: None, why=lambda r: _WHY,
-                                 home=lambda r: None, db_path=lambda r: None, repo_root=lambda: Path(__file__).resolve().parent.parent)
+                                 home=lambda r: None, db_path=lambda r: None,
+                                 record_seen=lambda *a, **k: _WHY,
+                                 is_open=lambda r, t: True, task_id=lambda r: ("", ""), repo_root=lambda: Path(__file__).resolve().parent.parent)
 
 TERMINAL = {"ANSWERED", "RISK_ACCEPTED", "RETRACTED"}
 
@@ -121,9 +125,11 @@ def _open_task(repo_root: Path, session: str = ""):
     try:
         conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         try:
-            ids = ledger.open_task_ids(conn)
+            ids = _framework.open_task_ids(conn, repo_root)
             if len(ids) <= 1:
                 return ids[0] if ids else None
+            if _framework.host() == "codex":
+                return AMBIGUOUS
             mine = [t for t in ids
                     if session and ledger.sessions_on(conn, t, session)[1]]
             return mine[0] if len(mine) == 1 else AMBIGUOUS
@@ -150,7 +156,7 @@ def _open_ids(repo_root: Path):
     try:
         conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         try:
-            return ledger.open_task_ids(conn)
+            return _framework.open_task_ids(conn, repo_root)
         finally:
             conn.close()
     except sqlite3.Error:
@@ -172,11 +178,13 @@ def _ambiguous_text(repo_root: Path) -> str:
         f"Either finish the one that is done -- `v4 ship --task <id>`, or "
         f"`v4 abandon --task <id> --why '…'` if it will not ship -- or say "
         f"which one you were in:\n"
-        f"  export V4_TASK=<id>\n\n"
+        f"  {_framework.binding_instruction(repo_root)}\n\n"
+        f"V4_TASK is also read from the host's launch environment; exporting it "
+        f"inside a tool call does not change the host's hook environment.\n\n"
         f"This used to take the newest and say nothing, so it asked about "
         f"whichever task happened to be opened last. If none of these is "
         f"yours, say so plainly in your reply and stop again -- this hook does "
-        f"not ask twice.")
+        f"not ask twice for the same stop continuation.")
 
 
 def _is_open(repo_root: Path, task_id: str):
@@ -431,8 +439,18 @@ def main():
         print("{}")
         return 0
 
+    _framework.set_context(payload)
     session = str(payload.get("session_id") or "")
     repo_root, task_id, stale = _repo_and_task(session)
+    bound = None
+    if _framework.db_path(repo_root) is not None:
+        try:
+            bound = _framework.binding(repo_root, payload)
+            if bound:
+                repo_root, task_id = Path(bound["worktree"]), bound["task_id"]
+        except (OSError, sqlite3.Error, ValueError) as exc:
+            print(f"v4 stop_gate: host binding unavailable ({exc})", file=sys.stderr)
+
     if stale:
         # `write_block` records this on the row it writes. This hook writes no
         # row, so stderr is where it can be said at all -- and it has to be
@@ -468,7 +486,7 @@ def main():
     # Whose task this is. `V4_TASK` is this session saying so itself, and is
     # taken at its word; anything else came from the repo, and the repo does not
     # know who is asking.
-    if not _framework.task_id(repo_root)[0] and \
+    if not bound and not _framework.task_id(repo_root)[0] and \
             not _worked_here(repo_root, task_id, session):
         print("{}")
         return 0
@@ -497,7 +515,7 @@ def main():
             f"them exist.\n\n"
             f"If the scope really is right and really raises nothing, say "
             f"so plainly in your reply and stop again: this hook does not "
-            f"ask twice.")
+            f"ask twice for the same stop continuation.")
 
     open_claims = [(s, cid, kind) for s, cid, kind in states if s not in TERMINAL]
     if not open_claims:

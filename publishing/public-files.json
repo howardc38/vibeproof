@@ -51,11 +51,22 @@
     ".v4/test-shape_baseline.json",
     ".v4/test-token-shape_baseline.json",
     ".v4/lenses/*.json",
+    ".v4/surface/*",
     "AGENTS.md",
     "publishing/public-files.json",
     "publishing/repository.json",
     "publishing/public-config/v4.yml",
-    "tools/doc_impact.py"
+    "tools/doc_impact.py",
+    ".codex/agents/*.toml",
+    ".codex/*.template.json",
+    ".codex/*.template.toml",
+    ".agents/skills/**",
+    "docs/CODEX.md",
+    "tools/render_host_assets.py",
+    "tools/host_acceptance.py",
+    "tools/native_host_acceptance.py",
+    ".v4/lens_catalogue.json",
+    ".v4/review_contract.json"
   ],
   "required": [
     "README.md",

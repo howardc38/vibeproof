@@ -1,0 +1,17 @@
+# Merge into project config only after reviewing required paths.
+# Select this profile in a host that supports permission profiles.
+# Git snapshot/worktree operations need separate authorization.
+default_permissions = "vibeproof"
+
+[permissions.vibeproof]
+extends = ":workspace"
+
+[permissions.vibeproof.filesystem.":workspace_roots"]
+"." = "write"
+".git" = "read"
+".git/v4" = "write"
+".codex" = "read"
+".agents" = "read"
+
+[permissions.vibeproof.network]
+enabled = false

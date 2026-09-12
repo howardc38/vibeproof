@@ -305,5 +305,27 @@ class WhatTheLedgerRecords(unittest.TestCase):
                         **kw)
 
 
+
+class TheCheckerNamesTheRedControlItActuallyRan(_Repo):
+    def test_mutation_without_a_parent_is_reported_as_mutation(self):
+        subject = self.root / "subject.json"
+        output = self.root / "result.json"
+        subject.write_text(json.dumps({
+            "repo_root": str(self.root), "file": "mod.py", "symbol": "gate",
+            "params": {"closing_test": "t_mod.py",
+                       "test_one_file_command": [sys.executable, "-m", "unittest", "t_mod"],
+                       "mutation_file": "mod.py",
+                       "mutation_gone": "if not isinstance(value, int) or value <= 0:",
+                       "mutation_now": "if not isinstance(value, int) or value < -99:"}}))
+        result = subprocess.run([sys.executable, str(ROOT / "checkers/review_finding.py"),
+                                 "--subject", str(subject), "--out", str(output)],
+                                cwd=self.root, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("under the declared mutation", result.stdout)
+        data = json.loads(output.read_text())
+        self.assertEqual(data["red_control"], {"mode": "mutation", "file": "mod.py"})
+        self.assertTrue(data["symbol_executed"])
+
+
 if __name__ == "__main__":
     unittest.main()

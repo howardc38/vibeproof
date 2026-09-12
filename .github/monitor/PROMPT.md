@@ -4,8 +4,8 @@ Paste this into a **fresh** session. Not into the one that has been doing the
 work.
 
 Your independence has one source and it is not the model: it is that you have
-not read the working session's transcript. A sub-agent spawned by that session
-is not independent, because the session wrote its prompt. This file is in git,
+not read the working session's transcript. A separate agent is useful only with fresh context, this fixed prompt and the
+minimum task inputs. A new agent name alone does not establish independence. This file is in git,
 in a protected path, and the session that wants it softer has to widen into
 `.github/**`, sign for it, and leave that signature in the chain.
 
@@ -115,7 +115,7 @@ cut, and what replaced it is a daily private maintenance CI job that prints DUE 
 
 `--task` is normally `repo-review`, the standing task findings attach to.
 
-For code findings, For code findings, **`--symbol` must name something a stack frame can be named after.**
+For code findings, **`--symbol` must name something a stack frame can be named after.**
 For documentation and other non-code files, omit it and use the applicable text-change route.
 For documentation and other non-code files, omit it and use the applicable text-change route. A
 module-level constant is refused at this command rather than four hours later:
@@ -239,3 +239,28 @@ the ledger held 12.
 
 `SCOPE.md`, beside this file, describes host permissions and the specific CLI
 guards. Session independence and every restriction are not authenticated by the kernel.
+
+
+## Maintenance assignments
+
+When the orchestrator supplies a maintenance run/handoff ID, keep those IDs and the assigned source version in your result. Read both this file and SCOPE.md. A request to inspect one changed checker is not a request to repeat every lens.
+
+Report a decision: `needs_fix`, `needs_evidence`, `needs_checker`, `finding_disputed`, `needs_user_decision`, `risk_recommended`, or `no_findings`. Include the reason, concrete evidence, assigned `reviewed_head`, and acceptance conditions when work is needed. Not recommending a signature is not enough: name what is wrong or missing. A disputed premise does not authorize changing correct code, accepting risk or declaring a PASS.
+
+Return the result to the orchestrator through the native agent channel. With an assigned handoff, record `maintain handoff --data <json-file>` using `action: result`, the supplied `id`/`run_id`, and the fields above. This records your assessment, not a checker verdict. Do not prepare or dispatch a worker yourself. Risk recommendations require the existing user authorization and detector-origin restrictions before any actual signature.
+
+File new findings through the normal review interface at the assigned coordinates. Cite those claim IDs in your result. If the source changed, report the version you actually read; do not silently grade the new tree with old evidence.
+
+Establish the applicable contract before reporting a governance failure. A
+counterexample must satisfy the whole stated requirement, including prose and
+the actual test oracle; passing a few numerical examples does not establish
+that it satisfies an explicit preservation clause. An optional protocol that
+was not invoked is not itself a violated requirement.
+
+Use the run manifest and linked repair task to determine ownership. The
+`--context-task` input supplies request/base input and need not own the repair claims.
+If an actually required workflow operation or observation is missing, report
+`needs_evidence` with that operation and its source requirement. Do not attach
+an unrelated source/acceptance file merely to give a workflow-state concern a
+claim coordinate; filing a text-change claim would then demand editing correct
+text to resolve a non-text problem.

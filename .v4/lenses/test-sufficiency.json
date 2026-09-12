@@ -2,63 +2,211 @@
   "name": "Test Sufficiency",
   "source": "UNIT_TEST_GENERATION_GUIDELINE.md",
   "checks": [
-    "Core high-risk paths have tests: auth/permission, billing/payment/webhook, data consistency/idempotency",
-    "Unit tests isolate external dependencies; integration tests exercise real boundaries with controlled environments and explicit prerequisites.",
-    "Mock external I/O in unit tests when appropriate; do not replace the real boundary in a test whose purpose is integration, persistence or read-back.",
-    "Test names communicate behavior and condition in the project’s test-runner convention.",
-    "Pure logic / domain layer tests have minimal or no mocks",
-    "Mocks are placed at module boundaries only, not on internal implementation details",
-    "Tests assert contracts (input/output), NOT internal implementation steps",
-    "Failure / unhappy / edge paths are tested (not just happy path)",
-    "State transition correctness is tested (for stateful features)",
-    "Validation/schema has negative tests (invalid input rejected)",
-    "Test failures are locatable and reproducible — when a test fails, the failure message and test structure make it possible to identify the exact cause without re-running in debug mode",
-    "Cleanup/rollback behavior is tested — features that create resources, open connections, or write state have tests verifying proper cleanup on success and rollback on failure",
-    "Thread-through invariants use positive end-state assertions — when Plan invariant says \"X threads through Y to downstream Z\", tests assert `downstream.X == expected` (end-state equality), NOT signature inspection (`inspect.signature` / `typeof` / reflection); signature-only tests pass but cannot catch dead param (see UNIT_TEST_GENERATION_GUIDELINE §7B Thread-Through Positive-Assertion Rule)",
-    "PR has automated test feedback — CI runs tests on PR and results are visible before merge [SHOULD]",
-    "Test file names reflect module/contract, not phase/cycle artifacts — no `test_worker_phase15.py`-style names; rename via git mv at first commit opportunity (see UNIT_TEST_GENERATION_GUIDELINE §20.1) [SHOULD]",
-    "No low-cohesion test files (test_helpers/test_misc/test_infrastructure) — each test file maps to one concern (see UNIT_TEST_GENERATION_GUIDELINE §20.2) [SHOULD]",
-    "Superseded tests removed in same commit as replacement — no stale passing tests shadowing newer stronger coverage (see UNIT_TEST_GENERATION_GUIDELINE §20.3) [SHOULD]",
-    "Shared fixtures placed in scope-aware shared location (conftest.py/BaseTest/beforeAll/TestMain), not duplicated per-directory (see UNIT_TEST_GENERATION_GUIDELINE §20.4) [SHOULD]",
     {
-      "check": "Every reachable decision branch introduced by the change has a test, and loop boundaries cover zero, one and many.",
-      "from": "R-ca90245d"
+      "check": "The same count invariant must not be hardcoded in more than one test file.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-e7af16d6",
+      "id": "prevention:003"
+    },
+    {
+      "check": "Critical UI interactions have stable accessible-role/label or test-selector contracts; avoid accidental coupling to cosmetic classes or DOM layout.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-52c66720",
+      "id": "prevention:039"
+    },
+    {
+      "check": "UI tests use a stable interaction contract where available; avoid brittle CSS/XPath dependence on incidental styling or structure.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-c928e22a",
+      "id": "prevention:040"
+    },
+    {
+      "check": "A thread-through invariant must be asserted by downstream end state, not by signature or reflection inspection.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-25eff9aa",
+      "id": "prevention:041"
+    },
+    {
+      "check": "Test doubles preserve the dependency contract they stand for, including relevant types and failure behavior; use spec-aware mocks or faithful fakes.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-e3af0261",
+      "id": "prevention:042"
+    },
+    {
+      "check": "Control test nondeterminism and state leakage; use bounded eventual assertions or explicit synchronization for real asynchronous behavior rather than arbitrary sleep-then-assert.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-536cbde8",
+      "id": "prevention:043"
+    },
+    {
+      "check": "Test file names reflect the module or contract under test, carry no phase/cycle/version marker, and no low-cohesion catch-all names.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-12792701",
+      "id": "prevention:044"
+    },
+    {
+      "check": "Test names state behaviour and condition.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-d7736bae",
+      "id": "prevention:045"
+    },
+    {
+      "check": "Share fixtures at an appropriate scope when they represent the same contract; preserve isolation and distinct setup semantics rather than forcing all similar fixtures together [SHOULD].",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-75f091b4",
+      "id": "prevention:046"
+    },
+    {
+      "check": "Tests using real database/network/filesystem boundaries are included in the intended test/CI layer through the runner’s supported collection mechanism; markers are one option, not a universal requirement.",
+      "why_not_a_checker": "今日喺目標 repo 揾唔到實例。對一條預防規則嚟講,呢個係健康嘅樣,唔係規則假。",
+      "from": "R-ac8e9f95",
+      "id": "prevention:047"
+    },
+    {
+      "check": "Changed behavior receives meaningful verification proportional to risk; a changed test file is neither necessary nor sufficient for every non-test edit.",
+      "why_not_a_checker": "判準闊到會把正常 code 判紅。規則真,邊界未收好。",
+      "from": "R-2dbfbe10",
+      "id": "prevention:048"
+    },
+    {
+      "check": "Private-helper unit tests may verify local behavior, but claims about production entrypoint composition require evidence through that real entrypoint.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-9f298681",
+      "id": "prevention:049"
+    },
+    {
+      "check": "Mock-only proof cannot establish real persistence, integration or authoritative read-back; mocks may verify scoped unit success/failure contracts without being promoted to external-system proof.",
+      "from": "R-381a50a1",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:084"
+    },
+    {
+      "check": "A test using a real external dependency declares its prerequisites and test type in the repo’s runner convention. Read the actual test_command and CI configuration; do not assume a marker filter exists or treat an unavailable dependency as a pass.",
+      "why_not_a_checker": "建過,量過,拆咗。靜態掃出 66 個 test 檔,而抽驗第一個(tests/agent/test_loop.py)有 66 處 mock 迹象 —— 佢 mock 到貼地。分辨「真係打出去」同「mock 咗」要跟得到 fixture、monkeypatch、MagicMock 三條路,而一個睇住 diff 嘅 reviewer 一眼睇得出。",
+      "from": "measured-2026-08-07",
+      "id": "prevention:114"
+    },
+    {
+      "check": "Core high-risk paths have tests: auth/permission, billing/payment/webhook, data consistency/idempotency",
+      "id": "test-sufficiency:001"
+    },
+    {
+      "check": "Unit tests isolate external dependencies; integration tests exercise real boundaries with controlled environments and explicit prerequisites.",
+      "id": "test-sufficiency:002"
+    },
+    {
+      "check": "Mock external I/O in unit tests when appropriate; do not replace the real boundary in a test whose purpose is integration, persistence or read-back.",
+      "id": "test-sufficiency:003"
+    },
+    {
+      "check": "Test names communicate behavior and condition in the project’s test-runner convention.",
+      "id": "test-sufficiency:004"
+    },
+    {
+      "check": "Pure logic / domain layer tests have minimal or no mocks",
+      "id": "test-sufficiency:005"
+    },
+    {
+      "check": "Test doubles isolate the boundary relevant to the contract; internal mocking must not remove the behavior the test claims to prove.",
+      "id": "test-sufficiency:006"
+    },
+    {
+      "check": "Tests assert contracts (input/output), NOT internal implementation steps",
+      "id": "test-sufficiency:007"
+    },
+    {
+      "check": "Failure / unhappy / edge paths are tested (not just happy path)",
+      "id": "test-sufficiency:008"
+    },
+    {
+      "check": "State transition correctness is tested (for stateful features)",
+      "id": "test-sufficiency:009"
+    },
+    {
+      "check": "Validation/schema has negative tests (invalid input rejected)",
+      "id": "test-sufficiency:010"
+    },
+    {
+      "check": "Test failures provide useful location, inputs and expected/observed behavior so investigation can start; not every root cause must be known without further debugging.",
+      "id": "test-sufficiency:011"
+    },
+    {
+      "check": "Cleanup/rollback behavior is tested — features that create resources, open connections, or write state have tests verifying proper cleanup on success and rollback on failure",
+      "id": "test-sufficiency:012"
+    },
+    {
+      "check": "Thread-through invariants use positive end-state assertions — when Plan invariant says \"X threads through Y to downstream Z\", tests assert `downstream.X == expected` (end-state equality), NOT signature inspection (`inspect.signature` / `typeof` / reflection); signature-only tests pass but cannot catch dead param (see UNIT_TEST_GENERATION_GUIDELINE §7B Thread-Through Positive-Assertion Rule)",
+      "id": "test-sufficiency:013"
+    },
+    {
+      "check": "PR has automated test feedback — CI runs tests on PR and results are visible before merge [SHOULD]",
+      "id": "test-sufficiency:014"
+    },
+    {
+      "check": "Test names identify the module or behavior rather than only phase/cycle history; rename when needed for locating or maintaining that contract, within the change’s scope [SHOULD].",
+      "id": "test-sufficiency:015"
+    },
+    {
+      "check": "No low-cohesion test files (test_helpers/test_misc/test_infrastructure) — each test file maps to one concern (see UNIT_TEST_GENERATION_GUIDELINE §20.2) [SHOULD]",
+      "id": "test-sufficiency:016"
+    },
+    {
+      "check": "Remove truly superseded tests after comparing their invariants, boundaries and failure modes with the replacement; retain independently useful cases [SHOULD].",
+      "id": "test-sufficiency:017"
+    },
+    {
+      "id": "test-sufficiency:018",
+      "same_as": "prevention:046"
+    },
+    {
+      "check": "Changed behavior has tests proportionate to its risk and nontrivial decisions; cover relevant failure and zero/one/many loop boundaries without mirroring every implementation branch.",
+      "from": "R-ca90245d",
+      "id": "test-sufficiency:019"
     },
     {
       "check": "Test generation considers all eight scenario classes: happy path, validation failure, authorization failure, dependency failure, retry/duplicate/replay, state transition, cleanup/rollback, and empty/boundary/malformed input.",
-      "from": "R-6a43fdcd"
+      "from": "R-6a43fdcd",
+      "id": "test-sufficiency:020"
     },
     {
-      "check": "Per-layer test focus and mock rule for each of the seven layers (config, domain, orchestration, execution units, adapters, projections, entry surfaces).",
-      "from": "R-9c450f44"
+      "check": "Test each adopted layer at its actual contract and use mocks appropriate to that boundary; do not require a seven-layer architecture to fit the test plan.",
+      "from": "R-9c450f44",
+      "id": "test-sufficiency:021"
     },
     {
       "check": "Long-lived processes are tested beyond the happy path: claim/lock, cleanup and artifact lifecycle, state transitions asserted on real state, checkpoint recovery, concurrency guard, failure handling.",
-      "from": "R-ead47b5c"
+      "from": "R-ead47b5c",
+      "id": "test-sufficiency:022"
     },
     {
       "check": "Adapter tests cover request payload shape, response mapping, and error interpretation with retry.",
-      "from": "R-4bbba711"
+      "from": "R-4bbba711",
+      "id": "test-sufficiency:023"
     },
     {
       "check": "Config tests cover missing required config crashing at startup, invalid format producing a clear error, and coercion.",
-      "from": "R-b072b144"
+      "from": "R-b072b144",
+      "id": "test-sufficiency:024"
     },
     {
       "check": "UI components are tested across props, loading, empty and error states.",
-      "from": "R-9dd2a65a"
+      "from": "R-9dd2a65a",
+      "id": "test-sufficiency:025"
     },
     {
-      "check": "When a new test is genuinely stronger and covers the same invariant, the old one is deleted in the same commit.",
-      "from": "R-c8b916ed"
+      "check": "When a replacement is verified to cover the same invariant, boundaries and failure modes, remove the truly superseded test in the same delivered change; retain independently useful cases. A stronger assertion alone does not subsume different cases.",
+      "from": "R-c8b916ed",
+      "id": "test-sufficiency:026"
     },
     {
-      "check": "Integration tests are few and aimed at the high-risk seams; external systems get contract tests or stubs.",
-      "from": "R-8fbde430"
+      "check": "Integration tests target real high-risk seams and composition; use contract tests/stubs for suitable local cases, and actual external observations where persistence or read-back is promised.",
+      "from": "R-8fbde430",
+      "id": "test-sufficiency:027"
     },
     {
       "check": "A thread-through that changes a signature also enumerates callers and justifies the ones not threaded, so no dead caller path goes untested.",
-      "from": "R-0845506a"
+      "from": "R-0845506a",
+      "id": "test-sufficiency:028"
     }
   ],
   "anti_patterns": [

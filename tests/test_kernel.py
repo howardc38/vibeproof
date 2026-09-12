@@ -1008,8 +1008,18 @@ class TheGoEmitterIsPartOfTheProgramToo(unittest.TestCase):
     the reason it exists, fixed for Python imports and left standing for Go.
     """
 
+    def setUp(self):
+        self.framework = Path(tempfile.mkdtemp(prefix="v4-emitter-hash-"))
+        self.addCleanup(shutil.rmtree, self.framework, ignore_errors=True)
+        # The probe must not edit the framework another checker or maintenance
+        # review is reading. Keep the real import closure, but give it an owner
+        # whose lifetime is this test rather than the shared checkout.
+        for directory in ("kernel", "checkers"):
+            shutil.copytree(REPO / directory, self.framework / directory,
+                            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+
     def _emitter(self):
-        return Path(REPO) / "kernel" / "analysis" / "_go" / "shape.go"
+        return self.framework / "kernel" / "analysis" / "_go" / "shape.go"
 
     def test_editing_the_emitter_moves_a_go_reading_checker(self):
         from kernel import hashing
@@ -1019,9 +1029,9 @@ class TheGoEmitterIsPartOfTheProgramToo(unittest.TestCase):
         self.addCleanup(src.write_text, orig)
         for who in ("checkers/fail_closed.py", "checkers/external_write.py",
                     "checkers/test_weakened.py"):
-            before = hashing.program_sha(REPO, Path(REPO) / who)
+            before = hashing.program_sha(self.framework, self.framework / who)
             src.write_text(orig + "\n// probe\n")
-            after = hashing.program_sha(REPO, Path(REPO) / who)
+            after = hashing.program_sha(self.framework, self.framework / who)
             src.write_text(orig)
             self.assertNotEqual(after, before,
                                 f"{who} reads Go through the emitter")
@@ -1032,13 +1042,35 @@ class TheGoEmitterIsPartOfTheProgramToo(unittest.TestCase):
         src = self._emitter()
         orig = src.read_text(encoding="utf-8")
         self.addCleanup(src.write_text, orig)
-        entry = Path(REPO) / "checkers" / "secret_scan.py"
-        before = hashing.program_sha(REPO, entry)
+        entry = self.framework / "checkers" / "secret_scan.py"
+        before = hashing.program_sha(self.framework, entry)
         src.write_text(orig + "\n// probe\n")
-        after = hashing.program_sha(REPO, entry)
+        after = hashing.program_sha(self.framework, entry)
         src.write_text(orig)
         self.assertEqual(after, before,
                          "a Python-only checker does not depend on the emitter")
+
+    def test_hash_probe_leaves_an_adopters_maintenance_snapshot_unchanged(self):
+        from kernel import maintenance
+        root = Path(tempfile.mkdtemp(prefix="v4-emitter-observer-"))
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        _git_repo(root)
+        (root / ".v4").mkdir()
+        (root / ".v4/config.json").write_text(json.dumps({
+            "test_command": "python3 -m unittest", "policy": "allow_accepted_risk"}))
+        (root / ".v4/claim_kinds.json").write_text("{}")
+        (root / "app.py").write_text("value = 1\n")
+        subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+        subprocess.run(["git", "-c", "commit.gpgsign=false", "commit", "-qm",
+                        "observer baseline"], cwd=root, check=True)
+
+        before = maintenance.snapshot(root)
+        src = self._emitter()
+        orig = src.read_text(encoding="utf-8")
+        self.addCleanup(src.write_text, orig)
+        src.write_text(orig + "\n// probe\n")
+        self.assertEqual(maintenance.snapshot(root), before,
+                         "a hash test must not invalidate another adopter's review")
 
 
 class TheCheapAnswersComeFirst(unittest.TestCase):
@@ -2794,8 +2826,15 @@ class ClaimLinesHaveAReader(unittest.TestCase):
         self.assertEqual(self._dw()._claim_lines_have_a_reader(REPO), [])
 
     def test_the_reviewer_uses_the_entry_point_that_exists(self):
+        import shlex
         text = (REPO / ".claude" / "agents" / "reviewer.md").read_text()
-        self.assertIn("v4 --repo . review add", text)
+        commands = [shlex.split(line) for line in text.replace("\\\n", " ").splitlines()
+                    if line.startswith("./bin/v4") and "review add" in line]
+        # An explicit worktree path uses the same entry point as --repo .
+        # Executable examples additionally prove task ownership in
+        # test_reviewer_examples_preserve_task.py.
+        self.assertTrue(any(args[:2] == ["./bin/v4", "--repo"] and args[2]
+                            and args[3:5] == ["review", "add"] for args in commands))
 
 
 class AFindingIsRaisedWithCoordinatesThatCanClose(unittest.TestCase):
@@ -3267,12 +3306,13 @@ class LensBrief(unittest.TestCase):
             self.assertNotIn("'why_not_a_checker'", brief, path.name)
 
     def test_every_check_still_appears(self):
-        for path in self._lenses():
-            lens = json.loads(path.read_text())
-            brief = review.lens_brief(lens)
-            self.assertEqual(brief.count("\n  - "),
-                             len(lens["checks"]) + len(lens.get("anti_patterns") or []),
-                             path.name)
+        for slug, lens in review.lenses(REPO).items():
+            brief = review.lens_brief(lens, task="review-task")
+            for check in lens["checks"]:
+                self.assertIn(check["id"], brief, slug)
+                self.assertIn(review.check_text(check).replace("$V4_TASK", "review-task"), brief, slug)
+            for guidance in lens.get("reviewer_anti_patterns", []):
+                self.assertIn(guidance, brief, slug)
 
     def test_it_names_the_entry_point_that_exists(self):
         lens = json.loads(self._lenses()[0].read_text())
@@ -3864,6 +3904,7 @@ class TheAfterGateIsPeriodic(unittest.TestCase):
 
     def test_the_interval_holds_until_it_has_passed(self):
         from kernel import sweep
+        self._lens_event("lens_reviewed", "devx", "2020-01-01T00:00:00+00:00", findings=3)
         sweep.record(self.conn, lenses=["devx"], findings=3)
         ok, why = self._due()
         self.assertFalse(ok)
@@ -3898,6 +3939,7 @@ class TheAfterGateIsPeriodic(unittest.TestCase):
         ledger.insert(self.conn, "event", task_id="old", claim_id=None,
                       kind="detector_run", actor="kernel", payload={},
                       created_at="2020-01-01T00:00:00+00:00")
+        self._lens_event("lens_reviewed", "devx", "2020-01-02T00:00:00+00:00", findings=0)
         sweep.record(self.conn, lenses=["devx"])
         later = datetime.now(timezone.utc) + timedelta(days=5)
         ok, why = self._due(now=later)
@@ -5759,7 +5801,7 @@ class TheAfterGateHasToHaveACaller(unittest.TestCase):
         (tmp / ".v4" / "lenses").mkdir(parents=True)
         for i in range(lenses):
             (tmp / ".v4" / "lenses" / f"l{i}.json").write_text(
-                json.dumps({"name": f"l{i}", "source": "s", "checks": [],
+                json.dumps({"name": f"l{i}", "source": "s", "checks": ["Inspect the actual configured behavior"],
                             "anti_patterns": []}))
         cfg = {"test_command": "true", "policy": "allow_accepted_risk"}
         cfg.update(config_extra or {})
@@ -5773,38 +5815,38 @@ class TheAfterGateHasToHaveACaller(unittest.TestCase):
     def _row(self, tmp):
         from kernel import doctor
         for r in doctor.run(tmp):
-            if r.get("what") == "sweep":
+            if r.get("what") == "maintenance schedule":
                 return f"{r.get('detail','')} {r.get('fix','')}"
         return None
 
     def test_lenses_and_nobody_calling_is_reported(self):
         r = self._row(self._repo())
         self.assertIsNotNone(r)
-        self.assertIn("nothing calls", r)
+        self.assertIn("no native job observation", r)
 
-    def test_a_workflow_that_calls_it_counts(self):
+    def test_a_workflow_mention_is_not_a_native_job_observation(self):
         r = self._row(self._repo(
             caller=(".github/workflows/x.yml", "on:\n  schedule:\n"
                     "jobs:\n  s:\n    steps:\n      - run: v4 sweep --if-due\n")))
-        self.assertNotIn("nothing calls", r)
+        self.assertIn("no native job observation", r)
 
-    def test_a_command_that_calls_it_counts(self):
+    def test_a_command_mention_is_not_a_native_job_observation(self):
         r = self._row(self._repo(
             caller=(".claude/commands/run.md", "run `v4 sweep` when due\n")))
-        self.assertNotIn("nothing calls", r)
+        self.assertIn("no native job observation", r)
 
     def test_a_repo_with_no_lenses_is_not_asked(self):
         self.assertIsNone(self._row(self._repo(lenses=0)))
 
-    def test_running_on_the_default_is_said_out_loud(self):
+    def test_default_cadence_does_not_imply_a_job(self):
         r = self._row(self._repo(caller=(".claude/commands/run.md", "v4 sweep\n")))
-        self.assertIn("default", r)
+        self.assertIn("no native job observation", r)
 
-    def test_a_declared_interval_stops_saying_it(self):
+    def test_declared_cadence_does_not_imply_a_job(self):
         r = self._row(self._repo(
             caller=(".claude/commands/run.md", "v4 sweep\n"),
             config_extra={"lens_sweep": {"every_days": 7}}))
-        self.assertNotIn("default", r)
+        self.assertIn("no native job observation", r)
 
 
 class CoverageNeedsADenominatorThatRecurs(unittest.TestCase):

@@ -95,7 +95,7 @@ class TheCommandThatSaysAReviewHappened(unittest.TestCase):
         """`--findings 0` is the only way "ran and found nothing" exists as a
         fact. A brief that omits it leaves a silent reviewer and a diligent one
         indistinguishable."""
-        self.assertIn("including nothing", _brief())
+        self.assertIn("including zero findings", _brief())
 
 
 

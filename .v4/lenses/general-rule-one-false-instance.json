@@ -6,30 +6,42 @@
     {
       "check": "Find a sentence -- a docstring, a comment, a constant's name, a field description -- that states a general property of some code. Enumerate every case that sentence covers. Report the case where the sentence is false, or say you enumerated and found none.",
       "why_not_a_checker": "Enumerating the cases is the work, and what counts as a case is different every time: two permission overrides, the Unicode range below a boundary, the values an inference can produce. A checker would need the enumeration handed to it, which is the part nobody has.",
-      "from": "PL-9"
+      "from": "PL-9",
+      "id": "general-rule-one-false-instance:001"
     },
     {
       "check": "Find a boundary written as a comparison -- a threshold, a range, a cutoff. Say what is immediately on the far side of it, and whether being there is safe.",
       "why_not_a_checker": "`ord < 0x20` is correct-looking code. Knowing that U+007F belongs with the control characters it is excluding is knowledge about the domain, not about the syntax.",
-      "from": "PL-9. G10."
+      "from": "PL-9. G10.",
+      "id": "general-rule-one-false-instance:002"
     },
     {
       "check": "Find two places that must agree on a set of values -- an enum and its consumers, a producer and a selector, a schema and a validator. Say whether every value one produces is a value the other accepts.",
       "why_not_a_checker": "Both sides are usually literals in different files with no type between them. When they are typed, the checker is the type system and this question is already answered; the cases that survive are the ones where they are strings.",
-      "from": "PL-9. role auto-infer."
+      "from": "PL-9. role auto-infer.",
+      "id": "general-rule-one-false-instance:003"
     },
     {
       "check": "Find a fallback, a default, or an error path. Say which direction it moves in -- more permission or less, more data or less, retry or drop -- and whether that direction is the safe one for every caller.",
       "why_not_a_checker": "`fail-closed` asks whether control can leave a handler without raising. It cannot ask whether the value being fallen back to is more permissive than the one being replaced, because that depends on what the values mean.",
-      "from": "PL-9. D5."
+      "from": "PL-9. D5.",
+      "id": "general-rule-one-false-instance:004"
     },
     {
       "check": "Anything else. If a finding does not fit the four above, that is the most interesting kind: say what you found and why no existing lens would have asked for it.",
       "why_not_a_checker": "The four above are last sweep's misses. The point of an open lens is next sweep's, and pinning it to a list would make it a closed one with extra steps.",
-      "from": "PL-9"
+      "from": "PL-9",
+      "id": "general-rule-one-false-instance:005"
+    },
+    {
+      "check": "A list that represents changing external/project reality needs a verified source or update contract; a deliberately closed domain may use an explicit fixed enumeration.",
+      "from": "R-971c1c69",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:091"
     }
   ],
-  "anti_patterns": [
+  "anti_patterns": [],
+  "reviewer_anti_patterns": [
     "Repeating what a closed lens already asks. Other configured lenses may run alongside this; a finding one of them would have raised is that one's finding, and reporting it here is noise in the only place that was left open.",
     "A mechanism with no instance. `this could be wrong for some case` is the hypothesis; the finding is the case. Enumerate, or report that you enumerated and it held.",
     "Ranking by how alarming the mechanism sounds. A defect that is mechanically real and has never happened is worth writing down and worth saying so -- the sweep this lens comes from had four of those, each written up as though it had happened."

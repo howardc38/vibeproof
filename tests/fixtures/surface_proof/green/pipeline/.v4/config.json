@@ -1,5 +1,8 @@
 {
   "test_command": "true",
   "policy": "allow_accepted_risk",
-  "surface_command": "python3 -c \"print('4 passed')\" | cat"
+  "surface_command": "python3 probe.py | cat",
+  "surface_required": [
+    "reply"
+  ]
 }

@@ -45,5 +45,17 @@
   ],
   "truth_command": "sqlite3 \"$(bash tools/runtime_probe.sh --path)/.git/v4/ledger.db\"",
   "surface_command": "bash tools/surface_probe.sh",
-  "surface_cwd": "."
+  "surface_cwd": ".",
+  "agent_hosts": [
+    "claude",
+    "codex"
+  ],
+  "surface_kind": "command",
+  "surface_required": [
+    "init",
+    "doctor",
+    "task",
+    "derive",
+    "status"
+  ]
 }

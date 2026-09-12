@@ -18,7 +18,7 @@ and is called with two is a different defect, and one the language reports.
 import ast
 from pathlib import Path
 
-from . import resolve
+from . import pysource, resolve
 
 
 def required_params(fn) -> int:
@@ -78,7 +78,40 @@ def _defs_kwonly(src: str):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
 
 
-def _imported_here(tree, root: Path, target_rel: str):
+def _package_overrides(path, name, package):
+    """Do not mistake an explicit package attribute for a same-named file."""
+    if path.is_dir():
+        return False
+    try:
+        body = ast.parse(path.read_text(encoding="utf-8")).body
+    except (OSError, SyntaxError):
+        return True
+    pending = list(body)
+    while pending:
+        node = pending.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if node.name in (name, "__getattr__"):
+                return True
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store) and n.id == name
+                   for t in targets for n in ast.walk(t)):
+                return True
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                if (alias.asname or alias.name.split(".")[0]) != name:
+                    continue
+                imported = (alias.name if isinstance(node, ast.Import) else
+                            str(pysource._resolve(node, package)) + "." + alias.name)
+                if imported != package + "." + name:
+                    return True
+        else:
+            for field in ("body", "orelse", "finalbody", "handlers"):
+                pending.extend(getattr(node, field, []) or [])
+    return False
+
+
+def _imported_here(tree, root: Path, target_rel: str, caller_rel=""):
     """Names in this file that refer to a function defined in `target_rel`.
 
     Both import forms, because both are how a call site says which function it
@@ -90,16 +123,24 @@ def _imported_here(tree, root: Path, target_rel: str):
     direct, modules = {}, set()
     want = Path(target_rel).with_suffix("")
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom) and node.module and not node.level:
-            p = resolve.py_resolve(root, node.module)
+        if isinstance(node, ast.ImportFrom):
+            module = pysource.import_from_module(node, caller_rel)
+            if not module:
+                continue
+            p = resolve.py_resolve(root, module)
             if p is not None and p.with_suffix("") == (root / want):
                 for al in node.names:
                     direct[al.asname or al.name] = al.name
+            elif p is not None:
+                for al in node.names:
+                    child = resolve.py_submodule(p, al.name)
+                    if child == root / target_rel and not _package_overrides(p, al.name, module):
+                        modules.add(al.asname or al.name)
         elif isinstance(node, ast.Import):
             for al in node.names:
                 p = resolve.py_resolve(root, al.name)
                 if p is not None and p.with_suffix("") == (root / want):
-                    modules.add(al.asname or al.name.split(".")[0])
+                    modules.add(al.asname or al.name)
     return direct, modules
 
 
@@ -154,7 +195,7 @@ def scan(root: Path, before_of, changed_files, subject=None):
         except ValueError:
             continue
         for target_rel, grew in tightened.items():
-            direct, modules = _imported_here(tree, root, target_rel)
+            direct, modules = _imported_here(tree, root, target_rel, crel)
             if crel == target_rel:
                 direct.update({n: n for n in grew})   # calls its own by name
             if not direct and not modules:
@@ -166,9 +207,12 @@ def scan(root: Path, before_of, changed_files, subject=None):
                 name = None
                 if isinstance(f, ast.Name) and f.id in direct:
                     name = direct[f.id]
-                elif isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) \
-                        and f.value.id in modules:
-                    name = f.attr
+                elif isinstance(f, ast.Attribute):
+                    attributes, head = pysource.attribute_chain(f)
+                    if isinstance(head, ast.Name):
+                        parts = [head.id, *reversed(attributes)]
+                        if ".".join(parts[:-1]) in modules:
+                            name = parts[-1]
                 if name not in grew:
                     continue
                 was, now, new_kw = grew[name]

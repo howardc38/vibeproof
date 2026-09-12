@@ -1,0 +1,73 @@
+{
+  "description": "vibeproof Codex hooks; merge explicitly, then review host trust.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^apply_patch$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=codex exec python3 \"$D/hooks/write_block.py\"; else echo \"v4 write_block: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=codex exec python3 \"$D/hooks/bash_guard.py\"; else echo \"v4 bash_guard: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=codex exec python3 \"$D/hooks/stop_gate.py\"; else echo \"v4 stop_gate: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=codex exec python3 \"$D/hooks/session_context.py\"; else echo \"v4 session_context: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "^v4-(task-splitter|worker|reviewer|checker-author|monitor)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=codex exec python3 \"$D/hooks/session_context.py\"; else echo \"v4 session_context: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^v4-worker$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D=$(git rev-parse --show-toplevel 2>/dev/null); if [ -n \"$D\" ]; then V4_HOST=codex exec python3 \"$D/hooks/stop_gate.py\"; else echo \"v4 stop_gate: no git root; hook did not run\" >&2; echo '{}'; fi",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

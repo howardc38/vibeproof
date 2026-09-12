@@ -12,7 +12,7 @@ description: 後閘。到期就一個 lens 開一個 reviewer,全部並行,盲�
 1  v4 sweep                        到期未？
 2  唔到期  →  停。呢度冇嘢好諗
 3  到期    →  佢一個 lens 印一行 `v4 review lens --lens <名>`
-4  一個 message 一次過開晒佢印嗰批 reviewer sub-agent   ← 見下
+4  每個 lens 派一個 reviewer，按宿主容量並行／排隊，全部收齊   ← 見下
 5  收齊    v4 sweep --done --findings <n>
 ```
 
@@ -32,14 +32,16 @@ description: 後閘。到期就一個 lens 開一個 reviewer,全部並行,盲�
 
 ⚠️ **而家逾期冇任何嘢擋住你,呢個要講清楚。** 曾經有一條 applies_to: always 嘅
 sweep-current claim,逾期擋住 `v4 ship`;`a9ae5fb`(2026-08-24)量過佢跑咗 295 次
-只 fail 過一次,連同佢個 detector 同 checker 一齊剷咗。今日淨返三樣,三樣都唔係閘:
-`./bin/v4 --repo . sweep --if-due` 唔到期 exit 1、到期先印 brief;`v4 doctor` 嗰行
-`sweep` 只講最後一次幾時,唔講夠鐘未;private 維護 workflow 目前每日的 cron 讀
-committed export 印 DUE 定 not due,而佢個註釋自己寫住唔係一個閘 —— 綠代表算得出,
-唔代表有人睇過。
+只 fail 過一次,連同佢個 detector 同 checker 一齊剷咗。
+`./bin/v4 --repo . sweep --if-due` 唔到期 exit 1、到期先印 brief；
+`v4 doctor`／`v4 maintain status` 可以讀返 review 及排程觀察，但唔係 host job 的即時查詢。
+Framework development repo 的 private CI reminder 唔會安裝到 adopter；
+其 reminder 綠燈只代表計到 due 狀態，唔代表 model 已 review。
 
-**即係「有冇開成一次 sweep」由呢個 command 有冇人叫決定。** 唔到期就停,係為咗唔好
-掃一棵寫緊嘅樹;到期而冇人叫,冇任何嘢會擋住任何人。
+**到期本身唔會啟動 reviewer。** 手動可以叫呢個 workflow；明確配置的 host job
+亦可以啟動 maintenance workflow，按其 snapshot／handoff 流程派 reviewer。
+安裝唔會自動建立 job，要讀返真實 host job 及執行結果。未配置時，到期而冇人叫
+仍不會自動 review；due 狀態本身唔擋 ship，實際 findings 按各自 claim gate 處理。
 
 ## 第 4 步:一個 message 一次過開晒
 
@@ -94,3 +96,5 @@ Finding 落喺 `repo-review` 呢個常設 task,唔係落喺你手上。閂佢係
 要並行去修,用 `/wave`。
 
 `v4 risk waiting` 會講邊條係「重跑就得」、邊條係「只有簽」。
+
+Headless 執行亦要收齊結果先回覆最後答案：驗收指令同步等到 exit code；如用了背景工作，讀回其完成結果後才繼續。單純「等待中」不是完成或阻塞證據。

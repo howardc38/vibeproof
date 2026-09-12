@@ -29,6 +29,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from contextlib import redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
@@ -95,18 +96,29 @@ class TerminalIsAWordWithADefinition(unittest.TestCase):
         """Run, not read. `--json` is what something scripting against this
         gets, and `terminal` there was the not-blocking count under the other
         one's name -- so a consumer could not tell an answered claim from an
-        open report kind. Asked of this repo's own ledger, through the CLI."""
+        open report kind. A fresh OPEN report-only claim must be non-blocking
+        without being terminal; zero rows cannot prove that distinction."""
+        tmp, conn = _repo(self)
+        when = datetime.now(timezone.utc).isoformat()
+        with ledger_mod.writing(conn):
+            ledger_mod.insert(conn, "task", id="t", request="r", scope_globs=["**"],
+                              base_commit="", created_at=when)
+            ledger_mod.insert(conn, "claim", id="c", task_id="t", kind="lint",
+                              checker="lint", question="q", subject_refs=[],
+                              origin="derive", created_at=when)
+        conn.close()
+        (tmp / ".v4/claim_kinds.json").write_text(json.dumps(
+            {"lint": {"checker": "lint", "question_template": "q", "gate": "report",
+                      "staleness": "repo"}}))
         r = subprocess.run(
-            [str(ROOT / "bin" / "v4"), "--repo", str(ROOT), "status",
-             "--task", "t-w2-mechanisms", "--json"],
+            [str(ROOT / "bin" / "v4"), "--repo", str(tmp), "status",
+             "--task", "t", "--json"],
             capture_output=True, text=True, cwd=ROOT)
         self.assertEqual(r.returncode in (0, 1), True, r.stderr[:400])
         blob = json.loads(r.stdout)
-        self.assertIn("terminal", blob)
-        self.assertIn("not_blocking", blob)
-        self.assertEqual(blob["not_blocking"],
-                         blob["total"] - len(blob["open"]))
-        self.assertLessEqual(blob["terminal"], blob["not_blocking"])
+        self.assertEqual((blob["total"], blob["terminal"], blob["not_blocking"]), (1, 0, 1))
+        self.assertEqual(blob["open"], [])
+        self.assertEqual(blob["claims"][0]["state"], "OPEN")
 
     def test_and_a_stale_claim_is_not_terminal_either(self):
         """The other half of the same word: STALE is not in the set, so a task

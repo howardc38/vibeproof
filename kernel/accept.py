@@ -75,7 +75,7 @@ def archive(root: Path, into: Path) -> Path:
     for args in (["init", "-q"], ["add", "-A"],
                  ["-c", "user.email=accept@v4", "-c", "user.name=accept",
                   "commit", "-qm", "the tree under test"]):
-        subprocess.run(["git", *args], cwd=dst, check=True,
+        subprocess.run(["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", *args], cwd=dst, check=True,
                        stdout=subprocess.DEVNULL)
     _history(root, dst)
     return dst
@@ -113,7 +113,10 @@ def _history(root: Path, dst: Path):
     `.` relative to `dst`, so the tree fetched from itself, reported success,
     and resolved nothing.
     """
-    subprocess.run(["git", "fetch", "--quiet", "--no-write-fetch-head",
+    # The disposable archive must not outlive a detached auto-maintenance writer.
+    # Otherwise cleanup can remove .git while update-server-info recreates it.
+    subprocess.run(["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0",
+                    "fetch", "--quiet", "--no-write-fetch-head",
                     "--tags", str(Path(root).resolve()),
                     "+refs/heads/*:refs/accepted/*"],
                    cwd=dst, check=True, stdout=subprocess.DEVNULL)

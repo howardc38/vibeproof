@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "owner": "orchestrator",
+  "checks": [
+    {
+      "check": "The same code may be reported by two review axes only when the impacts differ and each impact is independently concrete.",
+      "from": "R-cbcfe262",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:089"
+    }
+  ]
+}

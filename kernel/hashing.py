@@ -18,6 +18,7 @@ import json
 from pathlib import Path
 
 from .analysis import tables
+from . import layout
 
 ABSENT = "absent"
 
@@ -91,6 +92,8 @@ ADOPTER_OWNED = (
     ".v4/acceptance.json",
     ".v4/facts",              # `.v4/facts.<repo>.json`, and its `.draft`
     ".v4/layers.json",
+    ".v4/lens_catalogue.json", # Review responsibility ownership and compatibility.
+    ".v4/review_contract.json", # Shared semantic coordination obligations.
     # Where a repo widens a rule the kernel ships. `kernel/` is pointed at and
     # never copied, so a vocabulary that lives there is one only this repo can
     # edit -- these two are how an adopter says "this is a transport here" and
@@ -136,6 +139,7 @@ ADOPTER_OWNED = (
 SHIPPED_DIRS = (
     ".v4/fixtures",
     ".v4/lenses",
+    layout.SURFACE_DIR,
 )
 MISSING_ATTEMPT = "no-attempt"
 
@@ -253,8 +257,11 @@ def file_sha(path) -> str:
     return file_digest(Path(path))
 
 
-def program_sha(repo_root, entry_path) -> str:
+def program_sha(repo_root, entry_path, *, framework_root=None) -> str:
     """The bytes of a checker **and of everything in this repo it imports**.
+
+    A runtime caller supplies framework_root to match its subprocess imports;
+    static callers otherwise use the declared local/shared framework location.
 
     `checker_sha` was the entry file alone, and 20 of 27 checkers are a thin CLI
     over a module in `kernel/analysis/` -- the one that actually decides. So the
@@ -284,16 +291,18 @@ def program_sha(repo_root, entry_path) -> str:
     try to answer.
     """
     root = Path(repo_root).resolve()
-    entry = Path(entry_path).resolve()
+    entry = Path(entry_path)
+    entry = (entry if entry.is_absolute() else root / entry).resolve()
     roots = [root]
-    home = root / ".v4" / "home"
-    if home.is_file():
-        try:
-            fw = Path(home.read_text().strip()).resolve()
-            if fw != root and (fw / "kernel").is_dir():
-                roots.append(fw)
-        except OSError:
-            pass
+    from . import layout
+    # A worktree normally has no untracked .v4/home. Its launcher reads the
+    # shared marker, so omitting that source here hashed only the wrapper and
+    # made identical merged code appear to have been checked by another program.
+    fw = Path(framework_root).resolve() if framework_root is not None else layout.framework_home(root)
+    if fw is None:
+        fw = Path(__file__).resolve().parent.parent
+    if fw != root and (fw / "kernel").is_dir():
+        roots.append(fw)
     seen, order = set(), []
 
     def walk(path: Path):
@@ -371,6 +380,13 @@ def program_sha(repo_root, entry_path) -> str:
                 if str(grel) not in seen:
                     seen.add(str(grel))
                     order.append((str(grel), src))
+        # The surface owner runs through installed JS adapters rather than
+        # Python imports. Their installer-owned bytes are deliberately outside
+        # the product tree digest, so they must join the judging program here.
+        # browser_trace imports surface too, covering executable closures.
+        if Path(rel).as_posix() == "kernel/surface.py":
+            for asset in layout.surface_programs(root):
+                walk(asset)
         try:
             import ast
             tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))

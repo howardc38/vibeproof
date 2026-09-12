@@ -273,7 +273,11 @@ def render(cfg) -> str:
                 "是否提出 claim 取決於 scope、facts、註冊狀態和實際掃描；配置存在不等於已經執行。", ""]
         for k, v in sorted(kinds.items()):
             if not v.get("detector"):
-                out += [f"`{k}` 唔會自動出現 —— 佢由 `v4 review add` 提出。", ""]
+                if k == "review-finding":
+                    out += [f"`{k}` 唔會自動出現 —— 佢由 `v4 review add` 提出。", ""]
+                else:
+                    out += [f"`{k}` 未配置 detector；核對提出呢類 claim 嘅 producer 是否已接線。"
+                            "`v4 review add` 只提出 review-finding，唔會提出任意 custom kind。", ""]
 
     engaged = sorted((k, v) for k, v in kinds.items() if v.get("engagement"))
     if engaged:
@@ -341,11 +345,8 @@ def where_the_documents_are(root) -> str:
     if (root / "docs" / "SPEC.md").is_file():
         return ("找不到你要的東西：`docs/SPEC.md` 是契約，"
                 "`docs/RATIONALE.md` 是為何這樣設計。")
-    try:
-        home = Path((root / ".v4" / "home").read_text(
-            encoding="utf-8").strip())
-    except OSError:
-        home = None
+    from . import layout
+    home = layout.framework_home(root)
     if home and (home / "docs" / "SPEC.md").is_file():
         return (f"找不到你要的東西：`{home}/docs/SPEC.md` 是契約，"
                 f"`{home}/docs/RATIONALE.md` 是為何這樣設計 —— "
@@ -458,9 +459,13 @@ def block(cfg) -> str:
     return f"{BEGIN}\n\n{render(cfg)}\n{END}\n"
 
 
-def write(cfg) -> tuple[Path, bool]:
+def write(cfg, path=None) -> tuple[Path, bool]:
     """(path, changed).  Rewrites the generated block and nothing else."""
-    p = path_for(cfg.root)
+    if path is None:
+        from .hosts import doctrine_files
+        results = [write(cfg, p) for p in doctrine_files(cfg.root)]
+        return results[0][0], any(changed for _, changed in results)
+    p = Path(path)
     old = p.read_text(encoding="utf-8") if p.is_file() else ""
     before, generated, after = split(old)
     new_block = block(cfg)
@@ -493,7 +498,7 @@ def write(cfg) -> tuple[Path, bool]:
     return p, True
 
 
-def drift(cfg):
+def drift(cfg, path=None):
     """None when the file matches what this module would generate.
 
     A generated file that anybody can edit is a hand-written file with a
@@ -505,7 +510,11 @@ def drift(cfg):
     to carry standing rules. Once a repo has opted in, deleting the file is a
     finding -- which is the case that made the flag worth having.
     """
-    p = path_for(cfg.root)
+    if path is None:
+        from .hosts import doctrine_files
+        issues = [issue for p in doctrine_files(cfg.root) if (issue := drift(cfg, p))]
+        return "\n".join(issues) if issues else None
+    p = Path(path)
     if not cfg.config.get("doctrine") and not p.is_file():
         return None
     if not p.is_file():

@@ -804,12 +804,21 @@ def _fold_concatenated_literals(text: str, path: str) -> str:
                 return left + right
         if isinstance(node, ast.JoinedStr):
             parts = [_fold(v) for v in node.values]
-            return "".join(x for x in parts if x is not None) or None
+            return "".join(parts) if all(p is not None for p in parts) else None
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "join" and not node.keywords
+                and len(node.args) == 1 and isinstance(node.args[0], (ast.List, ast.Tuple))):
+            separator = _fold(node.func.value)
+            parts = [_fold(part) for part in node.args[0].elts]
+            if separator is not None and all(part is not None for part in parts):
+                return separator.join(parts)
         return None
 
     extra, seen = [], set()
     for node in ast.walk(tree):
-        if not isinstance(node, ast.BinOp) or not isinstance(node.op, ast.Add):
+        if not isinstance(node, (ast.BinOp, ast.Call)):
+            continue
+        if isinstance(node, ast.BinOp) and not isinstance(node.op, ast.Add):
             continue
         folded = _fold(node)
         if folded and len(folded) > 16 and folded not in seen:

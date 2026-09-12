@@ -167,6 +167,18 @@ class EveryPathTheseBriefsNameIsHere(unittest.TestCase):
                 # `core/integrations/blobstore.py`, and this repo cannot answer for it.
                 if head not in tops:
                     continue
+                # Adopter fixture roots are installed elsewhere. Validate the
+                # mapping against its producer instead of inventing an empty
+                # duplicate directory in this framework checkout.
+                from kernel import install
+                if span.rstrip("/") == install.ADOPTER_FIXTURES:
+                    registry = json.loads((ROOT / ".v4/checkers.json").read_text())
+                    fixtures = [e["fixtures"] for e in registry.values() if e.get("fixtures")]
+                    self.assertTrue(fixtures)
+                    self.assertTrue(all((ROOT / f).is_dir() and
+                                        install.fixture_dest(f).startswith(install.ADOPTER_FIXTURES + "/")
+                                        for f in fixtures))
+                    continue
                 if not (ROOT / span).exists():
                     missing.append(f"{rel} names {span}, which is not here")
         self.assertEqual(missing, [], "\n".join(missing))

@@ -5,6 +5,7 @@
       "control-plane-budget"
     ],
     "path": "checkers/control_plane_budget.py",
+    "program_sha": "866eb8fdbb090e273d9a38adaf681ebf0254275fe69cdf0cdfb86bcc2a898f85",
     "reads": [
       "**/*.py"
     ],
@@ -17,6 +18,7 @@
       "dangling-ref"
     ],
     "path": "checkers/dangling_ref.py",
+    "program_sha": "a199059f5df490fd0ec9da7bae8f8a55281a000eee6ebc533836415e748bd6ce",
     "reads": [
       "**/*.py",
       "**/*.go",
@@ -37,6 +39,7 @@
       "dead-wiring"
     ],
     "path": "checkers/dead_wiring.py",
+    "program_sha": "77b07a6256d012a6a3028bebb04a5e5c1a3d45fd8b757ed34ab53136484e1e34",
     "reads": [
       "**/*"
     ],
@@ -49,6 +52,7 @@
       "design-pins"
     ],
     "path": "checkers/design_pins.py",
+    "program_sha": "94ac21f59702063769fad6188564ccfb30b95f0a54da29d8d57ca0891dc3fa71",
     "reads": [
       "**/*.md",
       ".v4/config.json"
@@ -62,6 +66,7 @@
       "external-write"
     ],
     "path": "checkers/external_write.py",
+    "program_sha": "8b88ace7cec624a76e31569b528310d6de21ba92de81fb82a6589ace6b48fb15",
     "reads": [
       "**/*"
     ],
@@ -74,6 +79,7 @@
       "fail-closed"
     ],
     "path": "checkers/fail_closed.py",
+    "program_sha": "3706b707f24b4f7916744b27e95c62ea85f5c28c88a5fc6bf3f7bc04c7969cd1",
     "reads": [
       "**/*.py",
       "**/*.go",
@@ -93,6 +99,7 @@
       "layer-boundary"
     ],
     "path": "checkers/layer_boundary.py",
+    "program_sha": "b7eb87ae3d2edd0ca19f7447f29cb6a67ad025569f36fe6bbc8a7186f6f45142",
     "reads": [
       "**/*.py",
       "**/*.go",
@@ -112,6 +119,7 @@
       "lint"
     ],
     "path": "checkers/structural_lint.py",
+    "program_sha": "d1df42ca4138e72c7af99ec88c3c79860fff0fc89b89524e702a506b5ae721fa",
     "reads": [
       "**/*.py"
     ],
@@ -124,10 +132,11 @@
       "registry-consistency"
     ],
     "path": "checkers/registry_consistency.py",
+    "program_sha": "b40cad76dc64d223bb067fc0a087c4a1e25efed578a4b41113dbc177d7bcddfc",
     "reads": [
       "**"
     ],
-    "sha256": "ffbba251a01e479554261855bde2400d109e79d6c0b863bba190089e4cbf20ac",
+    "sha256": "ec5a5cee1bcb750f69456ed7e77e442df20d2f44f40a0bf1b263598d47624d10",
     "timeout_sec": 300
   },
   "review-finding": {
@@ -136,10 +145,11 @@
       "review-finding"
     ],
     "path": "checkers/review_finding.py",
+    "program_sha": "e5fe27fbf8be4e32540a6c28a9f6d0096cc5ec6e50628d89dad7dabf9b26c47c",
     "reads": [
       "**"
     ],
-    "sha256": "e43b2a19a4f69c7af1d8165c9b756c45971d1de9a704982f2512d65f3d958e56",
+    "sha256": "bcd3dc02a0f908d5df6926498f506247d0c947325c4df7c4baed875b05855b92",
     "timeout_sec": 300
   },
   "runtime-proof": {
@@ -148,10 +158,11 @@
       "runtime-proof"
     ],
     "path": "checkers/runtime_proof.py",
+    "program_sha": "d3f3cf6925311e2dbd7a8d01d2d58f554d3394e4cfa16f38579fa0e4e3f5f8a0",
     "reads": [
       "**/*"
     ],
-    "sha256": "ccc00fab2ba03e8b102c9b955df0d756f1c256ad2243422518a016dc5009fb74",
+    "sha256": "918167357932ee8ebbcb0eb7ef1c9201f61824877485d0505af05669f60c24f7",
     "timeout_sec": 300
   },
   "scope": {
@@ -160,6 +171,7 @@
       "scope"
     ],
     "path": "checkers/scope.py",
+    "program_sha": "c5e2d457e84340461aa76ed39ce1ea238da565e9390ed33c8ca7914fc18883cd",
     "reads": [
       "**/*"
     ],
@@ -172,6 +184,7 @@
       "secret"
     ],
     "path": "checkers/secret_scan.py",
+    "program_sha": "94f434ca23a5c1139fb02da40ec9005a8123b0061ee96aa20199bc7bb6a10e57",
     "reads": [
       "**/*"
     ],
@@ -184,6 +197,7 @@
       "signature-change"
     ],
     "path": "checkers/signature_change.py",
+    "program_sha": "a02e752e9fac6e030d74ec0f250d16966f4f67ca45a3b95c7bc9e8ee75adee9b",
     "reads": [
       "**/*.py",
       "**/*.ts",
@@ -202,6 +216,7 @@
       "spec-coverage"
     ],
     "path": "checkers/spec_coverage.py",
+    "program_sha": "1c1cf621b75de40aca23477a9c4b21153404e7c47a3783dbe45eaa64280f8876",
     "reads": [
       "**/*"
     ],
@@ -214,10 +229,11 @@
       "surface-proof"
     ],
     "path": "checkers/surface_proof.py",
+    "program_sha": "bc1fd7336e838317a6e7ec6ffde1c64715849aaaaaf3d6877773b94a612f46de",
     "reads": [
       "**"
     ],
-    "sha256": "3768a96db5e4561a3073159c73b11f6ba2af8a8945841f55c03f8ea4c1889d16",
+    "sha256": "d425fb4bfc0671f5b14f2bb36c83fab803f6d10530d93cc9fa1503e179deaaf5",
     "timeout_sec": 300
   },
   "test": {
@@ -226,10 +242,11 @@
       "test"
     ],
     "path": "checkers/test.py",
+    "program_sha": "9986565a1b525a20066124b4efad451b665be4d9ee857291f4e91edff51793ee",
     "reads": [
       "**"
     ],
-    "sha256": "3f3f8873cd83e5ae640294ef5c8dea090beb88dcd01795505bdd104ea23edb36",
+    "sha256": "9f2be4e04182d772905c8ac1b53b2ad99eda2a150747dc425d693958a43e146d",
     "timeout_sec": 900
   },
   "test-expectation": {
@@ -238,6 +255,7 @@
       "test-expectation"
     ],
     "path": "checkers/test_expectation.py",
+    "program_sha": "98f5b3b3bb5edf76adab218039e8da8046af189d458aaffdf7cccd60034d4670",
     "reads": [
       "**/*.py",
       "**/*.go",
@@ -258,6 +276,7 @@
       "test-shape"
     ],
     "path": "checkers/test_shape.py",
+    "program_sha": "1845a7a7c81ba884e827e8c2c481e5be72a7779f79f0e58e00e2b6941a673b3f",
     "reads": [
       "**/*.py",
       "**/*.go",
@@ -277,6 +296,7 @@
       "test-token-shape"
     ],
     "path": "checkers/test_token_shape.py",
+    "program_sha": "151f2d78abe4eba697d9bbfe8a8fd43204714eeb4c6a7d96f99316ac83e973fa",
     "reads": [
       "**/*.py",
       "**/*.go",
@@ -296,6 +316,7 @@
       "test-weakened"
     ],
     "path": "checkers/test_weakened.py",
+    "program_sha": "997e0bd48f9acc80e6b64585ba0d8df7c542ec4d99b6818f8f9113d3bf88d5bc",
     "reads": [
       "**/*.py",
       "**/*.go",

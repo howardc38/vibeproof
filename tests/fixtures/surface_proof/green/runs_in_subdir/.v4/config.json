@@ -1,6 +1,9 @@
 {
   "test_command": "true",
   "policy": "allow_accepted_risk",
-  "surface_command": "python3 -c \"print('8 passed')\"",
-  "surface_cwd": "web"
+  "surface_command": "python3 probe.py",
+  "surface_cwd": "web",
+  "surface_required": [
+    "reply"
+  ]
 }

@@ -6,9 +6,9 @@
 
 你要的是能用的改动，AI 给你的是“测试全过”。但那些测试，真的碰过它刚改的代码吗？
 
-vibeproof 把可执行的检查接进 Claude Code 任务，让每次结果对应它当时检查过的代码。先看一个故意写错的折扣例子：**100 − 20 算出 120，测试却全过。**
+vibeproof 把可执行的检查接进 Claude Code 和 Codex 任务，让每次结果对应它当时检查过的代码。先看一个故意写错的折扣例子：**100 − 20 算出 120，测试却全过。**
 
-**适合在 git 项目里使用 Claude Code 的人。最容易上手：已经有测试的 Python 项目。** 其他工具可以运行 CLI，但目前没有提供同等的原生 hook 集成。
+**支持 Claude Code 和 Codex 的 git 项目。最容易上手：已经有测试的 Python 项目。** 双宿主流程在 macOS 验证；配置、信任与覆盖限制见 [CODEX.md](docs/CODEX.md)。
 
 ![测试全过，改动却可能没被测到。vibeproof 指出缺少的执行证据。](docs/launch/assets/v4/images/hero-zh-CN.png)
 
@@ -22,7 +22,7 @@ vibeproof 把可执行的检查接进 Claude Code 任务，让每次结果对应
 |---|---|
 | AI 说测试全过，但新功能根本没被测到 | 运行你的测试；对符合条件的 Python 改动，指出整个运行过程都没触及任何改动文件的情况 |
 | AI“重构”时，把测试删了 | 与起始 commit 比较有效测试数量，报告减少的情况 |
-| 只让它修一件事，却改了其他地方 | Claude Code 的 Write/Edit hook 会检查任务允许修改的路径 |
+| 只让它修一件事，却改了其他地方 | Claude Write/Edit 和 Codex apply_patch hooks 会检查任务允许修改的路径 |
 
 这些检查有范围：import 过文件不等于测过功能；测试数量不代表断言质量；删测试默认只会报告；hook 也不是无法绕过的安全边界。[查看完整限制](docs/REFERENCE.md)。
 
@@ -75,7 +75,7 @@ claims → 必要的 engagement → checkers → 执行记录
 
 | 包含什么 | 对你有什么作用 |
 |---|---|
-| 流程助手 | 四个 agent 提示模板，以及 `/run`、`/sweep`、`/wave`，帮助 coding agent 操作流程 |
+| 流程助手 | Claude agents／commands，以及从同一来源生成的 Codex roles／skills，操作 run、sweep、wave、maintain 流程 |
 | Hooks | 在支持的写入、shell 命令及停止时提前检查；也会再次检查最终 diff 的范围 |
 | Detector → checker | 一部分程序提出适用的问题，另一部分实际执行检查、记录结果 |
 | Review lenses | 提供设计适配、需求忠实度、测试充分性等 review 视角，补充机械模式之外的判断 |
@@ -106,7 +106,7 @@ agent 可以执行流程命令。你提供想要的结果、允许修改的文�
 
 | 项目 | 目前能力 |
 |---|---|
-| 自动 hooks | Claude Code |
+| 自动 hooks | Claude Code 和 Codex；见 [宿主配置](docs/CODEX.md) |
 | 普通测试的改动执行追踪 | Python 文件级别；不是完整分支或断言覆盖 |
 | 修正前后的 review 测试证据 | 有 Python、Go、Node/V8 路径；取决于 runner |
 | 代码结构检查 | Python、Go、TS/JS 支持深度不同；Rust 较有限 |

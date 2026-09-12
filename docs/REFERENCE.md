@@ -21,7 +21,7 @@ The normal CLI is still named `v4`. The repository and product name are vibeproo
 | 1 | FAIL; a finding remains |
 | 4 | UNSUPPORTED; the checker could not answer, not a pass |
 | 5 | ERROR |
-| 6 | CHECKER_TAMPERED; registered checker bytes do not match |
+| 6 | CHECKER_TAMPERED; checker entry or registered program fingerprint does not match |
 | 7 | SUBJECT_MOVED during the check |
 | 8 | TIMEOUT |
 | Other codes, including 2 and 3 | UNKNOWN_EXIT; not a pass |
@@ -43,6 +43,7 @@ The full process flow is exercised on macOS and Linux. It uses POSIX process-gro
 | Ordinary suite command | Runs the configured command and checks exit status and recognizable output |
 | Did the suite reach changed files? | Python `.py` files; excludes designated test/fixture/framework files. It fails when none were reached, not when any one was missed |
 | Repair test fails before, passes after and executes the target | Python tracing, Go coverage, and Node/V8 coverage paths exist. Availability depends on language, runner and source attribution |
+| Existing finding after a symbol rename | `review close --rename-commit` validates committed same-file Python function/method renames, preserves claim identity and still requires executable red/green proof |
 | Python structural analysis | Standard-library AST |
 | Go structural analysis | Go AST helper; requires a working Go toolchain |
 | TS/JS structural analysis | Masked scanners; not a complete compiler or type checker |
@@ -55,16 +56,16 @@ The earlier README said the Go/Node tracing code was unreachable from the review
 - Importing a Python file is enough to mark the file as executed for the ordinary suite check. It does not prove that the changed function, branch or requirement was tested.
 - The test-weakening check compares live-test counts with the base. Removing one meaningful test and replacing it with an unrelated nonempty test can preserve the count.
 - Source-pattern checks can miss wrappers and cross-file behavior. They can also report a pattern that is safe for reasons outside the file.
-- Runtime proof needs your real trigger, truth query and expected result. Surface proof runs the UI suite you configured; it does not invent comprehensive UI tests.
+- Runtime proof needs your real trigger, truth query and expected result. Surface proof requires fresh results from your declared runner, not printed counts; browser proof also requires declared cases and observed navigation. The optional [Playwright integration](../.v4/surface/INTEGRATION.md) uses existing worker/reviewer roles when tests are missing. It does not invent acceptance criteria or certify business assertions.
 - A review finding can have a text-based closure. That proves text changed, not behavior.
 - An engagement sentence passes mechanical checks; its acceptance is not proof of understanding.
 - Prompts requesting independent or blind reviews are not proof that reviewers operated independently.
 
 ## Hooks and accepted risk
 
-The shipped hook configuration targets Claude Code. Other tools can invoke the CLI, but this repository does not ship equivalent native hook adapters for them.
+The shipped host adapters target Claude Code and Codex. Installation defaults to Claude; --hosts selects Claude, Codex or both. See [CODEX.md](CODEX.md) for activation, identity binding and permissions.
 
-Write/Edit hooks examine supported tool payloads and the declared scope. They also require engagement on visible claims until the initial engagement gate is cleared. With several open tasks and no `V4_TASK`, they refuse the ambiguous write rather than choosing the newest task. The shell guard examines command text. Shell scripts and other execution routes are not a security boundary. Hooks stand down when required state cannot be read. The stop hook blocks once and permits the next stop.
+Write/Edit hooks examine supported tool payloads and the declared scope. They also require engagement on visible claims until the initial engagement gate is cleared. Both hosts select the task worktree first. Ambiguous local tasks are refused instead of selecting the newest. Explicit native agent bindings are used when the host supplies that identity. The shell guard examines command text. Shell scripts and other execution routes are not a security boundary. Hooks stand down when required state cannot be read. The stop hook blocks once per host stop continuation; later turns can be checked again.
 
 The ledger uses SQLite triggers and hash chains to make ordinary writes controlled and recorded. It is not an immutable external trust service. The `task` table is not covered by the same chain as attempts and events. A process with sufficient file access can tamper with local state; do not market the ledger as impossible to edit.
 

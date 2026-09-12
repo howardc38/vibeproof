@@ -1,52 +1,87 @@
 {
   "name": "你要嗰樣嘢有冇到",
   "source": "SPEC.md §4.7。由 X/Y 實驗(2026-08-09)嗰三個交少咗嘅 brief 寫返出嚟。",
-  "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n呢度每一個機制都問「你點做」。冇一個問「你要嗰樣嘢有冇到」。\n\n實測:八個 brief 有三個交少咗,而冇一個機制提出過 claim ——\n\n  一   個 brief 要「由本地檔上載」。交付咗嘅版本冇呢條路,而冇人講過。\n  二   個 brief 要知一個 local Bot API server 實際答咩。交付咗嘅版本讀\n       vendor 文件寫嘅預設值,冇讀過真嘢。\n  三   個 bug report 要修一個 bug。交付咗嘅版本令嗰個 bug 講得出\n       (加咗一個更好嘅 error message),個 bug 仲喺度。\n\n而 doctrine 單邊向同一個方向:88 條之中 34 條講「唔好做多」,零條講「要做夠」。\n\n點解係一個 lens 而唔係一個 checker。SPEC §4.7 寫得好白:唔可以起一個讀住個 request 判你做咗未嘅 checker。V3 由 prose 推導 obligation,改一句 prose 就改咗 obligation set,一個 phase 九輪、兩個半鐘、零行 code。所以呢度出 claim,唔出 verdict —— 而 behavior-repair 路徑用 test 嚟閂(parent 度紅、HEAD 度綠、真係執行過嗰個 symbol)；文字修正及 accepted-risk 路徑亦存在，判斷留喺人同 test 度。\n\n你要嘅嘢喺邊。個 lens brief 唔會帶住個 request 入嚟,你要自己攞:\n\n    v4 --repo . cover --task $V4_TASK --show\n\n佢印返 ledger 入面存住嗰個 request 原文,加埋「仲未有人講過」嗰幾段。由嗰幾段開始睇,佢哋係一張地圖唔係一張清單 —— 一段冇人講過唔一定係冇做,但一段冇做嘅嘢通常喺嗰度。\n\n**沒有 cover entry 時，0% 不是「什麼都沒做」的 finding。** 現行 /run 和 USING 會叫人記錄 cover；歷史 task 仍可能一條 entry 都冇,成個 request 都喺「未有人講過」入面。咁樣即係冇地圖,唔係即係乜都冇做 —— 你要由個 request 原文自己行落去,一句一句對住個 diff。有 entry 嘅時候佢慳你時間;冇嘅時候佢淨係印返個 request,而嗰個已經係你要嘅嘢。\n\n盲讀嘅界線喺邊,同埋佢點解唔係「乜都唔好讀」。個 request 係要求者嘅字,唔係 worker 嘅解釋 —— 讀佢。唔准讀嘅係 worker 嘅 engagement 句同 task 嘅 rationale:三個 reviewer 每輪出 3.6 個 finding 而每輪都係新嘅,即係你係一個抽樣器;一個讀過 worker 解釋嘅抽樣器,會沿住嗰個解釋抽樣。\n\ncommit message 係一個例外,而佢係一個**有方向**嘅例外。嗰條問「收窄有冇講出嚟」嘅 check問一個收窄有冇喺 diff、commit message 或者 ledger 度講出嚟 —— 冇得唔讀個 commit message 就答到。所以:**讀佢,但淨係用嚟答「有冇講過」,唔好用嚟答「做咗乜」。**一個 commit message 話佢做咗 X,唔係 X 做咗嘅證據;X 喺唔喺度由個 diff 講。呢個分別唔係文字遊戲 —— 前者係 worker 嘅自述,後者係佢留低嘅嘢。",
+  "why": "Review guidance, not an enforced checker or proof of review completion. Apply each question to this repo’s actual scope and architecture; state when it does not apply. Source names and R-/PL- identifiers are historical attribution, not required files in the adopter. Historical measurements below describe the recorded experiment, not a new measurement.\n\n呢度每一個機制都問「你點做」。冇一個問「你要嗰樣嘢有冇到」。\n\n實測:八個 brief 有三個交少咗,而冇一個機制提出過 claim ——\n\n  一   個 brief 要「由本地檔上載」。交付咗嘅版本冇呢條路,而冇人講過。\n  二   個 brief 要知一個 local Bot API server 實際答咩。交付咗嘅版本讀\n       vendor 文件寫嘅預設值,冇讀過真嘢。\n  三   個 bug report 要修一個 bug。交付咗嘅版本令嗰個 bug 講得出\n       (加咗一個更好嘅 error message),個 bug 仲喺度。\n\n而 doctrine 單邊向同一個方向:88 條之中 34 條講「唔好做多」,零條講「要做夠」。\n\n點解係一個 lens 而唔係一個 checker。SPEC §4.7 寫得好白:唔可以起一個讀住個 request 判你做咗未嘅 checker。V3 由 prose 推導 obligation,改一句 prose 就改咗 obligation set,一個 phase 九輪、兩個半鐘、零行 code。所以呢度出 claim,唔出 verdict —— 而 behavior-repair 路徑用 test 嚟閂(parent 度紅、HEAD 度綠、真係執行過嗰個 symbol)；文字修正及 accepted-risk 路徑亦存在，判斷留喺人同 test 度。\n\n你要嘅嘢喺邊。優先讀本次 brief 附帶嘅 request/context 及來源；沒有附帶時，按明示嘅 task 座標攞:\n\n    v4 --repo . cover --task $V4_TASK --show\n\n佢印返 ledger 入面存住嗰段 request（唔會認證係咪原始 chat 全文）,加埋「仲未有人講過」嗰幾段。由嗰幾段開始睇,佢哋係一張地圖唔係一張清單 —— 一段冇人講過唔一定係冇做,但一段冇做嘅嘢通常喺嗰度。\n\n**沒有 cover entry 時，0% 不是「什麼都沒做」的 finding。** 現行 /run 和 USING 會叫人記錄 cover；歷史 task 仍可能一條 entry 都冇,成個 request 都喺「未有人講過」入面。咁樣即係冇地圖,唔係即係乜都冇做 —— 你要由個 request 原文自己行落去,一句一句對住個 diff。有 entry 嘅時候佢慳你時間;冇嘅時候佢淨係印返個 request,而嗰個已經係你要嘅嘢。\n\n盲讀嘅界線喺邊,同埋佢點解唔係「乜都唔好讀」。個 request 係要求者嘅字,唔係 worker 嘅解釋 —— 讀佢。唔准讀嘅係 worker 嘅 engagement 句同 task 嘅 rationale:三個 reviewer 每輪出 3.6 個 finding 而每輪都係新嘅,即係你係一個抽樣器;一個讀過 worker 解釋嘅抽樣器,會沿住嗰個解釋抽樣。\n\ncommit message 係一個例外,而佢係一個**有方向**嘅例外。嗰條問「收窄有冇講出嚟」嘅 check問一個收窄有冇喺 diff、commit message 或者 ledger 度講出嚟 —— 冇得唔讀個 commit message 就答到。所以:**讀佢,但淨係用嚟答「有冇講過」,唔好用嚟答「做咗乜」。**一個 commit message 話佢做咗 X,唔係 X 做咗嘅證據;X 喺唔喺度由個 diff 講。呢個分別唔係文字遊戲 —— 前者係 worker 嘅自述,後者係佢留低嘅嘢。",
   "checks": [
     {
-      "check": "喺讀個 diff 之前:`v4 cover --task $V4_TASK --show` 印出嚟嗰段,係要求者嘅字,定係一個 worker 寫嘅摘要?帶住方法決定(「先量後起」)、量度(「由 113 題入面 5 條」)或者「點解要咁做」嘅,係摘要。**咁樣即係你手上根本冇個 request** —— 其餘每一條 check 對住嘅係一個轉述,而個轉述由你要審嗰個人寫。呢個唔係一條 finding(佢唔喺個 diff 度,指唔到一個位),佢係你份報告第一句要講嘅嘢:你攞到幾長嘅一段、邊部分讀落似要求者嘅字。然後照樣行落去 —— 一段摘要都仲有動詞同名,只係你要知你判緊嘅係二手嘢。**最緊要嗰樣:對住一段摘要報「0 條 finding」,要寫成「我冇個 request」,唔可以寫成「查過,冇嘢」。**",
+      "check": "Requirements and deliverables map bidirectionally: no orphan requirement and no dangling reference.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-1acd1149",
+      "id": "prevention:068"
+    },
+    {
+      "check": "Declared scope uses intentional repo-relative paths or supported globs; expand them against the intended change set and avoid accidentally broad scope.",
+      "why_not_a_checker": "紅得起但綠唔起,或者呢個 repo 冇對應基質(冇 webhook、冇 dev/staging/prod 三件套)。",
+      "from": "R-a4f341a6",
+      "id": "prevention:077"
+    },
+    {
+      "check": "Hunk-level scope: is this hunk necessary to complete the approved outcome?",
+      "from": "R-055fc959",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:092",
+      "why_not_a_checker": "Necessity depends on the approved outcome and the surrounding change; file membership alone cannot establish it."
+    },
+    {
+      "check": "Opportunistic rewriting disguised as feature delivery, or an unrelated rewrite carried in under a clean-replacement banner.",
+      "from": "R-484c58ad",
+      "why_here": "出處文件冇對應嘅 lens —— 放呢度好過唔知去咗邊",
+      "id": "prevention:093",
+      "why_not_a_checker": "Determining whether a rewrite is required needs the original request and implementation context, not a size threshold."
+    },
+    {
+      "check": "喺讀變更之前，用 `v4 cover --task $V4_TASK --show` 核對 request 嘅來源同完整性。方法、數字或理由可能本來就係 user 原文，唔可以單靠文風判佢係摘要。若只有轉述，講清來源同限制；缺少驗收所需原文時記 not_evaluable，仍可審已知部分，但唔可以將「0 finding」當完整核對。",
       "why_not_a_checker": "冇一個機制接觸得到個 request 原本嘅出處 —— 個 chat 唔喺 repo 入面 —— 所以「呢段係咪原文」機械上判唔到。而一個自報「係原文」嘅 field 冇 verifier,同 `restored_why` 係同一個形狀,呢個 repo 剷過一次。驗得到嗰樣嘢淨係一個人讀完之後知唔知自己攞到咗乜。",
-      "from": "SPEC §4.7.1。實測 42 個 task:`task.request` 中位數 42 字元,27 個少過 80,最短 8 字元。`fw-rust` 存住嗰 135 字元入面得頭四個字係要求者嘅。"
+      "from": "SPEC §4.7.1。實測 42 個 task:`task.request` 中位數 42 字元,27 個少過 80,最短 8 字元。`fw-rust` 存住嗰 135 字元入面得頭四個字係要求者嘅。",
+      "id": "request-fidelity:001"
     },
     {
-      "check": "個 request 每一個動詞,喺 diff 入面指得出邊個 symbol 做咗佢。指唔出嗰個動詞,開一條 finding —— 而 --file 要係一個真係喺 repo 入面嘅檔,--symbol 要係一個函式嘅裸名。resolve_symbol 會拒絕一個唔存在嘅檔,亦會拒絕一個 module-level 常數(redgreen 比較 code.co_name,冇一個 frame 叫做一個 frozenset,所以嗰種 finding 永遠閂唔到)。而呢條 check 最核心嗰個 case —— 一個動詞乜都冇建過 —— 正正係冇檔亦冇 symbol:咁樣就揀最近嗰個真係存在嘅函式,即係嗰樣嘢應該由邊度被 call,然後喺 --note 講明缺嘅嘢應該住喺邊。",
+      "check": "逐項核對 request 嘅動作／結果，在目前實作及交付證據中指出落點，唔限於 diff 新增函式。程式缺失 finding 要用真實、可驗證嘅 file/symbol；完全未建嘅功能可指向真正應接線嘅既有 caller。文件、設定或外部交付若無有效程式座標，明示缺項及需要嘅證據／決定，唔好揀無關函式硬開 claim。",
       "why_not_a_checker": "一個動詞對應邊個 symbol,冇一個機械對應。「加一個 retry」可能係一個新函式、一個 decorator、一個 config 值,或者一句喺既有 loop 入面嘅 continue —— 而分辨呢幾樣同分辨「乜都冇做」,係同一個判斷。",
-      "from": "SPEC §4.7:88 條 doctrine 之中零條講「要做夠」"
+      "from": "SPEC §4.7:88 條 doctrine 之中零條講「要做夠」",
+      "id": "request-fidelity:002"
     },
     {
-      "check": "個 request 講出咗一個名 —— 一個檔、一個指令、一個欄位、一個 endpoint、一個 flag —— 嗰個名喺 diff 入面出現過未。冇出現嘅,講出邊樣嘢頂替咗佢;頂替唔到嘅,開一條 finding。",
+      "check": "Request 指名嘅檔、指令、欄位、endpoint 或 flag，在目前 repo／交付證據中有冇有效落點？可重用已有功能，唔要求每個名都喺 diff 再出現。缺少時核對有冇獲准替代；未滿足就指出。",
       "why_not_a_checker": "一個 grep 搵得到個名喺唔喺度,搵唔到「佢改咗個名但係同一樣嘢」同「佢根本冇做」嘅分別。前者係啱嘅,後者係呢條規則存在嘅原因,而兩者喺 grep 睇嚟一模一樣。",
-      "from": "X/Y 實驗第一個 brief:「由本地檔上載」—— 冇呢條路,冇人講過"
+      "from": "X/Y 實驗第一個 brief:「由本地檔上載」—— 冇呢條路,冇人講過",
+      "id": "request-fidelity:003"
     },
     {
-      "check": "有冇一段 request 係用「令佢講得出」答一個「令佢做到」嘅要求。呢個形狀:個要求係要改變行為,而交付咗嘅係一個更好嘅 error message、一個新 log 行、一個新 flag、或者一個把個問題表達得更清楚嘅型別。同嗰條問「收窄有冇講出嚟」嘅 check撞嘅時候嗰條贏:呢條講嘅係「聲稱做咗,而交付嘅係一句講法」,嗰條講嘅係「交付少咗而佢講咗出嚟」。問一句就分得開 —— 佢有冇聲稱做咗嗰件事?有就係呢條;明講冇做就係嗰條,而嗰條話講咗就唔係 finding。",
+      "check": "有冇用「令佢講得出」冒充「令佢做到」：需求要改變行為，但只加 error message、log、flag 或型別而聲稱完成？明講未做可避免虛假完成聲明，但唔會自動免除原需求；依收窄檢查核對是否獲准及仍欠什麼。",
       "why_not_a_checker": "個 diff 兩邊都係真嘢:個 error message 真係好咗,個型別真係準確咗。分別喺個 request 要嘅係邊樣,而嗰樣要讀個 request。",
-      "from": "X/Y 實驗第三個 brief:一個 bug report,用「令佢講得出」答"
+      "from": "X/Y 實驗第三個 brief:一個 bug report,用「令佢講得出」答",
+      "id": "request-fidelity:004"
     },
     {
       "check": "個 request 提到嘅輸入來源,係咪真係接咗。接咗一個 stub、一個 fixture、一個寫死嘅值、或者一個由 vendor 文件抄返嚟嘅預設值 —— 全部係一條 finding,除非個 request 本身叫你咁做。",
       "why_not_a_checker": "一個 stub 同一個真 client 喺結構上一樣:同一個介面、同一個回傳型別、同一批 test 綠。要知邊個係邊個,要讀個 request 講緊接乜。",
-      "from": "X/Y 實驗第二個 brief:讀 vendor 文件寫嘅預設值,冇讀過真嘅 server"
+      "from": "X/Y 實驗第二個 brief:讀 vendor 文件寫嘅預設值,冇讀過真嘅 server",
+      "id": "request-fidelity:005"
     },
     {
-      "check": "交付咗嘅嘢比個 request 窄:窄咗嗰部分有冇喺 diff、commit message 或者 ledger 度講出嚟。收窄本身唔係 finding —— 靜靜咁收窄先係。 個 request 講咗一個數或者一個集合(「所有 endpoint」、「六個 kind」、「每一個 caller」)嘅時候,收窄係數出嚟嘅,唔係睇出嚟嘅:列舉嗰個集合,逐個對返個 diff,講出幾多個到咗。**一次 grep 唔係一次列舉。** 七個做咗三個係一次收窄,而佢同「做咗」喺一眼掃過去嗰陣一模一樣 —— 呢條 check 捉唔到佢,唯一嘅原因係冇人數。",
+      "check": "交付比 request 窄時，指出未完成部分、user 是否同意，以及仍待處理嘅責任；自行披露唔等於獲准收窄。Request 講數目或集合時，完整列舉並逐項核對目前實作／交付證據，記幾多完成、缺少或獲准延期。一次 grep 唔係一次列舉。",
       "why_not_a_checker": "「有冇講出嚟」要讀散文,而讀散文然後判佢夠唔夠,就係 V3 嗰部機器。呢度個判斷係:一個人睇完之後,知唔知有嘢窄咗。",
-      "from": "SPEC §4.7:「收窄仍然做得到 —— 佢只係唔再靜」"
+      "from": "SPEC §4.7:「收窄仍然做得到 —— 佢只係唔再靜」",
+      "id": "request-fidelity:006"
     },
     {
       "check": "個 request 講咗一個驗收門檻(一個數、一個行為、一次要睇到嘅執行),邊一次執行滿足咗佢,喺邊度睇得返。一句「應該冇事」唔係一次執行。",
       "why_not_a_checker": "邊一句係門檻要讀個 request,而「呢次執行有冇滿足到」要對得返嗰句 —— 兩邊都係散文對散文。",
-      "from": "CLAUDE.md:「驗收門檻由請求者給出」"
+      "from": "CLAUDE.md:「驗收門檻由請求者給出」",
+      "id": "request-fidelity:007"
     }
   ],
-  "anti_patterns": [
-    "唔好報做多咗。呢個 lens 係單向嘅 —— 做少咗先係佢嘅問題。做多咗係 scope 嗰條 claim,而佢已經每個 task 問一次。",
+  "anti_patterns": [],
+  "reviewer_anti_patterns": [
+    "完成度與 scope 分開判斷。依本 lens 嘅必要性／越界改動問題核對原需求；已有等價 scope finding 時保持關聯，避免重複開單。",
     "唔好把個 request 覆述一次當一條 finding。一條 finding 要指出一個位:一個檔、一個 symbol、一樣應該喺度而唔喺度嘅嘢。",
     "唔好因為一段 request 係問候語、背景、覆述或者理由而報佢冇交付。個 request 大部分字元唔對應任何 symbol,而嗰個唔係缺陷。",
-    "唔好報一個 diff 自己已經講咗嘅缺口。commit message 或者 ledger 入面已經寫住「呢部分冇做,因為 X」嘅,係一個已經講出咗嘅收窄,唔係一個靜靜嘅收窄。",
+    "已披露缺口唔再算隱瞞，但仍須核對原需求是否完成或獲准收窄；披露本身唔係結案證據。",
     "唔好報「可以做得更通用」、「應該抽象出嚟」、「呢度可以加個 test」。呢三樣都唔係「你要嗰樣嘢有冇到」。",
     "唔好報命名、格式、註解密度。",
     "唔好因為 v4 cover --show 話某段「未有人講過」就報佢。嗰個係一張地圖 —— 未有人講過同冇做,係兩件事,而你要睇個 diff 先知邊件。",
-    "唔好用 --task 去指你審緊嗰個 task,除非有人明確叫你咁做。`review add` 嘅預設係掛喺常設 review task 度,而傳一個 task id 入去會令條 finding 掛咗落嗰個 task ——兩個唔同嘅地方,而 brief 嗰個例子冇 --task 就係預設嗰個。"
-  ]
+    "沿用本次 brief 明示嘅 repo/task/run 座標；task review 同 repo-wide review 嘅 finding 歸屬唔可以靠 ambient shell 變數猜。"
+  ],
+  "requires_context": true
 }

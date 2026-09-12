@@ -1,0 +1,1 @@
+{"test_command": "python3 -m unittest test_app", "policy": "allow_accepted_risk"}

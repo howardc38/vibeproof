@@ -339,7 +339,7 @@ finding.
 
 **6, 7 and 8 are reserved for kernel diagnostics; checkers should not return them.**
 This is a protocol rule, not authenticated proof of who produced the number.
-`CHECKER_TAMPERED = 6` (disk sha differs from the registered one),
+`CHECKER_TAMPERED = 6` (entry or program fingerprint differs from its registration),
 `SUBJECT_MOVED = 7` (the two hashes around the exec differ), `TIMEOUT = 8`. All
 three are written into `attempt.exit_code` by `runner` as diagnosis — **and
 `state` keeps them apart: 5 derives `CHECKER_ERROR`, 6 `CHECKER_TAMPERED`, 7
@@ -548,9 +548,16 @@ argument parser and false of the judgement. Measured: after one class of false
 positive was fixed in `kernel/analysis/dangling_ref.py`, the verdicts went from
 42 to zero, and **not one recorded PASS expired**.
 
-`disk_sha` (the entry file's own bytes) still exists separately and answers a
-different question — "are the bytes executing the ones that were registered"
-(exit 6 `CHECKER_TAMPERED`). Two questions, two answers, not to be merged.
+Registration records both the entry file's `sha256` and the existing transitive
+`program_sha`. A mismatch in either refuses execution with exit 6
+`CHECKER_TAMPERED`; re-registration must pass the fixtures again. The program
+must also stay unchanged throughout registration and a registered execution.
+Attempts continue to record the program fingerprint for staleness. Older
+registries retain their entry check and attempt staleness, while `doctor`
+explicitly warns that their dependencies have no registration fingerprint.
+`v4 install` re-gates installed checkers and records that fingerprint. This
+covers the local/shared sources and rule tables followed by `program_sha`,
+not arbitrary dynamic imports or third-party/interpreter installations.
 
 **`detector` has a narrower hash than `checker`:** it covers the entry file.
 Changes in shared analysis can also move the checker program hash, but this is
@@ -642,6 +649,12 @@ transcript-derived figures.**
 **A chain needs an anchor outside the ledger, or it verifies nothing.**
 <!-- pinned: kernel/ledger.py::chain_head_path -->
 <!-- pinned: kernel/ledger.py::write_chain_head -->
+<!-- pinned: kernel/ledger.py::_chain_anchor_prefix -->
+
+An anchor's count, last ID and hash must describe the same prefix, for both
+attempt and event chains. Non-integer/negative coordinates or contradictory
+prefix coordinates fail audit. Later rows may extend a correct older anchor;
+an old anchor is not required to equal the current tip.
 
 ```
 .v4/chain_head.json    {attempts, last_id, head_hash, scheme}    committed to git
@@ -960,7 +973,7 @@ So there are two more rules, and both are mechanical:
 
 | | |
 |---|---|
-| **A quote may not straddle two separately stated things** | The boundaries are `，。；?！` and newlines. **`、` is not a boundary** — in Chinese it separates items inside one clause, and the registration gate refused the first version on four green fixtures built from `我要佢識send相、片同檔案`. A one-sentence request is still accounted for by a single entry |
+| **A quote may not straddle two separately stated things** | The boundaries are `，。；?！` and newlines. A quote may retain its own clause's closing punctuation; it may not include the next clause's content. **`、` is not a boundary** — in Chinese it separates items inside one clause, and the registration gate refused the first version on four green fixtures built from `我要佢識send相、片同檔案`. A one-sentence request is still accounted for by a single entry |
 | **Every clause needs somebody to claim it** | A character ratio lets a short clause vanish quietly: two clauses weighing 20 and 2 read as 91% while the second was never mentioned at all. The measured failure ("no way to send a file from disk") is exactly this shape — a small span of the brief, and the whole of what was not delivered |
 
 Deliberately not doing something is still available: `--not-done --why`, a
@@ -1320,7 +1333,7 @@ means.
 
 ### `.v4/checkers.json`
 
-Written by `v4 register`, **not by hand**. Each entry: `path` · `sha256` ·
+Written by `v4 register`, **not by hand**. Each entry: `path` · `sha256` · `program_sha` ·
 `timeout_sec` · `kinds` · `fixtures` · `reads` (the globs it can read, §8.1).
 
 ### `.v4/detectors.json`
@@ -1407,6 +1420,92 @@ Opening appends a claim. Later note amendments and closing-test bindings append
 events rather than rewriting the original claim; a closing test is chosen after
 the claim exists.
 
+### Executable proof after a committed symbol rename
+<!-- pinned: kernel/review_renames.py::resolve_rename -->
+<!-- pinned: kernel/analysis/symbol_rename.py::prove -->
+<!-- pinned: kernel/review.py::rename_binding_digest -->
+
+`v4 review close --rename-commit <commit>` adds verified rename evidence to the
+existing closing test, command and parent-or-mutation proof. Repeat the flag in
+history order for multiple renames. This supports same-file Python functions
+and methods; each supplied commit must be an ancestor of HEAD with one parent,
+and prove one unique rename with unchanged enclosing scope, signature, decorators
+and AST body. Comments and formatting do not define function identity. A rename
+combined with a body change is not this proof; commit the two changes separately.
+An unrelated, missing, ambiguous or uncommitted target is refused.
+
+The producer resolves references to immutable commit IDs in the appended
+review_close event. The checker independently revalidates the history and live
+target, then still requires red, green and actual execution of the renamed
+symbol. Subsequent body edits are judged by fresh normal proof. The claim's ID,
+original file/symbol and history are never rewritten; checker output records
+both original and resolved execution coordinates. This is not an arbitrary
+symbol override, a retraction, a text closure or an accepted risk.
+
+For this route, all closing-proof parameters also enter the attempt's subject
+digest under review_close:rename_binding. Every executable closing binding now
+also hashes its parameters and actual closing-test bytes under
+review_close:proof_binding. Replacing/removing a binding or editing that test
+makes old evidence stale even when the product file did not change. A binding
+or test changed while a checker runs cannot be absorbed into its answer.
+
+When using a parent red control with rename evidence, that parent must be in
+the current history and already contain the validated renamed target. It is
+pinned to its full commit ID. A test failing only because the old parent lacks
+the new import name is not a behavioral red control; use a mutation or a parent
+after the rename and before the behavioral repair.
+
+### Executable proof for an old named-value coordinate
+<!-- pinned: kernel/review_coordinates.py::resolve_declaration -->
+<!-- pinned: kernel/analysis/review_coordinate.py::declaration -->
+<!-- pinned: kernel/review.py::closing_binding_digest -->
+<!-- pinned: kernel/redgreen.py::_node_declaration_executed -->
+
+`v4 review close --declaration --why <reason>` keeps the original review claim
+and appends an explicit coordinate correction to its normal closing-test
+binding. It is limited to a unique same-file top-level JS/TS simple value
+declaration. Both producer and checker revalidate it. Known function/arrow,
+nested, ambiguous, destructured or unsupported declarations are refused; there
+is no arbitrary replacement symbol. New recognized value findings are refused
+at `review add --symbol`; use file scope for those new findings.
+
+The Node inspector observes the exact executed source hash, actual initializer
+instruction entry and a subsequent observation of its non-function runtime value
+in the owning scope. This catches an indirect callable returned by a factory too.
+It opens no debug port and stores no runtime values or source text. Coarse V8
+function coverage cannot prove a declaration was reached after an earlier throw.
+Missing instruction/type evidence, transformed source bytes and browser-only
+declarations remain unproved. Normal behavioral red/green is still mandatory.
+No claim/note is rewritten and no risk is accepted by this correction. If the
+original alleged consequence was wrong, preserve that correction separately
+with the existing append-only `review amend` evidence.
+
+Closing-test source assertions use the Python AST, Go AST or shared JS/TS lexical
+reader according to the test file. An unavailable reader cannot return PASS.
+The JS/TS guard follows bounded local aliases from source-file reads into common
+assertions; JSON state readback and source used to build a mutation are distinct.
+This is not whole-program semantic proof. Existing baseline identities and
+structural/reflection limits remain; reviewers still judge behavioral relevance.
+
+### Browser execution evidence for an existing closing test
+<!-- pinned: kernel/browser_trace.py::observed -->
+<!-- pinned: kernel/redgreen.py::_run_traced -->
+
+The optional Playwright fixture adds Chromium V8 evidence to the existing
+red/green route. Exact served source bytes and function counts are matched to the
+target, with a fresh invocation identity and explicit browser provenance; Node
+coverage and a Python server's trace cannot substitute for browser observation.
+Compiled JS/TS can instead use the browser-observed source map: exact generated
+function-name segments must map to a unique original function/arrow name and
+matching sourcesContent hash. Missing, stale, cross-origin or unsupported maps
+do not prove execution. The red control must load its own exact target bytes too. Missing or unmappable
+coverage leaves the claim unproved. The
+[integration contract](../.v4/surface/INTEGRATION.md) owns setup and limitations,
+including transformed bundles, additional pages and navigation resets.
+For Node subprocesses, a zero-count function in an import-only parent is not
+conclusive until all matching V8 profiles have been read; a child's actual call
+still establishes execution.
+
 ## 8.7 How a new repo adopts this
 
 <!-- pinned: kernel/install.py::installable_kinds -->
@@ -1435,6 +1534,14 @@ Five things it will **not** do:
 | It does not install the framework's own | A kind can declare `applies_to: framework` in `claim_kinds.json`. `dead-wiring` reads `kernel/ledger.py`; `spec-coverage` resolves SPEC against `kernel/cli.py` — in a second repo they exit 4 or blow up |
 | It does not install a kind that has nothing to read | Every checker declares `reads: [glob…]` in `.v4/checkers.json`. <!-- pinned: kernel/analysis/subject_files.py::readable --> If not one file in the repo matches, it is not installed and its kind is not written into `claim_kinds.json` either. **This is the cross-stack safety net** — a Go tree has no `**/*.py`, so a Python-only checker is held back by the same machinery instead of being installed and returning PASS over source it never parsed. (Holding back is the default in absence; thirteen checkers later actually learned to read Go — see the end of §8.7.) Measured at the time on a Go repo with four real defects planted in it: **at the time** 15 of 27 checkers honestly returned exit 4, **8 returned 0 without having read one Go file**, and among them `dependency` said `PASS: no package manifest declares a dependency` over an unpinned `go.mod` with no `go.sum` |
 | It does not install a kind that cannot be answered | `applies_to: declared` plus `needs: <path>`. `layer-boundary` waits for `.v4/layers.json`, `control-plane-budget` waits for a ceiling. Measured: two of the twelve claims on a brand-new repo's first task were these, both permanently unanswerable, and the only way out was a signature per kind with nothing prompting for it. **A missing rule says so in `doctor`; a rule that blocks every task reads as a broken framework.** The moment the file appears, another `v4 install` installs it — and since `write_layers`, `layer-boundary`'s file does not have to be written from nothing: `install` drafts `<repo>/.v4/layers.json.draft`, and renaming it turns it on (see the `layer-boundary` section above) |
+
+<!-- pinned: kernel/cli.py::cmd_install -->
+An upgrade first validates the resulting lens corpus, including preserved
+adopter edits. If those edits are incompatible with the new catalogue, both
+`install --check` and installation refuse before changing adopter files or the
+configured hosts. An explicit `--hosts` choice selects candidate assets without
+first writing that choice into the adopter's config. This does not make later
+file I/O or fixture registration an all-or-nothing transaction.
 
 After installing, `v4 doctor` should say wired. It also warns about checkers that
 are **registered with nothing in this repo for them to read** (the §6 `--scope
@@ -1470,6 +1577,14 @@ TS/JS for now uses regexes over text with comments and strings stripped — a
 compromise watched by the bypass fixtures, and the day they stop holding is the
 trigger for bringing in a parser.
 
+<!-- pinned: kernel/analysis/symbols.py::ts_mask -->
+The quoted-string/comment readers share one lexical pass over the original
+source. A URL's `//` stays inside its string, and a quote inside a comment stays
+inside that comment. Masking preserves offsets and line breaks. The test count,
+expectation, symbol/import/export, facts and test-token readers use these same
+boundaries. This does not add full parsing of regex literals or nested template
+expressions; their existing bounded-reader limitations remain.
+
 Since 2026-08-24 these carry TS/JS in their `reads` — nine of them, not all,
 counted the same way: eight name `**/*.ts` and its siblings — `dangling-ref`,
 `fail-closed`, `layer-boundary`, `signature-change`, `test-expectation`,
@@ -1491,7 +1606,8 @@ guesses:
 | Test files are called `*.test.ts` | `yjs` uses `*.tests.js` |
 | A test is a call to `it()` | `yjs` writes `export const testXxx = tc => {}` (lib0/testing). Counting only `it()` finds **1** test across its 17 test files, which makes anything wrong in that repo entirely invisible; counting both forms finds 296 |
 
-Acceptance readings, outside the fixtures: `is_test` selects 406 of 406 test
+Historical acceptance readings (before the 2026-09-10 lexical-boundary repair),
+outside the fixtures: `is_test` selects 406 of 406 test
 files; `ts_count` finds 4,842 live tests, matching a hand count; `ts_resolve`
 resolves 4,578 of 4,600 relative imports (the 22 it misses are `.json`, `.css`,
 `?raw`).
@@ -1647,6 +1763,8 @@ and which tree it judges.
 | `.v4/`: config · facts · baselines · risks · checkers.json · detectors.json · installed.json · home | Per adopter | Not shared |
 | `.v4/fixtures/` | Per adopter (copied by `copy_files`, paths rewritten by `fixture_dest`) | Not shared |
 | `.v4/lenses/*.json` | Per adopter (copied by `copy_files`) | Not shared |
+| `.v4/surface/` | Optional runner helpers/integration contract, copied by `copy_files`; installer-owned bytes update, adopter edits are preserved | Not shared |
+| `.v4/lens_catalogue.json` · `.v4/review_contract.json` | Per adopter: stable source IDs, legacy views and orchestrator review obligations | Not shared |
 | `.github/monitor/*.md` | Per adopter (copied by `copy_files`) — **at the time** one kind's FAIL text pointed at it; since removed | Not shared |
 | `.claude/settings.template.json` · `.claude/commands/` · `.claude/agents/` | Per adopter (merge the hook entries into existing `settings.json`; create it from the template only when absent) | Not shared |
 | `.v4/ledger_export.jsonl` | Per adopter, **committed** | Not shared |
@@ -1666,14 +1784,17 @@ each, and the claims do not split into separate copies.
 <!-- pinned: kernel/install.py::copy_files -->
 
 A checker arriving in an adopter runs all of its own fixtures, and only after
-passing is it written into `.v4/checkers.json` **with its sha** — compared on
-every run afterwards, and exit 6 `CHECKER_TAMPERED` when it differs. Without the
+passing is it written into `.v4/checkers.json` **with its entry and program
+fingerprints** — compared on every run afterwards, and exit 6
+`CHECKER_TAMPERED` when either differs. Without the
 copy this mechanism has no subject: one framework update silently replaces the
 program judging you, and none of your answered claims knows.
 
 **The kernel has no such layer, so it is shared** — and `program_sha` charges
 for the sharing: it follows imports across into the framework, so editing a
-`kernel/analysis/` module expires an adopter's answered claims.
+`kernel/analysis/` module expires an adopter's answered claims. With a program
+fingerprint recorded at registration, the changed program must also pass the
+fixture gate before it can judge another claim.
 
 ⚠️ That sentence was false for a while. `program_sha` followed imports only
 within one repo, and an adopter's `kernel/analysis/` is not in their repo, so
@@ -1991,13 +2112,11 @@ different repo policy can make the unresolved claim blocking.
 <!-- pinned: kernel/review.py::check_text -->
 <!-- pinned: kernel/review.py::lens_brief -->
 
-Across 13 lens files and 303 checks, 185 dict-shaped checks are objects and 118
-string-shaped checks are plain strings — because a rule that sank from the
-checker layer has to carry the reason it **could not stay there**. The two shapes
-do not divide by file: 6 files are entirely objects (`prevention`, `devx`,
-`electrification`, `general-rule-one-false-instance`, `request-fidelity`,
-`near-miss`), and the other 7 mix both inside one file, with no file being all
-strings.
+Current shipped lenses use ID-bearing objects, including references to identical
+same-owner question text. The reader still accepts an adopter’s plain-string
+checks. The earlier mixed string/object corpus exposed a renderer bug: metadata
+was printed instead of the question. References now resolve before rendering,
+and a missing/cyclic responsibility is reported rather than omitted.
 
 The old `lens_brief` printed them with an f-string, so those objects **reached
 the reviewer looking like a Python dict literal** — and inside that literal is
@@ -2206,12 +2325,30 @@ executed turns into noise immediately in any real repo — and telling "this fil
 should have been exercised" from "this file having no test is correct" is the
 `test-sufficiency` lens's job.
 
+<!-- pinned: checkers/test.py::main -->
+The test checker recognizes Node's default/spec and TAP aggregate summaries.
+A successful process with zero passing tests, failed tests or cancelled tests
+does not pass; in particular, TAP `ok ... # SKIP` lines cannot make an all-skipped
+suite green. Recognized totals take precedence over words such as "0 tests" in
+a test's name. Reporter recognition does not extend the Python-only changed-file
+binding above, and cannot establish the honesty of an arbitrary declared command.
+
 ### Historical implementations of two rules recorded as owed
 <!-- pinned: kernel/analysis/signature_change.py::scan -->
 <!-- pinned: kernel/analysis/webhook_replay.py::scan -->
 <!-- pinned: kernel/analysis/pysource.py::reachable_nodes -->
 
 Both had been judged "owed", and both reasons needed correcting.
+
+Python signature-change and dangling-ref share package-aware relative import
+resolution, including `from . import module` and namespace children. An explicit
+package attribute is not presumed to be its same-named file. Unknown/dynamic
+bindings remain outside this static proof. Secret literal folding handles
+literal `str.join` inputs only; a dynamic separator cannot be dropped to invent
+a credential. This does not add TypeScript constant propagation. Python closure
+traces normalize dot/parent segments and distinguish checkout children from
+similarly prefixed sibling directories; the traced source path must stay inside
+the judged checkout.
 
 **`signature-change`** — the reason given was "the loose form produces 248 false
 matches on the reference repo". All 248 were name collisions: two unrelated
@@ -2300,7 +2437,7 @@ stands between a rule being true and a rule being writable as a checker is
 exactly this.
 
 ### One that was built and then removed
-<!-- pinned: .v4/lenses/prevention.json -->
+<!-- pinned: .v4/lenses/test-sufficiency.json -->
 
 `test-marker` — "a test that touches the network needs a marker". **Built,
 measured, removed.**
@@ -2311,7 +2448,7 @@ Telling "really goes out" from "mocked" means following fixtures, `monkeypatch`
 and `MagicMock` at once — and **a reviewer looking at the diff sees it at a
 glance**.
 
-It went to the `prevention` lens carrying that measurement. **This is the 78th
+It originally went to `prevention`; its stable responsibility now lives in the test-sufficiency lens, with the legacy view retaining its source identity. **This is the 78th
 instance of "the rule is true and not checkable", not a failure.**
 
 ### Three kernel-side repairs, each starting by reproducing the defect
@@ -2491,6 +2628,40 @@ and prints "The trigger succeeded and the row is not there". Throwaway is
 required — triggering into the live ledger adds a row on every check, and a proof
 whose side effect is data is one nobody can run twice.
 
+<!-- pinned: kernel/runtime_scope.py::select -->
+<!-- pinned: checkers/runtime_proof.py::run_one -->
+
+Each runtime checker invocation creates one fresh `{run_id}`, shared by its
+proofs and substituted into their triggers and truth queries. The truth provider
+must read the query from stdin and read back from the
+data owner without changing that state. The empty-query control runs **after
+each successful trigger and real query**, before the next trigger. The framework
+therefore puts no trigger between the two reads; it does not lock external
+writers. A control taken before the trigger can differ solely because
+the trigger wrote something; that difference does not prove the provider read
+the query. The control detects that failure shape, not every dishonest provider.
+
+Optional `covers` globs select proofs against the task's Git base, including
+staged, unstaged and untracked files and both sides of renames. Kernel-generated
+outputs use the existing `hashing.kernel_written` boundary, retaining their own
+ledger/registry checks; adopter config remains part of the change. Detector and
+checker share the applicability decision. When every proof is scoped, none
+matches, and both versions of every changed file are recognized as test-only
+or plain `.md`/`.rst` documentation, the detector records `not_applicable` and
+emits no claim. An existing claim's checker can answer exit 0 with the same
+scope explanation and an empty result list; it does **not** claim a runtime
+execution or generate a run ID. This uses the existing "scanned, nothing to
+verify" exit contract, without a new ledger state or risk signature.
+
+Explicit matching covers wins over file conventions: a repo whose runtime uses
+documentation/test-shaped files must cover those inputs. Inline Rust tests do
+not make an implementation module test-only. Unknown types, executable files,
+symlinks and unreadable versions are not exempt. A nonmatching runtime change
+still emits a claim and exits 4 until a relevant proof is supplied. Missing or
+unreadable bases retain repo-level execution; legacy unscoped proofs still run.
+This selects relevant declared probes; it does not infer complete semantic
+coverage of every changed feature.
+
 `surface-proof` **is answered here too**, and the probe is
 `tools/surface_probe.sh`. The kind asks "does the surface suite your repo already
 maintains still pass", and a framework's surface is its command line: the
@@ -2500,7 +2671,56 @@ teaches a newcomer (`init` / `doctor` / `task` / `derive` / `status`), and any
 non-zero exit, or any command that should print something printing nothing,
 fails. Many unit tests import `kernel` directly; CLI integration tests also exist.
 The dedicated surface probe adds an explicit end-to-end check of the documented
-entry route rather than assuming imports establish launcher behavior.
+entry route rather than assuming imports establish launcher behavior. Doctor may
+return its documented "not wired" result after a bare init; the probe verifies
+that diagnostic, not that the disposable repo has completed installation.
+
+<!-- pinned: kernel/surface.py::validate -->
+<!-- pinned: kernel/surface.py::prepare -->
+<!-- pinned: kernel/layout.py::surface_programs -->
+<!-- pinned: kernel/analysis/fail_closed.py::_ts_reporting_assignment -->
+<!-- pinned: kernel/analysis/fail_closed.py::_ts_reporting_call -->
+<!-- pinned: kernel/analysis/fail_closed.py::_ts_throw_leaves_boundary -->
+
+<!-- pinned: kernel/analysis/fail_closed.py::handlers_returning_cli_status -->
+Python CLI failure reporting also recognizes a handler that assigns a portable
+nonzero exit status and reaches a final return of that same local name. It needs
+a direct, unshadowed `__main__` exit call. Rebindings, early returns, zero or
+wrapping codes, loops and unsupported control flow do not receive this exemption;
+an ordinary library value-return is not inferred to be a process verdict.
+
+For result-returning APIs, the existing error-constructor-name and failure-dict
+rules also apply to the error slot of `(None, error)`. A plain `(None, text)`
+or ordinary data object remains ambiguous. As with `(False, error)`, the pair
+must be the final handler return and no other returning path may report success.
+This avoids treating a reported database-read failure as a swallowed exception
+without exempting an early success hidden beside a later refusal.
+
+The JS/TS fail-closed extractor recognizes a cleanup catch immediately followed
+by an unconditional throw. A containing try body or a handler's finally may
+intercept that throw, so those contexts retain the finding. This is a bounded
+control-flow rule, not a claim of complete JavaScript exception analysis.
+The installed JS surface adapters also enter the judging-program hash through
+the surface owner. Their installer-owned status excludes them from product
+diffs, not from proof identity; an installed replacement must expire old proof.
+Custom JS/TS failure-reporting calls use the existing adopter vocabulary table,
+with exact bare/dotted names and an empty default. A mention, declaration, other
+receiver or similarly named function is insufficient. The repo must first verify
+the real failure status/payload or visible channel; a configured name does not
+prove semantic correctness.
+
+Exit zero or printed test counts do not establish execution. The surface checker
+now requires a fresh runner receipt and checks planned/required case outcomes.
+The [shipped integration contract](../.v4/surface/INTEGRATION.md) owns its format,
+the optional Playwright helper and the existing worker/reviewer handoff. Browser
+proof requires declared case IDs, observed browser navigation and local managed
+servers without reuse. It does not certify business assertions or a malicious
+oracle. Unintegrated output-only runners fail the proof until their real results
+are connected. CLI repos can use their own runner without Playwright.
+
+`tests/browser/acceptance.py` is a separate, non-skipping real-browser lane with
+its test-only dependency under `tests/browser`; the Python suite does not claim
+to run that lane. The CI workflow installs Chromium and invokes it explicitly.
 
 > ⚠️ This passage used to say "**always exit 4, and that is correct** … and this
 > repo has no second suite". That stopped being true on `04db3e2` (2026-08-20),
@@ -2640,7 +2860,7 @@ because the denominator is mostly one-off by construction.**
 | **The write-block hook** | `hooks/write_block.py`. **It is not a boundary** — hooks are platform configuration, an agent can change them, and a platform without hooks has none of this. The `scope` checker is still the answer itself; this is early warning |
 | **A widen triggering engagement** | The `--why` **is** that engagement sentence, run through the same mechanical criteria, exempt from the duplicate check |
 | **`bundle-secret` (historical)** | Its static checker was built and later removed. No current registered kind verifies build artefacts; a future build probe should use a synthetic canary |
-| **Reviewer lenses** | 13 lenses and 303 checks in `.v4/lenses/`. Among those carrying a predecessor doctrine as their source, `STEP_7_AUDIT_LENS` produced `llm-agent-action-surface` (11 checks); `prevention` has 114, demoted from checker candidates. `v4 review lens --lens <name>` prints the brief |
+| **Reviewer lenses** | 13 active lenses carry 303 source responsibilities in `.v4/lenses/`; one additional coordination responsibility is in `.v4/review_contract.json`. The original 303 responsibilities remain mapped in `.v4/lens_catalogue.json`, and one LLM trust-boundary check was added. `prevention` is a legacy view of its 114 moved responsibilities, not an extra regular dispatch. Runtime/reliability owns 24 of those. `v4 review lens --lens <name>` prints the current resolved brief |
 | **Obligation reconciliation** | `v4 coverage`. **And it refutes the "332 categories" claim** |
 | **The three-arm experiment (phase 4)** | **Judged done by the repo owner on 2026-08-24; this row moved here from "not built yet".** Three things ran: ① the **2026-06 A/B experiment** over predecessor variants (bare / old / new-split-ON / new-split-OFF / new-fixed / old-fixed), 6 runs, ~$95, ~885K subagent tokens, a pre-registered locked rubric, blind review, mutation tests, Task B — which refuted the intra-phase split (+18% cost / +48% time) and is why `split_pipeline` was removed; the evidence is in the predecessor repo's git history (`git show d44ecbe^:research/2026-06-framework-eval/INDEX.md`). ② **§14's own oracle procedure** ran over two tasks, with the results in `RATIONALE.md` §14.2's ⚠️ box — and that run is where the "two assertions are asymmetric" design hole was found. ③ **The 113-question measurement**, in which the checkers since removed fired 2,589 times between them — the basis on which the `v4-trim-detector-layer` branch removed 11 checkers, recorded in that branch's `.v4/risks/*.json` signature reasons.<br><br>⚠️ **The shape `RATIONALE.md` §14.1 originally described (K = 5–8 tasks × three arms A/B/C, difficulty controlled by running one task three ways) was never run as written** — what ran is the three above. What this row records is that the question is no longer open, not that the original experimental design was executed |
 
@@ -2720,10 +2940,7 @@ for, as a map. **A map is not a checklist**: a span nobody spoke for was not
 necessarily left undone, and the lens has an anti-pattern saying in as many words
 that reporting one on that basis alone is not allowed.
 
-Seven checks, all dict-shaped, each carrying its `why_not_a_checker`. Eight
-anti-patterns, the first of which is "do not report doing too much" — this lens is
-**one-directional**, and doing too much is the `scope` claim, which is already
-asked once per task.
+The request-fidelity lens covers delivery and the necessary scope checks moved from Prevention. It preserves reasons for semantic review and keeps reviewer instructions separate from code-risk patterns. Existing implementation may fulfill a request without a new diff. Disclosing an omission does not itself authorize reduced scope or close a claim; missing original input is not a clean review.
 
 
 
@@ -2737,7 +2954,7 @@ not arrive looks like a gap when you go looking; this is not a gap — **somethi
 is there, it runs, it passes the gates, and it is not what you asked for. It
 passes precisely because it resembles it.**
 
-The five checks retain their review purposes. The shared lens now points to
+The original near-miss questions retain their review purposes alongside the responsibilities moved from Prevention. The shared lens now points to
 `examples/first-proof/run.py` and its executable regression test, available in
 both private and public distributions. It does not require either distribution
 to carry the other's Git history. The following table records historical design
@@ -2836,7 +3053,7 @@ v4 sweep --done --findings <n>    record a sweep: who reviewed, who only took a 
 v4 sweep --history    previous sweeps
 ```
 
-The schedule lives in `lens_sweep` in `.v4/config.json`:
+Review cadence lives in `lens_sweep` in `.v4/config.json`; this setting does not create a host job:
 
 ```json
 {"lens_sweep": {"every_days": 4, "weekday": 6, "not_before_hour": 3}}
@@ -2874,7 +3091,7 @@ the sweep side read `lens_reviewed`, so 13 reviewers taking briefs and none
 coming back still recorded `ran: 13` for that sweep — the layer meant to replace
 that self-report, wearing the ledger's name.
 
-`record` stores both now, and `v4 sweep --done` prints all three states:
+`record` stores both. An incomplete legacy `v4 sweep --done` returns 1 and does not advance complete-review cadence. Legacy evidence windows close at each attempt; versioned maintenance evidence is not borrowed by the legacy path. `v4 sweep --done` prints all three states:
 
 | Printed | Meaning |
 |---|---|
@@ -2885,7 +3102,7 @@ that self-report, wearing the ledger's name.
 **The only difference from the ship side is how a row is recognised as one's
 own.** Ship has a task and keys on `task_id = ?`; a sweep has none — by design,
 which is what `ledger.REVIEW_TASK` exists for — so `_lens_events` keys on the
-window plus "rows carrying no task". `v4 review lens --task T` records somebody
+window plus "rows carrying no task or maintenance run ID". `v4 review lens --task T` records somebody
 reading **T's diff**, and the back gate reads the code as it stands: two
 different subjects, and taking one as coverage for the other reports something
 that did not happen.
@@ -2908,6 +3125,84 @@ catch. **A coverage count reported too high hides an absence, and a finding coun
 reported too low hides an absence — the two windows are choosing the same
 thing.**
 
+
+
+
+#### Maintenance workflow and versioned review
+
+<!-- pinned: kernel/maintenance.py::start -->
+<!-- pinned: kernel/maintenance.py::finish -->
+<!-- pinned: kernel/maintenance.py::handoff -->
+<!-- pinned: kernel/attention.py::scan -->
+<!-- pinned: kernel/maintenance.py::wiring -->
+<!-- pinned: kernel/notifications.py::process_updates -->
+<!-- pinned: kernel/notification_receiver.py::manage -->
+
+Claude `/maintain` and Codex `$vibeproof-maintain` share one maintained workflow.
+The session running it is the orchestrator. It uses native reviewers, monitor,
+worker and checker-author roles; the kernel does not start a model. See
+`v4 maintain schema` for accepted control fields and the installed workflow for
+setup, once, recovery and notification operations.
+
+A run records its host/session, root, request/change input, selected/excluded
+lenses, source/config/facts/catalogue versions and limits. Required input missing
+is `not_evaluable`; actual inapplicability needs a reason. Every selected lens
+must return for that run/version, with finding counts tied to observed claim
+IDs. Pending or failed review handoffs and missing coordination assessments keep
+the run partial. Partial work can resume only against the same source; changed
+source requires a new run. Only completion covering the full applicable lens set advances cadence; a selected-lens run may finish without doing so. Criteria/facts/fixture/kernel changes make review due again within its configured time window. Complete review records coverage, not a guarantee of
+semantic correctness or closure of its findings.
+
+Attention reads current claim states in each task’s recorded worktree. A missing
+or foreign worktree is unknown, never substituted with the caller’s tree.
+`repo-review` is evaluated against the explicitly selected root. OPEN without an
+attempt first needs a check; STALE first needs its indicated derive/check route,
+not an assumed code repair. Doctor reports these current states, so an old PASS
+does not hide a later regression. SessionStart shows a dated cached summary when
+available and marks missing/expired observations; it does not run a full scan or
+create a development task.
+
+Maintenance has one shared run owner per Git common directory. Isolated read-only
+review can proceed while another worktree has development. Repairs require the
+existing explicit scope grant, a real open task in a separate worktree, and no
+other task occupying that target. Prepare and the immediate pre-dispatch check
+revalidate authorization/source/target; a conflicting host receipt is recorded
+as uncertain and must be reconciled. This is coordination discipline and local
+validation, not an operating-system boundary against arbitrary writes.
+
+Handoffs preserve original claim, repair task, run and actual host reference.
+Monitor supplies a concrete decision, reason, evidence and required outcome;
+worker supplies its actual result. Missing/contradictory replies do not mean
+success. A foreground result received before the host ID stays pending until the
+actual dispatch receipt arrives; it does not cause another dispatch. A semantic dispute is recorded for adjudication, not automatic risk
+acceptance. Settlement runs the original claim’s checker in the linked repair
+worktree. Late replies retain the settlement and flag conflicts. An authorized
+merge still needs new verification in the merged tree. Run/wave selection follows
+actual task dependencies and independent acceptance, not file count.
+
+The host owns its scheduled job. Setup updates/reads the real job before recording
+its ID, prompt, status and observation evidence. Doctor distinguishes installed
+entry, observed job, recorded scheduled execution and last complete review; local
+status cannot independently confirm that a job still exists. Desktop persistence
+and session-only scheduling are different capabilities. Pause/resume must change
+the actual host job, not just its local observation.
+
+<!-- pinned: kernel/maintenance.py::observe_schedule -->
+The schedule CLI validates supplied fields against its producer before writing.
+Missing/extra arguments return exit 2 without replacing the previous observation;
+`observed_at` is generated by the kernel and is not an input field.
+
+Telegram configuration and outbox are private transport state. A sent API receipt
+is not user acknowledgement. Callback acknowledgement is bound to bot, recipient,
+notice ID and revision, persisted before advancing the bot-wide cursor; it does
+not close claims or grant repair permission. Old revisions cannot acknowledge a
+regression. Retries/reminders are bounded; an uncertain send needs reconciliation.
+One pure-I/O receiver per bot handles multiple repos independently of lens cadence.
+On macOS an explicitly started owned launchd service supervises it; other OS
+service management is not implemented here. Existing webhooks are not taken over.
+Receiver downtime beyond Telegram’s retention window leaves an explicit
+confirmation gap. Real phone delivery/ack validation requires authorized live
+credentials and cannot be replaced by transport or service-fixture tests.
 
 
 ### 10.2 A ship is not held for a lens not having run, and that is a measured decision
@@ -3059,6 +3354,12 @@ hold.
 | `test-token-shape` | Neither. As with test-shape: a test asserting on rendered text hides nothing, it just proves less than it looks like it proves. |
 | `test-weakened` | Neither. The coverage is already gone, and the verdict is about something that has already happened — signing today and signing before bed **do not change a word of it**. Measured: 42 claims in this repo, 42 correct verdicts, not one false positive — it is not noise, it is a well-aimed question whose timing can move. |
 
+`status --task` rejects an unknown task with exit 2, as do `derive`, `check`,
+`ship` and `scope show`; an empty report must not imply an unknown task passed.
+In status JSON, `terminal` counts terminal states; `not_blocking` can include
+OPEN report-only findings. Explicit `review add --task repo-review` creates the
+same standing task as the omitted form; other task IDs must already exist.
+
 #### May be left, may not be left forever
 
 <!-- pinned: kernel/config.py::DEFAULT_THRESHOLDS -->
@@ -3193,8 +3494,7 @@ SHIP
    case is not a mini-repo, paths resolve against the real repo root, and every
    case fails for a reason unrelated to the checker.
 
-   A case can carry four things, each discovered by a green fixture failing for an
-   unrelated reason:
+   A case can carry the following inputs:
    - its own `.v4/` (a mini-repo case) — a checker that reads config exits 4 forever
      in a directory that has none
    - its own `params` — the same checker in a different variant
@@ -3204,6 +3504,10 @@ SHIP
      anything: the fixture has to supply what the file was at the parent commit and
      what it is now. Without it, a checker verifying whether a test fails at the
      parent only ever sees one state inside the fixture
+   - **`commit_current: true`** — after restoring the current files, commit that
+     snapshot as a child of the fixture base. This lets a rename-history checker
+     inspect a real committed transition. Omitted, the existing working-tree
+     fixture behavior is unchanged.
 5. .v4/claim_kinds.json          add a kind
 6. v4 register --id … --checker … --fixtures … --kinds …
 ```
@@ -3284,6 +3588,14 @@ this SPEC built a system **nobody uses**. The table of four roles lived in
 checks; role independence, blind reading and complete review remain host/prompt
 requirements where no enforcement is listed.
 
+`/run` resumes an existing request's unfinished task and defaults to an awaited
+worker call for a single task. An orchestrator using background roles retains
+their IDs and waits for actual results; a stopped role is incomplete. The worker
+keeps negative/mutation controls in isolated copies or worktrees so interrupted
+experiments cannot leave the task's real tests weakened. These are workflow
+requirements in the maintained prompts; Stop's documented once-only block is
+unchanged and does not guarantee that a model completes a headless invocation.
+
 | Role | Produces | May not | Enforced by |
 |---|---|---|---|
 | `task-splitter` | a task plus a set of scope globs | — | `v4 task --scope` stores scope; derivation filters claims, and hooks/checkers judge writes and the resulting diff |
@@ -3338,10 +3650,15 @@ mechanism.** After `/wave`, each cut runs steps 4 to 7 of `/run` inside its own
 tree; after `/sweep`, each reviewer runs `reviewer.md`. Both files exist because
 "at once" has one point that depends on a person remembering, and they do not:
 
-- `/wave` — each worker needs `export V4_TASK=<id>`. Without it the write hook
-  judges against the **most recent** open task's scope (`hooks/write_block.py`
-  says so itself: "Two tasks open and no `V4_TASK`: the guard has no way to know
-  which one this is"), measured twice in one day on the reference adopter.
+- `/wave` — each worker needs an identity the hook can read. The write hook
+  selects the task recorded for **this worktree** (`task_worktree`), and where
+  that still leaves more than one it refuses rather than guessing — it does not
+  fall back to the most recent open task. A host session or subagent binds with
+  `v4 host bind`; `V4_TASK` is only read from the environment the host itself
+  was started in, so a shell export inside a tool call does not reach the hook.
+  The reference-adopter note about two tasks left open twice in one day is
+  historical context for requiring an unambiguous assignment, not a statement
+  that the current hook selects the most recent task.
 - `/sweep` — reading blind. `reviewer.md` already marks that as unenforced, and
   the only place the discipline can hold is whoever spawns the sub-agents not
   passing it down. Measured: `11 lens(es), 214 finding(s)` in this repo, and the
@@ -3359,6 +3676,33 @@ each time is no limit at all, and every round adds claims to an append-only
 ledger.
 
 ---
+
+### Codex host integration
+<!-- pinned: kernel/hosts.py::selected -->
+<!-- pinned: kernel/host_binding.py::bind -->
+<!-- pinned: kernel/analysis/patch_paths.py::paths -->
+<!-- pinned: hooks/session_context.py::main -->
+
+The `host` command binds host sessions/agents to open V4 tasks and reads host
+hook coverage. `host permissions` emits a local permission proposal; it does
+not activate it. `init` and `install` accept `--hosts` values `claude`,
+`codex` or `both`; omitted selection keeps Claude as the initial default.
+`install --activate-hooks` merges selected handlers without changing host trust.
+
+`hooks/session_context.py` supplies SessionStart/SubagentStart identity for both hosts.
+`hooks/write_block.py` also accepts apply_patch and checks every source and
+rename destination before allowing the call. `hooks/stop_gate.py` handles
+Stop/SubagentStop with explicit bindings, and never selects a task solely from
+a shared Codex parent session. Linked worktrees find the framework through the
+shared Git-common-dir/v4/framework-home marker.
+
+Codex artifacts include `.codex/hooks.template.json`, `.codex/config.template.toml`,
+`v4-task-splitter`, `v4-worker`, `v4-reviewer`, `v4-checker-author`,
+`v4-monitor`, and `vibeproof-run`, `vibeproof-wave`, `vibeproof-sweep` skills.
+They are projections of the maintained Claude prompts, checked by
+`tools/render_host_assets.py` and spec-coverage. Doctrine is generated into
+CLAUDE.md and/or AGENTS.md according to the selected hosts. Workflow and
+permission limits are in `docs/CODEX.md`.
 
 ## 13. The command table
 <!-- pinned: kernel/cli.py::main -->
@@ -3380,6 +3724,7 @@ whether it mentions them — a document with no list has no incomplete list.
 
 | Command | What it does |
 |---|---|
+| `v4 host` | `bind` a host session/agent to an open task, `status` for recorded coverage, or `permissions` for a local profile proposal |
 | `v4 init` | Creates `.v4/` for a new repo (config · claim_kinds · two empty registries). It **does not guess** `test_command`, and writes no facts template — see §13.6 |
 | `v4 install` | Copies eligible checkers, detectors, fixtures, lenses and hooks, **registering gated programs through their fixture gates**, regenerates `CLAUDE.md`, and writes a `bin/v4`. See §8.7 |
 | `v4 accept` | Runs all of this repo's own gates at once, on a tree with **no local state**: the declared test command, every checker against its fixtures, every detector likewise, and the four checkers that ask about the whole tree rather than this diff. It takes the **index** (`git write-tree`) rather than HEAD — what is uncommitted is what needs verifying. `--here` skips the archive; CI runs this. **Why the archive: `.git/v4/` is not cloned, so anything that only holds because of local state dies exactly here** — measured (**at the time**) at `7d8f9c0`: 2 of 31 checkers failed to register in a clone and nowhere else |
@@ -3404,6 +3749,7 @@ whether it mentions them — a document with no list has no incomplete list.
 | `v4 remerge` | Asked after a merge: which repo-scoped answers are now about a tree that no longer exists (§10, "`v4 remerge`"). Subject-scoped ones do not move, and it is capped like `ship` |
 | `v4 engage` | Writes the sentence a claim asks for (§9) |
 | `v4 review` | Raises a reviewer finding, or closes it (§8.5). `group` records a reviewer's judgment that several findings share one fact; it does not automatically prove or close them |
+| `v4 maintain` | Coordinates versioned review, authorized repair handoffs, host job observations and private notifications; `status` is read-only and host/native proof remains separately required |
 | `v4 sweep` | The back gate is periodic (§10.1): is it due, what would run, `--done --findings <n>` to record that it ran, `--history` for previous ones. `--if-due` exits 1 when it is not due, so cron stands down. **It does not review** — it prints the brief and records that it happened |
 | `v4 doctor` | Is this repo actually wired, or does it only look it |
 | `v4 explain` | Which program judges a claim. From the kind to the checker, the detector, and the module inside `kernel/analysis/` that reaches the judgement — a chain that used to take four manual steps, two of them JSON no command ever printed |
@@ -3452,8 +3798,47 @@ v4 --repo . audit --events .v4/ledger_export.jsonl # works with no database
 
 `verify_exported` deliberately **does not reuse** the live walk: the live walk
 reads the very rows it is judging, and a tampered database feeds it a
-self-consistent lie. The export has to stand on its own, because that file is
-all an auditor should need.
+self-consistent lie. The export set has to stand on its own without access to
+the live database.
+
+<!-- pinned: kernel/ledger.py::_write_export_projection -->
+<!-- pinned: kernel/ledger.py::_load_export_projection -->
+
+**Legacy export-time redaction has a separate verification scope.** New ledger
+inserts already redact before hashing. An old row hashed over a secret cannot
+have that original hash re-derived from its redacted public bytes. A normal
+export now creates an adjacent `<export>.projection.json` when such rows exist:
+it first checks each original event's hash against the source ledger and checks
+that the exported row is exactly its current redaction. The sidecar commits to
+the redacted row, original hash and complete segment inventory/file digests.
+Sealed bytes and original ledger rows are not rewritten.
+
+Commit the sidecar with the export set. `audit --events` verifies these public
+commitments without the database, still checks predecessor links and anchors,
+and explicitly reports how many events use redacted projections instead of
+original hash derivation. `doctor` reports that valid case as WARN, not BAD or
+an unqualified clean original chain. Missing, stale, malformed or mismatched
+proof remains a failure; an invalid/missing original event hash or a change not
+explained by redaction is refused during export. The mutable open export can already have
+been written when that refusal occurs; no successful projection is claimed.
+
+The final open anchor now requires a cumulative event count and event head,
+including the sealed prefix. Export checks that the sealed event rows agree
+with its saved offset before carrying the prefix forward. Audit rejects a
+missing/mismatched event anchor, including an empty event chain: deleting the
+legacy row and sidecar together must not turn it green. Older sealed anchors
+may omit these fields; a normal export refreshes the mutable final anchor, so
+they do not need editing. **Older open exports need one re-export on upgrade.**
+If the original ledger is gone, this completeness evidence cannot be invented.
+
+This is not a signature or a recovery of deleted information. Someone who can
+rewrite both the export and all matching commitments can forge a consistent
+view, as with rewriting the original chain and its anchor. Git history and
+review anchor the commitment. If the original ledger is unavailable, do not
+manufacture a proof from the redacted file alone; that legacy gap stays visible.
+The commitment does not replace secret scanning. If sealed bytes no longer
+match current redaction, preserve them and generate a reviewed fresh export
+destination from the original ledger; do not relabel unsafe old bytes as safe.
 
 `.v4/ledger_export.jsonl`, like `.v4/chain_head.json`, is **excluded from the
 worktree digest** — the kernel may not move the tree it is judging. `ship`
@@ -3725,17 +4110,28 @@ rules disappear.
 
 | Where it landed (`landed`) | Rules |
 |---|---:|
-| `CLAUDE.md` (layer ①) | 84 |
-| `.v4/lenses/prevention.json` | 113 |
-| `.v4/lenses/near-miss.json` | 1 |
-| `.v4/lenses/` (the eight that already existed) | 30 |
-| `.v4/lenses/observability-debuggability.json` | 1 |
-| `.v4/claim_kinds.json` (layer ④) | 19 |
-| `checkers/test_token_shape.py` (layer ②) | 1 |
-| `checkers/test_shape.py` (layer ②) | 2 |
-| `checkers/dangling_ref.py` (layer ②) | 1 |
-| `owed` — a rule with no landing site yet, recorded as such | 1 |
-| `not-applicable` — a rule recorded as not applying here | 1 |
+| `CLAUDE.md` | 84 |
+| `.v4/claim_kinds.json` | 19 |
+| `.v4/lenses/observability-debuggability.json` | 10 |
+| `checkers/test_token_shape.py` | 1 |
+| `.v4/lenses/architecture-fit.json` | 7 |
+| `owed` | 1 |
+| `.v4/lenses/test-sufficiency.json` | 13 |
+| `.v4/lenses/devx.json` | 10 |
+| `.v4/lenses/security-permission.json` | 14 |
+| `.v4/lenses/config-hardcode-secret-placement.json` | 9 |
+| `.v4/lenses/implementation-layer-boundaries.json` | 8 |
+| `.v4/lenses/runtime-reliability-performance.json` | 24 |
+| `checkers/test_shape.py` | 2 |
+| `.v4/lenses/near-miss.json` | 5 |
+| `.v4/lenses/electrification.json` | 4 |
+| `checkers/dangling_ref.py` | 1 |
+| `.v4/lenses/request-fidelity.json` | 4 |
+| `not-applicable` | 1 |
+| `.v4/lenses/llm-agent-action-surface-conditional-when-system-includes-llm-agent.json` | 5 |
+| `.v4/lenses/` | 30 |
+| `.v4/review_contract.json` | 1 |
+| `.v4/lenses/general-rule-one-false-instance.json` | 1 |
 | | **254** |
 
 **Two moved out of layer ④ on 2026-08-09, and both moves were measured by the
@@ -3849,3 +4245,34 @@ Opting in is `"doctrine": true` in `.v4/config.json`, and the opt-in has to be
 explicit — inferring it from "every directory with a `.v4/` owes one" turns
 every fixture case red, because a fixture is a mini-repo with a config and no
 need for standing rules.
+
+
+### Protected source paths and Git staging
+
+<!-- pinned: kernel/analysis/shell_command.py::_stages_source -->
+
+Ordinary noninteractive `git add` reads the named working files and updates Git
+index/object metadata. The shell analyzer recognizes this distinction so naming
+an authorized checker/registry file does not falsely become a source rewrite.
+Explicitly protected Git metadata is still refused; editor/patch interaction or
+Git-directory/configuration overrides do not inherit the source-read allowance.
+Redirections and later commands are still checked independently. This does not
+grant Git permissions or make the shell analyzer a sandbox.
+
+
+### Worktree checker program identity
+
+<!-- pinned: kernel/layout.py::framework_home -->
+<!-- pinned: kernel/hashing.py::program_sha -->
+<!-- pinned: kernel/config.py::checker_sha_on_disk -->
+<!-- pinned: kernel/runner.py::run_checker -->
+
+Framework location readers understand both the untracked local marker and the
+Git-common framework marker used by sibling worktrees. Generic program hashing
+can inspect that selected source; runner/config verdicts explicitly use the
+framework directory supplied to actual checker subprocesses. Relative checker
+paths resolve against the requested repository, not the caller’s directory.
+This keeps an unchanged program’s identity portable across identical worker and
+merged trees while a real shared-module edit still invalidates its proof. Old
+attempts are not rewritten to manufacture compatibility; rechecking produces
+new evidence under the corrected program identity.

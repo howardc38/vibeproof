@@ -48,6 +48,21 @@ jobs:
       - name: Public demo
         run: python3 examples/first-proof/run.py --quiet
 
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+      - run: npm ci --ignore-scripts --prefix tests/browser
+      - run: tests/browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Real browser proof and false-green controls
+        run: python3 tests/browser/acceptance.py --out "$RUNNER_TEMP/v4-browser-proof"
+
   provenance:
     runs-on: ubuntu-latest
     steps:

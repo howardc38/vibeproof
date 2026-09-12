@@ -10,6 +10,7 @@ the behavior and record whether code or explanation needs repair.
 | Document | Purpose | Verification |
 |---|---|---|
 | [SPEC.md](SPEC.md) | Mechanism/contract reference, with dated historical examples distinguished from current behavior | Implementation pins, command/flag checks, registry/count checks and semantic source review |
+| [CODEX.md](CODEX.md) | Claude/Codex host installation, identity, hooks and permission boundaries | Native disposable-adopter tests and generated-asset checks |
 | [USING.md](USING.md) | Operating sequence for a task | CLI examples and source review; examples do not become a second contract |
 | [FACTS.md](FACTS.md) | Facts format, provenance and updates | Executable grammar, citation checks and review of vocabulary completeness |
 | [REFERENCE.md](REFERENCE.md) | Derived summary of behavior and limits | Recheck against code/SPEC when relevant sources change |
@@ -30,6 +31,7 @@ same canonical source change when behavior moves.
 | [../CLAUDE.md](../CLAUDE.md) | Generated doctrine from `kernel/doctrine.py` and this repo's registries; `registry-consistency` compares the generated block |
 | [../.claude/agents/](../.claude/agents/), [../.claude/commands/](../.claude/commands/) | Host workflow prompts for the roles described in SPEC; their presence is not proof of execution or independence |
 | [../.github/monitor/](../.github/monitor/) | Monitor instructions and host permissions, with the specific enforced CLI guards distinguished from discipline |
+| [../.v4/surface/INTEGRATION.md](../.v4/surface/INTEGRATION.md) | Surface runner receipt contract and optional Playwright adapter; shipped to adopters, exercised by the dedicated browser acceptance lane |
 | [../AGENTS.md](../AGENTS.md) | Where maintainers edit and how they preserve the source/release boundary |
 
 ## Historical evidence and design rationale

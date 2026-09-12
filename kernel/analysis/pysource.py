@@ -16,6 +16,7 @@ Four copies of an answer is four chances to fix three of them.
 """
 
 import ast
+from pathlib import PurePath
 
 
 def docstring_ids(tree) -> set:
@@ -162,6 +163,12 @@ def _resolve(node, package: str):
     if node.module:
         base += node.module.split(".")
     return ".".join(base)
+
+
+def import_from_module(node, caller_relative_path):
+    """Resolve an import from the caller's own package, including namespaces."""
+    package = ".".join(PurePath(caller_relative_path).parent.parts)
+    return _resolve(node, package)
 
 
 def handed_over(call: ast.Call):
