@@ -2,33 +2,51 @@
 
 # vibeproof
 
-### Your coding agent says “done”. See what was actually checked.
+### Your agent says done. What proves it?
 
-You asked for a working change. The agent gave you a green test run. Did that run even touch the code it changed?
+**Does it work? Is the fix proven? Does the proof still apply after another edit?**
 
-vibeproof adds executable checks to Claude Code and Codex tasks and keeps the results tied to the code they examined. Start with a deliberately broken discount calculation: **100 − 20 returns 120, yet the tests pass.**
+vibeproof connects Claude Code and Codex tasks to executable checks, repair evidence and current results. Start with a deliberately broken discount: **100 − 20 returns 120. The tests still pass.**
 
-**Claude Code and Codex adapters for git repos. Best first fit: a Python project with an existing test suite.** The dual-host path is validated on macOS; host setup, trust and coverage limits are in [CODEX.md](docs/CODEX.md).
+[![Three moments: green tests with a wrong total; a repair verified before and after; another edit makes the old evidence STALE.](docs/launch/assets/v4/images/hero-en.png)](docs/launch/assets/v4/demo-en.mp4)
 
-![Green tests can still leave a change untested. vibeproof reports the missing execution evidence.](docs/launch/assets/v4/images/hero-en.png)
+[Watch the narrated demo](docs/launch/assets/v4/demo-en.mp4) · [Run it yourself](#run-it-yourself) · [Use it in your repo](docs/GETTING_STARTED.md)
 
-[Watch the narrated demo](docs/launch/assets/v4/demo-en.mp4) · [Try it locally](#try-it-locally) · [Use it in your repo](docs/GETTING_STARTED.md)
+**Best first fit:** an existing Git repo with a real Python test suite, where you already use a coding agent and spend time checking its work. Claude Code and Codex adapters share the kernel; native host validation is on macOS. [Host setup and limits](docs/CODEX.md)
 
-The video was recorded for the 2026-09-05 demo baseline. Run the command below to verify the current checkout.
+## One change. Three things worth checking.
 
-## Three familiar problems
+### 1. Green tests. Wrong result.
 
-| What happened | What vibeproof adds |
-|---|---|
-| “All tests pass”, but the new behavior was never tested | Runs your suite; for eligible Python changes, flags when the run executed none of the changed files |
-| Tests disappeared during a “refactor” | Compares live-test counts against the starting commit and reports decreases |
-| “Just fix this” turns into edits elsewhere | Claude Write/Edit and Codex apply_patch hooks check the task's allowed paths |
+The cart should total **80**, but returns **120**. An unrelated `2 + 2` test stays green. The ordinary Python checker reports:
 
-These checks have limits. A file being imported is not a behavior test. A test-count check does not establish assertion quality. Test deletion is report-only by default, and hooks are not a security boundary. [Read the exact limits](docs/REFERENCE.md).
+```text
+the suite passed and executed none of the 1 changed file(s):
+  checkout.py
+```
 
-## Try it locally
+That exposes missing execution evidence. It does not establish that every changed line was tested: importing a file can pass this ordinary check.
 
-You need **Git and Python 3.12+**. Use macOS or Linux; native Windows is not validated. This demo needs no packages, API key or coding-agent subscription.
+### 2. A fix that earns its proof.
+
+A new regression test calls `total(100, 20)` and expects `80`. It fails on the broken implementation. After the fix, the review checker verifies **the same test fails before the fix, passes after it, and executes the target function**. An unrelated green test is refused as repair evidence.
+
+This is proof for the demonstrated repair. The test still needs a meaningful assertion; it does not prove every requirement or branch.
+
+### 3. Another edit. The old proof expires.
+
+The demo records a real checker attempt in a temporary ledger, then changes `checkout.py` again. The kernel reports:
+
+```text
+ANSWERED → STALE
+its subject moved: checkout.py
+```
+
+The old successful attempt stays in the history. It no longer counts as current evidence. `STALE` means revalidation is needed, not that a new bug has already been found. Restoring the exact checked source makes that evidence applicable again.
+
+## Run it yourself
+
+You need **Git and Python 3.12+**, on macOS or Linux. Native Windows is not validated. No packages, API key or coding-agent subscription are needed for this demo.
 
 ```sh
 git clone https://github.com/howardc38/vibeproof.git
@@ -36,104 +54,69 @@ cd vibeproof
 python3 examples/first-proof/run.py
 ```
 
-The demo builds a temporary repo and runs real checkers. It does not install the framework into your project. After cloning, it runs offline.
+The script creates and removes a temporary repo. After cloning, it runs offline and does not install the framework into your project. **Expected FAIL output is part of the demonstration; success ends with `DEMO VERIFIED`.**
 
-A 20-unit discount on a 100-unit cart should leave **80**. The deliberately wrong edit returns **120**, while an unrelated test stays green. vibeproof reports:
+The images and videos replay measured output from the **2026-09-14 constructed example**, including real checker execution and kernel evidence-state queries. Narration is synthetic and the presenter portrait is fictional. These are not a captured AI conversation or a complete installation/ship run. [Source, transcript and controls](examples/first-proof/README.md)
 
-```text
-the suite passed and executed none of the 1 changed file(s):
-  checkout.py
-```
+## Why keep it for the next task?
 
-Then a real regression test fails, the implementation is repaired, and the review checker verifies three things: **the test fails before the fix, passes after it, and executes the target function**. The demo also runs negative controls that show what the checks cannot prove.
-
-**Expected FAIL output is part of the demo.** Success ends with `DEMO VERIFIED`. This is a constructed example with real command output, not a captured AI conversation or a full `ship` run. [Inspect the source and transcript](examples/first-proof/README.md).
-
-## Why use the framework beyond one check?
-
-| The next problem | How the workflow helps |
+| When the work gets messy | What stays connected |
 |---|---|
-| The agent edits again after a PASS | Relevant input changes make old evidence stale, so that answer cannot keep counting as a current pass |
-| A reviewer says “fixed” without a useful regression test | A typed review finding can require the same test to fail before, pass after, and execute the target function |
-| A warning should not stop today's task, but should not disappear | Report-only findings and attempts stay in the ledger; ship policy determines whether they hold the task |
+| The agent changes code after a successful check | Current input hashes determine whether the earlier evidence still applies |
+| A reviewer finds a defect | The finding can be tied to an executable repair test, instead of ending at “fixed” |
+| A worker reports completion | Maintenance can run the checker in the linked repair worktree and read back the original finding's state |
+| A finding can wait | Report-only claims and attempts remain in the ledger; task policy determines whether they block |
+| A review is interrupted or the source changes | Maintenance distinguishes partial, complete and stale review results |
 
-These are reasons to try the combination, not claims that no other tool offers similar features. Your existing tests still decide what correct behavior means.
-
-## What is included, and how does it work?
-
-vibeproof connects a task's checks, review findings and current evidence in one workflow:
-
-```text
-Request + scope → task
-                  ├─ detectors → claims
-                  └─ lenses + reviewer → review findings
-Claims → engagement where required → checkers → recorded attempts
-Current claim states + policy → HELD, or SHIP with remaining reports
-```
-
-**Claims and checker attempts go into the ledger whether they block ship or only report.** Gate mode decides what holds the task; it does not decide whether the finding is remembered.
-
-| Included | What you get |
-|---|---|
-| Workflow helpers | Claude agent/command templates plus generated Codex roles and skills for run, sweep, wave and maintain |
-| Hooks | Earlier checks on supported writes, shell commands and stopping; scope is also checked against the resulting diff |
-| Detectors → checkers | Programs raise applicable questions; separate programs execute checks and record their results |
-| Review lenses | Structured review of design fit, request fidelity, test sufficiency and other areas beyond mechanical patterns |
-| Ledger + evidence lifetime | Open questions, attempts and decisions stay attributable to tasks; relevant input changes invalidate old answers |
-| Ship policy | Some kinds block immediately; others remain visible reports and can escalate at configured thresholds during task evaluation |
-| Runtime / UI proof | Runs the real trigger, truth query or UI suite that your repo declares |
-| Checker registration | Exercises red/green/bypass fixtures and repeatability before a checker is accepted into the registry |
-
-Agent/command files and lenses guide behavior; their presence does not prove an agent followed them. A review finding without an explicit task goes to the standing `repo-review` task and does not automatically block another task's ship.
-
-Existing coverage, test-locking and scope tools can solve individual checks. The reason to consider this framework is coordinating questions, reviews and still-valid evidence across a task's edits. [Full feature and command catalog](docs/FEATURES.md) · [Code-grounded comparison](docs/launch/POSITIONING.zh-TW.md)
+Recurring maintenance needs a real host-scheduled job; repairs need an authorized scope. A delivered or acknowledged Telegram notice does not close a finding. [Maintenance operation](docs/USING.md#periodic-maintenance-and-findings)
 
 ## Use it in your repo
 
 [Follow the adoption guide →](docs/GETTING_STARTED.md)
 
-Your agent can run the lifecycle commands. You provide the requested outcome, allowed files, real test command and decisions about unresolved risks. The guide includes a pasteable agent prompt and preserves existing Claude settings when connecting hooks.
+You provide the requested outcome, allowed files, real test command and decisions about unresolved risks. The guide includes a pasteable agent prompt. Full installation adds checkers, detectors, fixtures, hooks and prompts, verifies fixtures, and asks you to confirm facts about your repo. It takes longer than the short demo.
 
-Full installation adds checkers, detectors, fixtures, hooks and prompts to your repo and runs fixture checks. It takes longer than the standalone demo. It also asks you to confirm facts about external writes and auth; it is not a one-click guarantee.
+**Choose your host:** installation defaults to Claude Code. Use `--hosts codex` or `--hosts both` for Codex. `--activate-hooks` merges framework handlers while preserving unrelated settings; Codex hooks also need review and trust in the host. [Task binding and permissions](docs/CODEX.md)
 
-The working loop is:
+| Work to do | Claude Code | Codex |
+|---|---|---|
+| Make one scoped change | `/run` | `$vibeproof-run` |
+| Coordinate tasks in separate worktrees | `/wave` | `$vibeproof-wave` |
+| Review current code through applicable lenses | `/sweep` | `$vibeproof-sweep` |
+| Inspect findings and coordinate maintenance | `/maintain` | `$vibeproof-maintain` |
 
-```text
-Request + allowed files → derive checks → edit + test → inspect results → ship decision
-```
+## What else is included?
 
-An old pass becomes stale when relevant code or checking inputs change. `SHIP` is the framework's configured decision, not a deployment command or a guarantee that every requirement was met.
-
-## What else can it check?
-
-Selected swallowed-error and external-write patterns; committed credential patterns; changed call signatures and dangling references; and configured UI/runtime proofs. The exact coverage depends on your language, declared facts and test environment. [Technical reference](docs/REFERENCE.md)
-
-| Area | Current support |
+| Capability | What it adds |
 |---|---|
-| Automatic hooks | Claude Code and Codex; see [host setup](docs/CODEX.md) |
-| Ordinary suite execution tracing | Python; file-level, not complete branch or assertion coverage |
-| Review repair proof | Python, Go and Node/V8 paths; runner-dependent |
-| Structural checks | Python, Go and TS/JS to different depths; limited Rust support |
+| Scope checks | Early checks on supported edits, plus checks against the resulting Git diff |
+| Test-change checks | Reports live-test count reductions and selected expectation/shape changes; not complete assertion-quality analysis |
+| Runtime proof | Runs your declared trigger and queries your declared truth owner for this run's result |
+| UI proof | Requires fresh runner case results; an optional Playwright adapter supports browser proof |
+| Review lenses | Questions about request fidelity, design, security and test sufficiency; reviewer judgment is still required |
+| Structural and credential checks | Selected error-handling, external-write, secret, signature and reference patterns; coverage varies by language and facts |
+| Checker registration | Red/green/bypass fixtures and repeatability checks before accepting a checker |
 
-## Before relying on it
+Ordinary changed-file execution tracing is Python-only. Executable review repair paths include Python, Go and Node/V8, depending on the runner. Verified same-file Python function/method renames can preserve the original finding. Structural checks support Python, Go and TS/JS to different depths, with limited Rust support.
 
-- Hooks can stand down when state is unavailable. The stop hook interrupts once, then permits another stop.
-- Some findings report without immediately holding ship. Accepted risks are possible, including agent signatures.
-- Local ledger records and hashes are useful evidence; they are not an immutable external trust service.
-- Business correctness, security and good design still require suitable tests and human judgment.
+[Full feature map](docs/FEATURES.md) · [Technical reference](docs/REFERENCE.md) · [Facts format](docs/FACTS.md)
 
-[All limits and exit codes](docs/REFERENCE.md) · [Full workflow](docs/USING.md) · [Facts format](docs/FACTS.md)
+## Know what the result means
 
-## Help make the second task easier
+- `SHIP` is the configured task decision. It does not deploy code or guarantee that every requirement was met.
+- Some findings initially report rather than block; test deletion is report-only by default. A finding on the standing `repo-review` task does not automatically block another task.
+- Hooks cover supported host payloads and can stand down when state is unavailable. Stop checks interrupt once per stop continuation; later independent turns can be checked again. Hooks are not a sandbox.
+- Local ledger records and hashes are not an immutable external trust service. Accepted-risk paths exist, including agent signatures.
+- Prompts, review lenses and recorded completion do not prove independent judgment. Business correctness and security still need suitable tests and human decisions.
 
-Try one small real change, then [tell us what happened](https://github.com/howardc38/vibeproof/issues/new?template=first-run.yml): what it caught, what it got wrong, and whether you would keep it enabled. Sanitized logs are welcome; private code and credentials are not needed.
+[Exact limits and exit codes](docs/REFERENCE.md) · [Full workflow](docs/USING.md)
 
-To run the framework's own tests:
+## Try one real change
 
-```sh
-python3 tests/run_without_silent_skips.py
-```
+[Tell us what happened](https://github.com/howardc38/vibeproof/issues/new?template=first-run.yml): what it caught, what it got wrong, and whether you would keep it enabled for the next task. Sanitized logs are enough; private code and credentials are not needed.
 
-Maintaining vibeproof itself? Work in the canonical development repository; see [contributing](CONTRIBUTING.md) and [release synchronization](docs/SYNC.md).
+Run the framework's own tests with `python3 tests/run_without_silent_skips.py`.
+
+Maintaining vibeproof? Edit the canonical development repo; see [contributing](CONTRIBUTING.md) and [release synchronization](docs/SYNC.md).
 
 MIT licensed. [License](LICENSE) · [Implementation specification](docs/SPEC.md)

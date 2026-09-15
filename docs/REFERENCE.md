@@ -73,7 +73,7 @@ The risk command permits an agent-signing path, including `--no-tty-check`. A st
 
 ## Evidence you can reproduce
 
-The [public demo](../examples/first-proof/README.md) includes positive and negative controls. Its [saved transcript](launch/evidence/demo.txt) and [JSON](launch/evidence/demo.json) are captured command output with normalized local paths from 2026-09-05. They are the video baseline, not proof of every later implementation. Rerun the demo to produce current evidence.
+The [public demo](../examples/first-proof/README.md) includes positive and negative controls. Its [saved transcript](launch/evidence/demo.txt) and [JSON](launch/evidence/demo.json) are captured command output with normalized local paths from 2026-09-14. They include a real review attempt becoming `ANSWERED`, then `STALE` after a source edit, without inventing another attempt. They are the current recording baseline, not proof of every later implementation; the 2026-09-05 recording remains historical. Rerun the demo to produce current evidence.
 
 The framework's suite is run with:
 
