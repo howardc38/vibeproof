@@ -25,7 +25,10 @@ loop over the same registry, and a loop nobody runs before pushing is a gate
 that reports after the fact.
 
 118 seconds for 31 checkers measured serially, so the cases are run in a small
-pool. `v4 verify` is a subprocess per checker and they share nothing.
+pool. Each `v4 verify` subprocess uses isolated fixtures, but the CLI opens
+the same repository ledger to read the active verification round. Initialize
+that shared ledger before starting the pool so first-use schema/WAL setup does
+not race in a fresh checkout.
 """
 
 from __future__ import annotations
@@ -100,6 +103,13 @@ class EveryRegisteredCheckerStillHoldsItsFixtures(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.specs = _registered()
+        from kernel import ledger
+        # The CLI's round lookup opens this ledger even though verify does not
+        # register anything. Concurrent first opens failed before any fixture
+        # ran on a fresh Linux CI checkout ("database is locked"). Bootstrap
+        # once and close it before the unchanged six-worker verification pool.
+        conn = ledger.connect(ROOT)
+        conn.close()
         with ThreadPoolExecutor(max_workers=6) as pool:
             cls.results = list(pool.map(_verify, cls.specs))
 

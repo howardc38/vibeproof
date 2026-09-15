@@ -1,4 +1,4 @@
-An intentionally constructed example, not a recording of an AI session. Every command result below comes from an actual subprocess. This runs two checkers directly, not a full task/ship lifecycle.
+An intentionally constructed example, not a recording of an AI session. Every command result below comes from an actual subprocess. This exercises two checkers and the kernel's review evidence state, not a full installation or task/ship lifecycle.
 
 [green_suite] The unrelated test is green
 $ python3 -m unittest discover -s tests -v
@@ -53,12 +53,28 @@ exit 0
 
 [repair_verified] The review checker verifies red, green and function execution
 $ python3 <vibeproof>/checkers/review_finding.py --subject review-subject.json
-tests/test_checkout.py fails at 4772883683af, passes at HEAD, and executed total 1 time(s)
+tests/test_checkout.py fails at f44e3dc64c86, passes at HEAD, and executed total 1 time(s)
 exit 0
 
 [correct_result] The repaired cart total is 80
 $ python3 -c "from checkout import total; print(total(100, 20))"
 80
+exit 0
+
+[evidence_current] A real checker attempt makes the review finding ANSWERED
+$ python3 <vibeproof>/examples/first-proof/proof_state.py check --repo . --parent <broken-commit>
+tests/test_checkout.py fails at f44e3dc64c86, passes at HEAD, and executed total 1 time(s)
+{"attempts": 1, "reason": "", "source_sha256": "f1b646ee2404150db0dbc7136dce73b84d685cdb14eb14cbac251fc7a631a16a", "state": "ANSWERED"}
+exit 0
+
+[evidence_stale] Edit the function again: the old proof is now STALE
+$ python3 <vibeproof>/examples/first-proof/proof_state.py status --repo .
+{"attempts": 1, "reason": "its subject moved: checkout.py", "source_sha256": "257c1a820f1613b3e0aed34c47e0bc717f6e5aa23849498c47ad66362ad0912f", "state": "STALE"}
+exit 0
+
+[evidence_restored] Restoring the exact checked source makes that proof applicable again
+$ python3 <vibeproof>/examples/first-proof/proof_state.py status --repo .
+{"attempts": 1, "reason": "", "source_sha256": "f1b646ee2404150db0dbc7136dce73b84d685cdb14eb14cbac251fc7a631a16a", "state": "ANSWERED"}
 exit 0
 
 [limit_import_only] Limit: importing the file is enough for the ordinary test checker
@@ -76,5 +92,5 @@ $ python3 <vibeproof>/checkers/review_finding.py --subject review-subject.json
 FAIL: tests/test_checkout.py has not earned the right to close this finding.
 
   never executed total. A test that reads source text instead of calling the code satisfies red-green while proving nothing -- that is the shape this check exists to refuse
-  already passes at 4772883683af, so it pins nothing -- it would have passed before the fix existed
+  already passes at f44e3dc64c86, so it pins nothing -- it would have passed before the fix existed
 exit 1

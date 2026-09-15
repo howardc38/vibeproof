@@ -25,6 +25,17 @@ class PublicFirstProof(unittest.TestCase):
         self.assertEqual(steps["correct_result"]["output"], "80")
         self.assertEqual(steps["limit_import_only"]["exit_code"], 0)
         self.assertEqual(steps["limit_unrelated_closure"]["exit_code"], 1)
+        current = result["evidence_lifetime"]["current"]
+        changed = result["evidence_lifetime"]["after_edit"]
+        self.assertEqual(current["state"], "ANSWERED")
+        self.assertEqual(changed["state"], "STALE")
+        self.assertEqual(current["attempts"], 1)
+        self.assertEqual(changed["attempts"], current["attempts"])
+        self.assertNotEqual(current["source_sha256"], changed["source_sha256"])
+        self.assertIn("checkout.py", changed["reason"])
+        restored = json.loads(steps["evidence_restored"]["output"].splitlines()[-1])
+        self.assertEqual(restored["state"], "ANSWERED")
+        self.assertEqual(restored["attempts"], current["attempts"])
 
 
 if __name__ == "__main__":

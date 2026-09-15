@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-05T06:28:26.195711+00:00",
+  "generated_at": "2026-09-14T08:27:20.038147+00:00",
   "scenario": "A 20-unit discount on a 100-unit cart should leave 80.",
-  "disclosure": "An intentionally constructed example, not a recording of an AI session. Every command result below comes from an actual subprocess. This runs two checkers directly, not a full task/ship lifecycle.",
+  "disclosure": "An intentionally constructed example, not a recording of an AI session. Every command result below comes from an actual subprocess. This exercises two checkers and the kernel's review evidence state, not a full installation or task/ship lifecycle.",
   "source_files": {
     "before": "def total(subtotal, discount):\n    return subtotal\n",
     "wrong": "def total(subtotal, discount):\n    return subtotal + discount\n",
@@ -57,7 +57,7 @@
       "command": "python3 <vibeproof>/checkers/review_finding.py --subject review-subject.json",
       "expected_exit": 0,
       "exit_code": 0,
-      "output": "tests/test_checkout.py fails at 4772883683af, passes at HEAD, and executed total 1 time(s)"
+      "output": "tests/test_checkout.py fails at f44e3dc64c86, passes at HEAD, and executed total 1 time(s)"
     },
     {
       "id": "correct_result",
@@ -66,6 +66,30 @@
       "expected_exit": 0,
       "exit_code": 0,
       "output": "80"
+    },
+    {
+      "id": "evidence_current",
+      "title": "A real checker attempt makes the review finding ANSWERED",
+      "command": "python3 <vibeproof>/examples/first-proof/proof_state.py check --repo . --parent <broken-commit>",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "output": "tests/test_checkout.py fails at f44e3dc64c86, passes at HEAD, and executed total 1 time(s)\n{\"attempts\": 1, \"reason\": \"\", \"source_sha256\": \"f1b646ee2404150db0dbc7136dce73b84d685cdb14eb14cbac251fc7a631a16a\", \"state\": \"ANSWERED\"}"
+    },
+    {
+      "id": "evidence_stale",
+      "title": "Edit the function again: the old proof is now STALE",
+      "command": "python3 <vibeproof>/examples/first-proof/proof_state.py status --repo .",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "output": "{\"attempts\": 1, \"reason\": \"its subject moved: checkout.py\", \"source_sha256\": \"257c1a820f1613b3e0aed34c47e0bc717f6e5aa23849498c47ad66362ad0912f\", \"state\": \"STALE\"}"
+    },
+    {
+      "id": "evidence_restored",
+      "title": "Restoring the exact checked source makes that proof applicable again",
+      "command": "python3 <vibeproof>/examples/first-proof/proof_state.py status --repo .",
+      "expected_exit": 0,
+      "exit_code": 0,
+      "output": "{\"attempts\": 1, \"reason\": \"\", \"source_sha256\": \"f1b646ee2404150db0dbc7136dce73b84d685cdb14eb14cbac251fc7a631a16a\", \"state\": \"ANSWERED\"}"
     },
     {
       "id": "limit_import_only",
@@ -81,16 +105,36 @@
       "command": "python3 <vibeproof>/checkers/review_finding.py --subject review-subject.json",
       "expected_exit": 1,
       "exit_code": 1,
-      "output": "FAIL: tests/test_checkout.py has not earned the right to close this finding.\n\n  never executed total. A test that reads source text instead of calling the code satisfies red-green while proving nothing -- that is the shape this check exists to refuse\n  already passes at 4772883683af, so it pins nothing -- it would have passed before the fix existed"
+      "output": "FAIL: tests/test_checkout.py has not earned the right to close this finding.\n\n  never executed total. A test that reads source text instead of calling the code satisfies red-green while proving nothing -- that is the shape this check exists to refuse\n  already passes at f44e3dc64c86, so it pins nothing -- it would have passed before the fix existed"
     }
   ],
-  "implementation_sha256": {
-    "checkers/test.py": "651cbbe3d7dffb15db2d7cd8ecbcfe9372a23c1402ab4d39cd66648f66a7717b",
-    "checkers/review_finding.py": "ecf4e80fda94f9b78885f812eacbc68220f3a9dcce007f2bc363efdd3f527f75",
-    "kernel/redgreen.py": "ddfbd68e9fb9ab08392cea064c8bbb1a046f787884cec49d685df7fa05ce11aa",
-    "examples/first-proof/run.py": "a9e579c8706eb90cbd8d8cd90ef21af47b61835a76012d13a84b00c48d86f26b"
+  "evidence_lifetime": {
+    "current": {
+      "attempts": 1,
+      "reason": "",
+      "source_sha256": "f1b646ee2404150db0dbc7136dce73b84d685cdb14eb14cbac251fc7a631a16a",
+      "state": "ANSWERED"
+    },
+    "after_edit": {
+      "attempts": 1,
+      "reason": "its subject moved: checkout.py",
+      "source_sha256": "257c1a820f1613b3e0aed34c47e0bc717f6e5aa23849498c47ad66362ad0912f",
+      "state": "STALE"
+    }
   },
-  "framework_base_commit": "efc19d10327b30ac503359ee96c94afee8d295d6",
-  "duration_seconds": 1.248,
+  "implementation_sha256": {
+    "checkers/test.py": "9f2be4e04182d772905c8ac1b53b2ad99eda2a150747dc425d693958a43e146d",
+    "checkers/review_finding.py": "bcd3dc02a0f908d5df6926498f506247d0c947325c4df7c4baed875b05855b92",
+    "kernel/redgreen.py": "42f4052eb697fce93870156767e2af6b66f8aa5c5a150258d92aa2e6b359bcb9",
+    "kernel/state.py": "b3e7dc079b5c2d974fdbc5edd0d4e110283ee4046faf98701cb944e93ce5976d",
+    "kernel/hashing.py": "c0e5449b07fad0b902c91034d6b65787d486a4cac4270a060c81ad5e8793f76a",
+    "kernel/lifecycle.py": "02b4b03869b7badf177859c22307bd4f9526696330719f574147935d4f0a7fc0",
+    "kernel/runner.py": "4edeffcf377e396a533f45de8ce2e867309d82046d7fcba285b783ddc3fcba13",
+    "kernel/review.py": "b7646dccf32a4db5529375f38e3704eb7d37cfb3cb4056fe6c359d8538cc9169",
+    "examples/first-proof/proof_state.py": "44efd3855f08a08d67d10facca3ec07903ed21105b5ec19ac7e04c26827bf3e6",
+    "examples/first-proof/run.py": "043591c080fb67a2b6cd471002e2cb4c6759e1b8afbbd95bcf5251ba1f797807"
+  },
+  "framework_base_commit": "09c327abd2b610afa968631eb0f7160a414d7358",
+  "duration_seconds": 2.359,
   "verified": true
 }

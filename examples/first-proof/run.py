@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reproduce a misleading green suite and verify a real repair, offline."""
+"""Reproduce misleading green tests, prove a repair, then expire its evidence."""
 
 from __future__ import annotations
 
@@ -86,7 +86,8 @@ def demonstrate(output=None, quiet=False):
         "scenario": "A 20-unit discount on a 100-unit cart should leave 80.",
         "disclosure": "An intentionally constructed example, not a recording of an AI session. "
                       "Every command result below comes from an actual subprocess. "
-                      "This runs two checkers directly, not a full task/ship lifecycle.",
+                      "This exercises two checkers and the kernel's review evidence state, "
+                      "not a full installation or task/ship lifecycle.",
         "source_files": {"before": BASE_CODE, "wrong": WRONG_CODE,
                          "fixed": FIXED_CODE, "unrelated_test": UNRELATED_TEST,
                          "regression_test": REAL_TEST},
@@ -131,7 +132,8 @@ def demonstrate(output=None, quiet=False):
         git("add", ".")
         git("commit", "-qm", "Before the discount feature")
         baseline = git("rev-parse", "HEAD")
-        _write(root, ".v4/config.json", json.dumps({"test_command": TEST_COMMAND}))
+        _write(root, ".v4/config.json", json.dumps({"test_command": TEST_COMMAND,
+                                                  "policy": "no_accepted_risk"}))
         _write(root, "checkout.py", WRONG_CODE)
         subject = root / "subject.json"
         subject.write_text(json.dumps({"repo_root": str(root), "diff_base": baseline,
@@ -171,6 +173,26 @@ def demonstrate(output=None, quiet=False):
         record("correct_result", "The repaired cart total is 80",
                [sys.executable, "-c", "from checkout import total; print(total(100, 20))"],
                'python3 -c "from checkout import total; print(total(100, 20))"', 0, ("80",))
+        probe = [sys.executable, str(FRAMEWORK / "examples/first-proof/proof_state.py")]
+        checked = record("evidence_current", "A real checker attempt makes the review finding ANSWERED",
+               probe + ["check", "--repo", str(root), "--parent", wrong_commit],
+               "python3 <vibeproof>/examples/first-proof/proof_state.py check --repo . --parent <broken-commit>",
+               0, ('"state": "ANSWERED"',))
+        _write(root, "checkout.py", WRONG_CODE)
+        expired = record("evidence_stale", "Edit the function again: the old proof is now STALE",
+               probe + ["status", "--repo", str(root)],
+               "python3 <vibeproof>/examples/first-proof/proof_state.py status --repo .",
+               0, ('"state": "STALE"', "checkout.py"))
+        before = json.loads(checked.stdout.strip().splitlines()[-1])
+        after = json.loads(expired.stdout.strip().splitlines()[-1])
+        if before["attempts"] != after["attempts"] or before["source_sha256"] == after["source_sha256"]:
+            raise DemoFailed("Staleness must follow changed source without inventing another checker attempt")
+        evidence["evidence_lifetime"] = {"current": before, "after_edit": after}
+        _write(root, "checkout.py", FIXED_CODE)
+        record("evidence_restored", "Restoring the exact checked source makes that proof applicable again",
+               probe + ["status", "--repo", str(root)],
+               "python3 <vibeproof>/examples/first-proof/proof_state.py status --repo .",
+               0, ('"state": "ANSWERED"',))
         # Negative controls keep the published demonstration honest about limits.
         _write(root, "checkout.py", WRONG_CODE)
         _write(root, "tests/test_checkout.py", "import checkout\n" + UNRELATED_TEST)
@@ -184,7 +206,8 @@ def demonstrate(output=None, quiet=False):
                ("FAIL:",))
 
     tracked = ["checkers/test.py", "checkers/review_finding.py", "kernel/redgreen.py",
-               "examples/first-proof/run.py"]
+               "kernel/state.py", "kernel/hashing.py", "kernel/lifecycle.py", "kernel/runner.py",
+               "kernel/review.py", "examples/first-proof/proof_state.py", "examples/first-proof/run.py"]
     evidence["implementation_sha256"] = {
         rel: hashlib.sha256((FRAMEWORK / rel).read_bytes()).hexdigest() for rel in tracked
     }
