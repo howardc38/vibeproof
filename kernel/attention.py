@@ -43,7 +43,12 @@ def scan(root, *, conn=None, task_id=None, kind=None):
                 states = {r["id"]: st for r, st in rows}
                 blocked_ids = {r["id"] for r, _ in blocked}
                 report_reasons = {r["id"]: why for r, _, why in reported}
-                ended = conn.execute("SELECT 1 FROM event WHERE task_id=? AND kind IN ('shipped','abandoned') LIMIT 1", (tid,)).fetchone() is not None
+                # `ledger.ENDED_KINDS`, not a second copy of the pair. A third
+                # ending added there would leave this row calling the task open.
+                marks = ", ".join("?" * len(ledger.ENDED_KINDS))
+                ended = conn.execute(
+                    f"SELECT 1 FROM event WHERE task_id=? AND kind IN ({marks}) LIMIT 1",
+                    (tid, *ledger.ENDED_KINDS)).fetchone() is not None
                 for row in claims:
                     st = states[row["id"]]
                     if st in state.TERMINAL:

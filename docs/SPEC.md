@@ -1495,6 +1495,22 @@ and the ledger records what a worker offered rather than what a guard approved.
 Nothing outside the throwaway worktree is written. Both the mutation and the
 copied closing test resolve inside it or the closure is refused.
 
+A mutation's red half has to reach the code it broke. Where the mutated file is
+the file being traced and the tracer observed that the target was never
+entered, the run failed before the code under test ran: a startup failure, not
+a behavioural red. The worktree carries tracked files only, so a repo whose
+runner or imports are untracked dies at import and hands its exit code over —
+measured, a mutation that added a comment and changed nothing closed a finding.
+A parent red control is not held to this: before the repair the symbol may not
+exist. Neither is a mutation in some other file, whose failure the target's
+trace says nothing about. A tracer that observed nothing at all stays exit 4;
+absence of evidence is not evidence of absence.
+
+Execution evidence is the union over every Python process the command starts —
+spawn, fork and subprocess alike, each writing its own file. One shared file
+meant the last process to exit decided the answer, so a symbol a child entered,
+or one the parent entered before a helper exited, read as never executed.
+
 ### Executable proof for an old named-value coordinate
 <!-- pinned: kernel/review_coordinates.py::resolve_declaration -->
 <!-- pinned: kernel/analysis/review_coordinate.py::declaration -->
@@ -3092,6 +3108,13 @@ v4 sweep --if-due     exits 1 when it is not, so cron stands down
 v4 sweep --done --findings <n>    record a sweep: who reviewed, who only took a brief
 v4 sweep --history    previous sweeps
 ```
+
+A checkout has no ledger — `.git/v4/` is not cloned — so in CI these read the
+committed export and say so, and create nothing. They used to call
+`ledger.connect`, which makes an empty database, and then asked that database
+when the last sweep was: a read that built the thing it read and answered from
+it, in the one place every run is a fresh clone. With neither a ledger nor an
+export the command refuses rather than inventing an answer.
 
 Review cadence lives in `lens_sweep` in `.v4/config.json`; this setting does not create a host job:
 

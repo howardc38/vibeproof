@@ -138,7 +138,7 @@
     },
     ".v4/checkers.json": {
       "mode": "100644",
-      "sha256": "1ae36b206f0acdd30e46a8213d7a65cb498fa4097864b4d8dcc185f4c1774039",
+      "sha256": "7b2d7773a4bb0f3f094a4da856bf1a2a34682b34a0e7a5f612ad83101c5d2bb0",
       "source": ".v4/checkers.json"
     },
     ".v4/claim_kinds.json": {
@@ -603,7 +603,7 @@
     },
     "docs/SPEC.md": {
       "mode": "100644",
-      "sha256": "a862d96b945cf7960180915d87c8b35eb271a26e4996a7f94c827c6770c40778",
+      "sha256": "5965d8ee2832ef19ec6e6e853da20f8a519a1a1a2e12739218e777983e001806",
       "source": "docs/SPEC.md"
     },
     "docs/SYNC.md": {
@@ -958,7 +958,7 @@
     },
     "kernel/attention.py": {
       "mode": "100644",
-      "sha256": "15a9c3efb842cc281c67a936952fe48f4cc4c5388d008892577cfd7daec2803d",
+      "sha256": "a9bddeee501a66023b5239b05d034a8f470c0a78d35cfbaa6acec7c607fcb718",
       "source": "kernel/attention.py"
     },
     "kernel/baseline.py": {
@@ -973,7 +973,7 @@
     },
     "kernel/cli.py": {
       "mode": "100644",
-      "sha256": "b4ed549b7d5c86297dde677799059b5c9bcdae69251a114f82f10043ee4d1fff",
+      "sha256": "a29816fec66b585dfa78c77efd32b5cda3b789800371e977dea216c598ff450e",
       "source": "kernel/cli.py"
     },
     "kernel/composition.py": {
@@ -1093,7 +1093,7 @@
     },
     "kernel/redgreen.py": {
       "mode": "100644",
-      "sha256": "a9ca6d3ee1f9c2662ae33ed54b16cb1db54a64ffa9467e73cbb7728bf92dfcf1",
+      "sha256": "5ea74b8e4e3ef05b7859099e043fb4a8c9dd16c06d11129a8568cf0c9ac9e869",
       "source": "kernel/redgreen.py"
     },
     "kernel/register.py": {
@@ -1143,7 +1143,7 @@
     },
     "kernel/scope.py": {
       "mode": "100644",
-      "sha256": "4a8358ba70cbeaf79255c4b20c457e236724d6c60763be2ac576a476192c3a0d",
+      "sha256": "4cdaec932a61f9c256219e16b1f8755e270421df432d0464c0f74258382ccd62",
       "source": "kernel/scope.py"
     },
     "kernel/spec_coverage.py": {
@@ -13801,6 +13801,11 @@
       "sha256": "2ee0d0b6cf112eb3d814b7eef0633b14bcbd76078f0f701bdceb28666f70904b",
       "source": "tests/test_a_red_half_for_a_covering_test.py"
     },
+    "tests/test_a_red_half_reaches_the_code.py": {
+      "mode": "100644",
+      "sha256": "c582e3e3c2c380473244b84b32d696a7418226d529a6637702620b6607e438d7",
+      "source": "tests/test_a_red_half_reaches_the_code.py"
+    },
     "tests/test_a_repo_can_widen_the_rule_it_is_judged_by.py": {
       "mode": "100644",
       "sha256": "3d0f5052e11afb1903de05f0c4b8c95133eafa015c5b39f1c11a455cba7c716e",
@@ -14503,7 +14508,7 @@
     }
   },
   "policy_sha256": "a0e2137ce5d1aa2704008b496950286242212e9520d7238472fb49e6f39f0ac5",
-  "public_parent": "754e39f71775ffae9f313845eac6c4a133ae901b",
+  "public_parent": "070f0a308e7f40a7b176d4192c553c6313111905",
   "schema": 1,
-  "source_revision": "89abf85bff3fcf8ec8c062cddb6cb20a42be410a"
+  "source_revision": "9699c245ac051a9d3d71555cd1d056ed2c1ad951"
 }
