@@ -138,7 +138,7 @@
     },
     ".v4/checkers.json": {
       "mode": "100644",
-      "sha256": "7b2d7773a4bb0f3f094a4da856bf1a2a34682b34a0e7a5f612ad83101c5d2bb0",
+      "sha256": "71c2e36ab69a23cb28c5aa7608ba8c555747a613e55eff5482cdb78d8776ac65",
       "source": ".v4/checkers.json"
     },
     ".v4/claim_kinds.json": {
@@ -973,7 +973,7 @@
     },
     "kernel/cli.py": {
       "mode": "100644",
-      "sha256": "a29816fec66b585dfa78c77efd32b5cda3b789800371e977dea216c598ff450e",
+      "sha256": "dd9b08fd773c02b0906731b13350b25a249a286ecd0dcb185e2ca89893f2d449",
       "source": "kernel/cli.py"
     },
     "kernel/composition.py": {
@@ -1093,7 +1093,7 @@
     },
     "kernel/redgreen.py": {
       "mode": "100644",
-      "sha256": "5ea74b8e4e3ef05b7859099e043fb4a8c9dd16c06d11129a8568cf0c9ac9e869",
+      "sha256": "ef61dec0ebf64b165e6906f8f083326569f3ca962e931c484fa65ca65b54ac76",
       "source": "kernel/redgreen.py"
     },
     "kernel/register.py": {
@@ -14508,7 +14508,7 @@
     }
   },
   "policy_sha256": "a0e2137ce5d1aa2704008b496950286242212e9520d7238472fb49e6f39f0ac5",
-  "public_parent": "070f0a308e7f40a7b176d4192c553c6313111905",
+  "public_parent": "9df0039dad409f6a9b5dfa73b5f0f74412cb0d1b",
   "schema": 1,
-  "source_revision": "9699c245ac051a9d3d71555cd1d056ed2c1ad951"
+  "source_revision": "4cb35a97e9bad35cb470ee3ae51afa61302477f9"
 }
