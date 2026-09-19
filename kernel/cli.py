@@ -1319,8 +1319,17 @@ def cmd_sweep(args):
                   file=sys.stderr)
             return 2
         due, why = sweep_mod.due_from_export(root, cfg)
-        print(f"{'DUE' if due else 'not due'} -- {why}")
-        return 0 if due or not args.if_due else 1
+        print(f"{'DUE' if due else 'not due'} -- {why}\n")
+        if not due:
+            return 1 if args.if_due else 0
+        # The same thing the ledger-backed path prints when it says DUE. A
+        # reader here is the one least able to work out what to run next, so
+        # answering DUE and stopping would be the less useful of the two.
+        lenses = sorted(review.lenses(root))
+        print(f"{len(lenses)} lens(es) to run over {root}:\n")
+        for name in lenses:
+            print(f"  v4 review lens --lens {name}")
+        return 0
 
     conn = ledger.connect(root)
     c = sweep_mod.config(cfg)

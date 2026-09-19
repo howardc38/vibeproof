@@ -39,7 +39,7 @@ from pathlib import Path, PurePosixPath
 from .analysis import subject_files
 
 _SITECUSTOMIZE = '''
-import atexit, json, os, sys, threading, uuid
+import atexit, json, os, sys, threading
 
 TARGET_FILE = os.environ["V4_TRACE_FILE"]
 TARGET_SYMBOL = os.environ.get("V4_TRACE_SYMBOL") or ""
@@ -72,7 +72,10 @@ def tracer(frame, event, arg):
 
 
 def _name():
-    return os.path.join(OUT, "%d-%s.json" % (os.getpid(), uuid.uuid4().hex[:8]))
+    # Spelled the way the per-file tracer below already spells it. A pid is
+    # unique among the processes alive in one run, and a fork child has its
+    # own, which is the whole case this needs to separate.
+    return os.path.join(OUT, "%d.json" % os.getpid())
 
 
 _out = _name()

@@ -145,7 +145,7 @@
       "review-finding"
     ],
     "path": "checkers/review_finding.py",
-    "program_sha": "5704e0b0ec91670234a3c0a41c422793fdce66b3a0fb0176164b54b9461c8a2a",
+    "program_sha": "532597dd2068edac8af4f69c3a90a2b9d8b2c7cb94b55735710932ef3f90dca6",
     "reads": [
       "**"
     ],
@@ -242,7 +242,7 @@
       "test"
     ],
     "path": "checkers/test.py",
-    "program_sha": "3005bc1f3abcb17b9d91622d6548269770090d020161a51bcdfc29c12d520b87",
+    "program_sha": "23241e144707338486a8da2741077c343b6b30ce0095621b0a56ffaf384fcede",
     "reads": [
       "**"
     ],
