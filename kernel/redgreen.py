@@ -39,7 +39,7 @@ from pathlib import Path, PurePosixPath
 from .analysis import subject_files
 
 _SITECUSTOMIZE = '''
-import atexit, json, os, sys, threading
+import atexit, json, os, sys, threading, uuid
 
 TARGET_FILE = os.environ["V4_TRACE_FILE"]
 TARGET_SYMBOL = os.environ.get("V4_TRACE_SYMBOL") or ""
@@ -71,17 +71,40 @@ def tracer(frame, event, arg):
     return None
 
 
+def _name():
+    return os.path.join(OUT, "%d-%s.json" % (os.getpid(), uuid.uuid4().hex[:8]))
+
+
+_out = _name()
+
+
 def _dump():
+    # One file per process, written whole. A single shared path meant every
+    # process truncated it on its way out and the last one to exit decided the
+    # answer -- so a symbol a spawn child entered, or one the parent entered
+    # before a helper exited, read as never executed.
     try:
-        with open(OUT, "w") as fh:
+        tmp = _out + ".tmp"
+        with open(tmp, "w") as fh:
             json.dump(hits, fh)
+        os.replace(tmp, _out)
     except OSError:
         pass
+
+
+def _after_fork():
+    # A fork child inherits `hits` and leaves through `os._exit`, which skips
+    # `atexit`. Give it its own file and an empty count, so what it records is
+    # its own and the parent's record is not overwritten.
+    global _out, hits
+    _out, hits = _name(), {"executed": False, "calls": 0}
 
 
 sys.settrace(tracer)
 threading.settrace(tracer)
 atexit.register(_dump)
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_after_fork)
 '''
 
 
@@ -198,9 +221,16 @@ def executed_files(repo_root, command, timeout=None):
 
 
 #: Exit codes that mean the test never ran, rather than that it failed.
-#: pytest uses 2 for a usage error, 3 for an internal error and 5 for "no tests
-#: collected"; 126 and 127 are the shell's "not executable" and "not found",
-#: and `_run_traced` produces them itself.
+#: pytest uses 2 for an interrupted or failed collection, 3 for an internal
+#: error, 4 for a usage error -- which is what an `ImportError` while loading
+#: `conftest.py` arrives as -- and 5 for "no tests collected"; 126 and 127 are
+#: the shell's "not executable" and "not found", and `_run_traced` produces
+#: them itself. 4 was missing, and this comment named it as 2's meaning.
+#:
+#: The set cannot be complete and is not the guard that matters: a runner dying
+#: at import exits 1 as readily as a failing assertion does. What separates
+#: them is whether the red run reached the code under test, which the tracer
+#: answers and `verify` now reads.
 #:
 #: It has to, and that is the repair this constant is part of. The command
 #: arrives as a list -- `review_finding` `shlex.split`s it, which is right --
@@ -218,7 +248,7 @@ def executed_files(repo_root, command, timeout=None):
 #: them instead was a broken checker, and they routed around it by pointing
 #: `--command` at an absolute path outside the worktree -- which runs the
 #: parent commit's code against HEAD's environment.
-COULD_NOT_RUN = frozenset({2, 3, 5, 126, 127})
+COULD_NOT_RUN = frozenset({2, 3, 4, 5, 126, 127})
 
 
 class RedGreenResult:
@@ -553,7 +583,8 @@ def _run_traced(cwd: Path, command, target_file: str, target_symbol: str, timeou
         coordinate = review_coordinates.resolve_declaration(cwd, target_file, target_symbol) if declaration else None
         suffix = Path(target_file).suffix.lower()
         (Path(td) / "sitecustomize.py").write_text(_SITECUSTOMIZE)
-        out = Path(td) / "hits.json"
+        out = Path(td) / "hits"
+        out.mkdir()
         go_profile = Path(td) / "go-cover.out"
         node_dir = Path(td) / "node-cover"
         node_dir.mkdir()
@@ -614,10 +645,10 @@ def _run_traced(cwd: Path, command, target_file: str, target_symbol: str, timeou
         # readable"); the per-symbol path did not get it.
         # A Python web-server child must not override evidence about a JS target
         # with its own negative Python trace. Select the target's runtime.
-        if out.is_file() and suffix in {".py", ".pyi"}:
-            hits = json.loads(out.read_text())
-            return proc.returncode, hits.get("executed", False), \
-                hits.get("calls", 0), proc.stdout + proc.stderr
+        if suffix in {".py", ".pyi"}:
+            executed, calls = _python_executed(out)
+            if executed is not None:
+                return proc.returncode, executed, calls, proc.stdout + proc.stderr
 
         # Runtime evidence is read without rewriting the repo's test command.
         if suffix == ".go":
@@ -728,6 +759,30 @@ def _inside(tree: Path, rel: str) -> Path:
         raise ValueError(f"{rel} is a symlink; it would break whatever it "
                          f"points at rather than the file named")
     return target
+
+
+def _python_executed(directory: Path):
+    """`(executed, calls)` over every Python process the command started.
+
+    The union, because a test may call the code under test in a spawn child, a
+    fork child or a subprocess, and each of those is the code running. One
+    process saying yes is yes; `None` only when nothing readable was left at
+    all, which is "no tracer attached" rather than "it did not run". A file
+    half-written by a process killed mid-dump is skipped, not raised over.
+    """
+    executed, calls, readable = False, 0, False
+    for path in sorted(directory.glob("*.json")):
+        try:
+            hits = json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+        if not isinstance(hits, dict):
+            continue
+        readable = True
+        executed = executed or bool(hits.get("executed"))
+        count = hits.get("calls")
+        calls += count if isinstance(count, int) and not isinstance(count, bool) else 0
+    return (executed, calls) if readable else (None, 0)
 
 
 def _apply_mutation(worktree: Path, mutation) -> str:
@@ -1035,6 +1090,38 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol,
                     f"    {out_p.strip()[:300]}")
             else:
                 res.red_failed = rc_p != 0
+                # Failing is not the same as failing *at the code under test*.
+                # The worktree carries tracked files only, so a repo whose
+                # runner or imports are untracked dies before the target runs
+                # and hands the exit code over as a red half -- measured, a
+                # mutation that added a comment and changed nothing returned
+                # `ok: True`. The tracer already answered this question for the
+                # green half; the red half threw the answer away.
+                # Mutation only, and only when the tracer positively observed
+                # that the target was not entered.
+                #
+                # A parent is the tree before the repair, where the symbol may
+                # not exist yet and a red that never reaches it is the ordinary
+                # shape of "this fails before the fix". A mutation is *this*
+                # tree with one thing broken: the symbol is there, so a failure
+                # that never reaches it came from somewhere else.
+                #
+                # `None` is the tracer saying nothing. The green half already
+                # routes that to exit 4; reading it here would turn "we could
+                # not tell" into "your test is broken", which is the opposite
+                # mistake and the more expensive one.
+                # ...and only when the file broken is the file being traced.
+                # A mutation elsewhere can fail the command for reasons the
+                # target symbol's trace says nothing about.
+                same_file = mutation and posixpath.normpath(str(mutation[0])) == \
+                    posixpath.normpath(str(target_file))
+                if same_file and res.red_failed and target_symbol and red_executed is False:
+                    res.red_failed = False
+                    res.notes.append(
+                        f"failed at {ref[:12]} without entering {target_symbol}. "
+                        f"A failure before the code under test runs is a startup "
+                        f"failure, not a behavioural red -- the mutation may "
+                        f"have changed nothing.")
                 if declaration and red_executed is not True:
                     res.red_failed = False
                     res.notes.append("declaration red control did not observe the initialized non-function value; startup/type failure is not behavioral red")

@@ -262,23 +262,24 @@ class NarrowRefused(WidenRefused):
 def touched_since_base(conn, root, task_id) -> list:
     """Every path this task has changed against the commit it opened at.
 
-    `git diff --name-only <base>` plus what is untracked: the same two
-    questions `checkers/scope.py` asks, because a narrowing has to be judged
-    against exactly what that checker will judge.
+    The same question `checkers/scope.py` asks, through the same function,
+    because a narrowing has to be judged against exactly what that checker will
+    judge. This was a second copy that kept git's output only when git exited
+    zero: against an unreadable base it answered "nothing was touched", and a
+    narrowing that dropped a glob covering edited files went through. The
+    checker raises `DiffUnreadable` on the same input; two implementations of
+    one question gave two answers, and the fail-open one guarded the gate.
     """
-    import subprocess
+    from .analysis import subject_files
     row = conn.execute("SELECT base_commit FROM task WHERE id = ?",
                        (task_id,)).fetchone()
     base = (row["base_commit"] if row else "") or ""
-    out = []
-    for args in ((["diff", "--name-only", base] if base else None),
-                 ["ls-files", "--others", "--exclude-standard"]):
-        if args is None:
-            continue
-        r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
-        if r.returncode == 0:
-            out += [l for l in r.stdout.splitlines() if l.strip()]
-    return sorted(set(out))
+    try:
+        return sorted(subject_files.changed_since(root, base))
+    except subject_files.DiffUnreadable as exc:
+        raise NarrowRefused(
+            f"what this task has already touched cannot be read, so a "
+            f"narrowing cannot be judged against it: {exc}") from exc
 
 
 def narrow(conn, cfg, *, task_id, drop, why):

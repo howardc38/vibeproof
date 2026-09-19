@@ -1303,7 +1303,26 @@ def cmd_risk(args):
 def cmd_sweep(args):
     """Is the after-gate due, and what does a reviewer run.  SPEC.md §10.1."""
     from . import sweep as sweep_mod
-    conn, cfg = ledger.connect(_repo(args)), _cfg(args)
+    root, cfg = _repo(args), _cfg(args)
+
+    # A checkout carries no ledger: `.git/v4/` is not cloned. `ledger.connect`
+    # makes an empty one, and this command then asked that empty database when
+    # the last sweep was -- a read that built the thing it read, and answered
+    # from it. `USING.md` recommends exactly this command to CI, where every
+    # run is a fresh clone, so the answer there was fixed and it was green.
+    # The committed export is what a clone does carry; `due_from_export` says
+    # in its own answer which half of the question a checkout cannot put.
+    if not ledger.ledger_path(root).is_file():
+        if not (Path(root) / ".v4" / "ledger_export.jsonl").is_file():
+            print("no ledger and no .v4/ledger_export.jsonl: nothing has shipped "
+                  "here, so there is nothing for a sweep to be due against.",
+                  file=sys.stderr)
+            return 2
+        due, why = sweep_mod.due_from_export(root, cfg)
+        print(f"{'DUE' if due else 'not due'} -- {why}")
+        return 0 if due or not args.if_due else 1
+
+    conn = ledger.connect(root)
     c = sweep_mod.config(cfg)
 
     if args.history:
