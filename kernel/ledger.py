@@ -826,29 +826,52 @@ def write_chain_head(conn, repo_root):
     finding. A gate that goes red on everybody's first run after an upgrade is
     a gate that gets switched off.
     """
-    row = conn.execute(
-        "SELECT COUNT(*) n, COALESCE(MAX(id), 0) last_id FROM attempt").fetchone()
-    head = conn.execute(
-        "SELECT row_hash FROM attempt ORDER BY id DESC LIMIT 1").fetchone()
-    ev = conn.execute(
-        "SELECT COUNT(*) n, COALESCE(MAX(id), 0) last_id FROM event "
-        "WHERE row_hash != ''").fetchone()
-    ev_head = conn.execute(
-        "SELECT row_hash FROM event WHERE row_hash != '' "
-        "ORDER BY id DESC LIMIT 1").fetchone()
+    # One snapshot for both chains. These were four autocommit SELECTs, and in
+    # WAL mode each one takes its own snapshot: an append committed by another
+    # worktree between the count and the head left `last_id` describing one
+    # moment and `head_hash` describing a later row. The anchor then failed its
+    # own verifier -- `chain: BROKEN` at ship, in a checkout that had done
+    # nothing wrong -- and stayed broken until that checkout ran `v4 check`
+    # again. Measured before this line existed: 1379 of 2285 anchors torn while
+    # two processes appended.
+    opened = not conn.in_transaction
+    if opened:
+        conn.execute("BEGIN DEFERRED")
+    try:
+        row = _chain_tip(conn, "attempt", "1=1")
+        ev = _chain_tip(conn, "event", "row_hash != ''")
+    finally:
+        if opened:
+            conn.rollback()
     path = chain_head_path(repo_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({
         "attempts": row["n"], "last_id": row["last_id"],
-        "head_hash": head["row_hash"] if head else GENESIS,
+        "head_hash": row["head"],
         "scheme": CHAIN_SCHEME,
         # Only chained rows are counted. A ledger older than the event chain
         # carries rows with an empty `row_hash`, and `_walk_events` already
         # reports that boundary once rather than per row; counting them here
         # would anchor a number the walk does not produce.
         "events": ev["n"], "last_event_id": ev["last_id"],
-        "event_head_hash": ev_head["row_hash"] if ev_head else GENESIS,
+        "event_head_hash": ev["head"],
     }, indent=2) + "\n")
+
+
+def _chain_tip(conn, table, condition) -> dict:
+    """Count, last id and head hash of one chain, all from the same row.
+
+    Asked as one statement so the three cannot describe different moments.
+    An empty chain answers `(0, 0, GENESIS)`, which is what the verifier reads
+    a never-anchored table as.
+    """
+    row = conn.execute(
+        f"SELECT t.id AS last_id, t.row_hash AS head, "  # noqa: S608 - fixed table names
+        f"(SELECT COUNT(*) FROM {table} WHERE {condition} AND id <= t.id) AS n "
+        f"FROM {table} t WHERE {condition} ORDER BY t.id DESC LIMIT 1").fetchone()
+    if row is None:
+        return {"n": 0, "last_id": 0, "head": GENESIS}
+    return {"n": row["n"], "last_id": row["last_id"], "head": row["head"]}
 
 
 def _walk_events(conn) -> list:

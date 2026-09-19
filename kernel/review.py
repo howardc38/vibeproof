@@ -16,7 +16,7 @@ import sqlite3
 import subprocess
 import sys
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from . import hashing
 from . import redgreen
@@ -385,6 +385,18 @@ def why_not_a_test_file(root, test_path: str) -> str:
         return (f"names a test, not a file"
                 + ("; that file is here" if (Path(root) / head).is_file()
                    else f"; and `{head}` is not here either"))
+    # "in this repo" was claimed and not checked: `Path(root) / test_path` is
+    # replaced outright by an absolute path and walked out of by `..`, and a
+    # closing test outside the repo hashes to the constant `"outside-repo"` in
+    # `closing_binding_digest`, so editing it never expires the PASS it earned.
+    if PurePosixPath(test_path).is_absolute() or Path(test_path).is_absolute():
+        return ("an absolute path, and a closing test is named the way the "
+                "repository carries it -- relative to its root")
+    resolved = (Path(root) / test_path).resolve()
+    if resolved != Path(root).resolve() and Path(root).resolve() not in resolved.parents:
+        return ("outside this repo. A test nobody else checks out is not a "
+                "record of anything, and changes to it cannot expire the "
+                "answer it earned")
     if not (Path(root) / test_path).is_file():
         return "not a file in this repo"
     return ""
@@ -482,24 +494,15 @@ def why_not_a_mutation(root, rel, gone, test_path) -> str:
                         reason: a marker short enough to match by accident
                         proves nothing about what was broken.
     """
-    rel = str(rel or "").replace("\\", "/").strip()
-    if not rel:
-        return "a mutation names the file to break."
-    if rel == str(test_path or "").replace("\\", "/").strip():
-        return (f"the mutation breaks {rel}, which is the closing test itself. "
-                f"A test made to fail by breaking that test says nothing about "
-                f"the code it is offered as covering.")
     if len((gone or "").strip()) < MIN_MARKER:
         return (f"the mutation text is {len((gone or '').strip())} characters "
                 f"and the floor is {MIN_MARKER}. A marker short enough to match "
                 f"by accident proves nothing about what was broken.")
-    out = subprocess.run(["git", "ls-files", "--error-unmatch", rel],
-                         cwd=str(root), capture_output=True, text=True)
-    if out.returncode != 0:
-        return (f"{rel} is not tracked by git. The red half runs in a worktree, "
-                f"which carries tracked files only -- and a mutation nobody "
-                f"else can check out is not a record of anything.")
-    return ""
+    # Which file may be broken is `redgreen`'s to answer, because `redgreen` is
+    # what writes it. This function asked the same question in its own words
+    # and got a different answer: it compared the argument to the closing
+    # test's spelling, so `./t.py` passed a guard named for refusing `t.py`.
+    return redgreen.mutation_target_problem(root, rel, test_path)
 
 
 #: One fact, wrong in several places.  `v4 review group`.

@@ -29,11 +29,14 @@ coverage of exact served source bytes. Each reports only what it observed.
 import ast
 import json
 import os
+import posixpath
 import subprocess
 import sys
 import tempfile
 import uuid
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+
+from .analysis import subject_files
 
 _SITECUSTOMIZE = '''
 import atexit, json, os, sys, threading
@@ -638,6 +641,95 @@ def _run_traced(cwd: Path, command, target_file: str, target_symbol: str, timeou
         return proc.returncode, None, 0, proc.stdout + proc.stderr
 
 
+#: Directory names that put a file on the test side whatever it is called.
+_TEST_DIRS = frozenset({"tests", "test", "__tests__", "testdata"})
+
+#: Which suffixes share a tracer, so "same side of the same suite" can be asked.
+#: A `.test.ts` file read as *data* by a Python test is not that suite's test.
+_FAMILIES = (frozenset({".py", ".pyi"}), frozenset({".go"}),
+             frozenset({".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}))
+
+
+def _family(name: str) -> frozenset:
+    suffix = PurePosixPath(name).suffix.lower()
+    return next((f for f in _FAMILIES if suffix in f), frozenset())
+
+
+def mutation_target_problem(root, rel, test_path) -> str:
+    """Why this file cannot be the thing a red half breaks, or `""`.
+
+    One owner, asked three times: by `review.why_not_a_mutation` when the
+    closure is bound, by the checker before it runs, and by `verify` before it
+    writes. It used to be asked once, at bind, and compared the argument string
+    to the closing test's -- so `./t.py` was a different file from `t.py` to
+    the guard and the same file to the filesystem, and the red half was the
+    closing test breaking itself.
+
+    The name git carries is the name that settles it. Spelling is refused
+    rather than normalised because a record somebody else has to reproduce
+    should say what git says; normalising quietly would leave two spellings in
+    the ledger for one file.
+    """
+    rel = str(rel or "").replace("\\", "/").strip()
+    if not rel:
+        return "a mutation names the file to break."
+    listed = subprocess.run(["git", "ls-files", "-s", "-z", "--", rel],
+                            cwd=str(root), capture_output=True, text=True)
+    rows = [r for r in listed.stdout.split("\0") if r.strip()]
+    if listed.returncode != 0 or len(rows) != 1:
+        return (f"{rel} is not tracked by git as exactly one file. The red half "
+                f"runs in a worktree, which carries tracked files only -- and a "
+                f"mutation nobody else can check out is not a record of anything.")
+    mode, _rest = rows[0].split(" ", 1)
+    canonical = rows[0].split("\t", 1)[1]
+    if canonical != rel:
+        return (f"{rel} is spelled differently from git's own name for it, "
+                f"{canonical}. Name the file exactly as `git ls-files` lists "
+                f"it, so the record says what git says.")
+    if mode not in ("100644", "100755"):
+        return (f"{canonical} is not a regular file in git (mode {mode}). A "
+                f"symlink breaks whatever it points at, which may be outside "
+                f"the throwaway tree entirely.")
+    test = str(test_path or "").replace("\\", "/").strip()
+    if test and canonical == posixpath.normpath(test):
+        return (f"the mutation breaks {canonical}, which is the closing test "
+                f"itself. A test made to fail by breaking that test says "
+                f"nothing about the code it is offered as covering.")
+    # The same hollowness one file over. Breaking what a test compares against
+    # -- a helper, a conftest, a table of expected values -- makes it fail
+    # without the code behaving differently. Only within the closing test's own
+    # language: a `.test.ts` file can legitimately be data for a Python test.
+    if test and _family(canonical) and _family(canonical) == _family(test):
+        parts = PurePosixPath(canonical).parts[:-1]
+        if _TEST_DIRS.intersection(parts) or subject_files.is_test(canonical, root=root):
+            return (f"the mutation breaks {canonical}, which is on the test "
+                    f"side of {test}. Changing what a test compares against "
+                    f"makes it fail without the code doing anything different; "
+                    f"break the code.")
+    return ""
+
+
+def _inside(tree: Path, rel: str) -> Path:
+    """The path `rel` names under `tree`, or raise if it names anywhere else.
+
+    `tree / rel` is not a boundary: an absolute `rel` replaces `tree` outright,
+    and a symlink in the tree points wherever it was made to point. Both were
+    reachable from a bound closure, and both wrote the live checkout while a
+    checker was judging it.
+    """
+    if PurePosixPath(rel).is_absolute() or Path(rel).is_absolute():
+        raise ValueError(f"{rel} is an absolute path; a throwaway tree is "
+                         f"written through repository-relative names only")
+    target = (tree / rel).resolve()
+    if target != tree.resolve() and tree.resolve() not in target.parents:
+        raise ValueError(f"{rel} does not stay inside the throwaway tree; "
+                         f"nothing outside it may be written")
+    if (tree / rel).is_symlink():
+        raise ValueError(f"{rel} is a symlink; it would break whatever it "
+                         f"points at rather than the file named")
+    return target
+
+
 def _apply_mutation(worktree: Path, mutation) -> str:
     """Break one thing in a throwaway tree.  `""` when it worked, else why not.
 
@@ -648,7 +740,10 @@ def _apply_mutation(worktree: Path, mutation) -> str:
     test does not cover this".
     """
     rel, gone, now = mutation
-    path = worktree / rel
+    try:
+        path = _inside(worktree, rel)
+    except ValueError as exc:
+        return f"the mutation names {exc}"
     try:
         src = path.read_text(encoding="utf-8")
     except OSError as exc:
@@ -888,14 +983,31 @@ def verify(repo_root, *, command, test_path, target_file, target_symbol,
             return res
         try:
             # The test is new, so it does not exist at the parent; carry it over.
-            dst = wt / test_path
+            try:
+                dst = _inside(wt, test_path)
+            except ValueError as exc:
+                res.notes.append(f"the closing test names {exc}")
+                return res
             dst.parent.mkdir(parents=True, exist_ok=True)
             dst.write_text((repo_root / test_path).read_text())
 
             if mutation:
+                # Asked here as well as at bind: the payload reaching this
+                # point came out of the ledger, and the ledger records what a
+                # worker offered rather than what a guard approved.
+                problem = mutation_target_problem(repo_root, mutation[0], test_path)
+                if problem:
+                    res.notes.append(problem)
+                    return res
+                carried = dst.read_bytes()
                 broke = _apply_mutation(wt, mutation)
                 if broke:
                     res.notes.append(broke)
+                    return res
+                if dst.read_bytes() != carried:
+                    res.notes.append(
+                        f"the mutation changed the closing test {test_path} "
+                        f"itself, so its red half says nothing about the code")
                     return res
 
             red_trace = {}

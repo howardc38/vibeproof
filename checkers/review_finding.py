@@ -30,6 +30,7 @@ from kernel import redgreen  # noqa: E402
 # the verdict path (below, which refuses the same thing) could move apart
 # and nothing would notice -- the shape `LINT-CONFIG-DUAL-TRUTH` exists to
 # catch, in the repo that ships that rule.
+from kernel import review  # noqa: E402
 from kernel.review import MIN_MARKER  # noqa: E402
 
 
@@ -224,6 +225,17 @@ def main():
     # form on the same line was already handled correctly.
     argv = [c.format(path=test_path) for c in command] if isinstance(command, list) \
         else shlex.split(command.format(path=test_path))
+
+    if mutation:
+        # The bind-time guard ran against what a worker typed; this runs
+        # against what the ledger kept. They were the same question asked in
+        # two places and answered by one of them, so a spelling the guard
+        # refused reached the judge unchallenged.
+        problem = review.why_not_a_mutation(root, mutation[0], mutation[1], test_path)
+        if problem:
+            print(f"FAIL: the mutation bound as this closure's red half cannot "
+                  f"serve as one -- {problem}")
+            return 1
 
     execution_target = None
     declaration = "coordinate_kind" in params

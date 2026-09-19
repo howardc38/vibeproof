@@ -138,7 +138,7 @@
     },
     ".v4/checkers.json": {
       "mode": "100644",
-      "sha256": "dc453fcad739d400c51d6449afae851a03a6e6bd22ff9aa7fb9e3d39bc957e52",
+      "sha256": "1ae36b206f0acdd30e46a8213d7a65cb498fa4097864b4d8dcc185f4c1774039",
       "source": ".v4/checkers.json"
     },
     ".v4/claim_kinds.json": {
@@ -383,7 +383,7 @@
     },
     "checkers/review_finding.py": {
       "mode": "100755",
-      "sha256": "bcd3dc02a0f908d5df6926498f506247d0c947325c4df7c4baed875b05855b92",
+      "sha256": "eac39f1de211cd31b5cf12f6ee110d89e6f71c89359e87366534fca341e33cbe",
       "source": "checkers/review_finding.py"
     },
     "checkers/runtime_proof.py": {
@@ -603,7 +603,7 @@
     },
     "docs/SPEC.md": {
       "mode": "100644",
-      "sha256": "f3d0e863c66109cc8141470691a4c10ef0024a4b68fae77640c5b38de6d260be",
+      "sha256": "a862d96b945cf7960180915d87c8b35eb271a26e4996a7f94c827c6770c40778",
       "source": "docs/SPEC.md"
     },
     "docs/SYNC.md": {
@@ -973,7 +973,7 @@
     },
     "kernel/cli.py": {
       "mode": "100644",
-      "sha256": "519824a76c43e82072c49d4d85d46033f3209c60d546de132109bf6e075e6025",
+      "sha256": "b4ed549b7d5c86297dde677799059b5c9bcdae69251a114f82f10043ee4d1fff",
       "source": "kernel/cli.py"
     },
     "kernel/composition.py": {
@@ -1058,7 +1058,7 @@
     },
     "kernel/ledger.py": {
       "mode": "100644",
-      "sha256": "089ab665b1843d613906a4a3ebc301267a4ab669388631fca8338bb8e38ad741",
+      "sha256": "4e19b4dc5752e1ea49a28144b0261d6c30e6000369e12db659ea989e3e485175",
       "source": "kernel/ledger.py"
     },
     "kernel/lens_catalogue.py": {
@@ -1093,7 +1093,7 @@
     },
     "kernel/redgreen.py": {
       "mode": "100644",
-      "sha256": "42f4052eb697fce93870156767e2af6b66f8aa5c5a150258d92aa2e6b359bcb9",
+      "sha256": "a9ca6d3ee1f9c2662ae33ed54b16cb1db54a64ffa9467e73cbb7728bf92dfcf1",
       "source": "kernel/redgreen.py"
     },
     "kernel/register.py": {
@@ -1113,7 +1113,7 @@
     },
     "kernel/review.py": {
       "mode": "100644",
-      "sha256": "b7646dccf32a4db5529375f38e3704eb7d37cfb3cb4056fe6c359d8538cc9169",
+      "sha256": "34760bc8b025159e4abb0613a86c7ba1d3c2eec60e05bcf5f8aca1b23f17d8ae",
       "source": "kernel/review.py"
     },
     "kernel/review_coordinates.py": {
@@ -1128,7 +1128,7 @@
     },
     "kernel/risk.py": {
       "mode": "100644",
-      "sha256": "5f531782d6a80e664483306356cb20d37dc7a014c23f9b230edecddb9c971d04",
+      "sha256": "c461f6773120a15ac7eb5222e933d7062fbc55e00cff31cf3c5d7850c84b811b",
       "source": "kernel/risk.py"
     },
     "kernel/runner.py": {
@@ -13781,6 +13781,11 @@
       "sha256": "b6cfe87aadd510551c2608333f8676b49be2c02ee94e009b419e043a34e522fb",
       "source": "tests/test_a_lens_reaches_the_reviewer.py"
     },
+    "tests/test_a_mutation_is_the_file_git_names.py": {
+      "mode": "100644",
+      "sha256": "1d453c21d963cfd57154e1ae5ba0803dcb871e0e3d5b56f929305d1ff1e07490",
+      "source": "tests/test_a_mutation_is_the_file_git_names.py"
+    },
     "tests/test_a_name_in_a_language_this_can_read.py": {
       "mode": "100644",
       "sha256": "afebaceb4456f5bc630d6a5b08c114648737ced22f388ea276ce9073fff4ce77",
@@ -13811,6 +13816,11 @@
       "sha256": "679fec3ca42ab9f065d8a845a5b124fa1b14a6091bdbc4c62aa82f6cfa883f44",
       "source": "tests/test_a_runner_that_is_not_there.py"
     },
+    "tests/test_a_signature_is_for_the_task_it_names.py": {
+      "mode": "100644",
+      "sha256": "c4335c4c8459aa32e4b658580f771f8ac7f1e1c3f112df156f9586e28b96fe75",
+      "source": "tests/test_a_signature_is_for_the_task_it_names.py"
+    },
     "tests/test_a_tracer_that_never_attached_is_not_a_bypass.py": {
       "mode": "100644",
       "sha256": "f0083da5f6f4586a5feb7e6afbc0bc4dd9a44f8946ecf3e33b6522835999298b",
@@ -13830,6 +13840,11 @@
       "mode": "100644",
       "sha256": "baa64455c9a7fc7c33214eadab8a8a6bf4c3557e913dc7ae5ddc033fa5b28514",
       "source": "tests/test_a_write_has_more_spellings_than_a_guard_has_rows.py"
+    },
+    "tests/test_an_anchor_is_read_at_one_moment.py": {
+      "mode": "100644",
+      "sha256": "5af6bd0e6a6ebc325131cfad5b3dd8e9d58037540963cd97becc1bea895fa14d",
+      "source": "tests/test_an_anchor_is_read_at_one_moment.py"
     },
     "tests/test_an_answer_expires_on_what_it_read.py": {
       "mode": "100644",
@@ -14488,7 +14503,7 @@
     }
   },
   "policy_sha256": "a0e2137ce5d1aa2704008b496950286242212e9520d7238472fb49e6f39f0ac5",
-  "public_parent": "5e11696477e89d18491e7e1a9d40bb8c0194056e",
+  "public_parent": "754e39f71775ffae9f313845eac6c4a133ae901b",
   "schema": 1,
-  "source_revision": "2562af7d3c82615a267686aab40bf52b22336f4d"
+  "source_revision": "89abf85bff3fcf8ec8c062cddb6cb20a42be410a"
 }
