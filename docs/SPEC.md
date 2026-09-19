@@ -656,6 +656,13 @@ attempt and event chains. Non-integer/negative coordinates or contradictory
 prefix coordinates fail audit. Later rows may extend a correct older anchor;
 an old anchor is not required to equal the current tip.
 
+Each chain's three coordinates are read in one snapshot. The ledger is shared
+by every linked worktree, so an append committed between two reads is ordinary,
+and composing an anchor from separate reads recorded a count from one moment
+beside a hash from a later row. The anchor then failed its own verifier in a
+checkout that had done nothing, and stayed failed until that checkout ran
+`v4 check` again.
+
 ```
 .v4/chain_head.json    {attempts, last_id, head_hash, scheme}    committed to git
 ```
@@ -1140,6 +1147,15 @@ v4 risk accept --claim <id> --kind <kind> --why "<reason, ≥40 characters>"
 Without the kinds, the person signing **cannot see what they are signing** — the
 mirror image of the predecessor's P0/P1/P2 pantomime.
 
+A task-scoped signature names the task it is for. `--task` naming any task but
+the claim's owner is refused, and an open task is signed from the worktree it
+was opened in — the record is written there and committed on that branch. A task
+that has ended has no worktree to be sent back to and is settled from anywhere,
+as is `--scope repo`. `--task` was declared and unread: an id copied out of a
+line that printed ids without saying whose task they were signed whatever claim
+it named, from whatever checkout ran it, and an `accepted_risk` row cannot be
+taken back.
+
 | | |
 |---|---|
 | `stdin` is not a TTY → refused | **Friction, not a boundary.** `pty.spawn` is one line. The identity comes from `git config user.email`, which an agent can change |
@@ -1454,6 +1470,30 @@ the current history and already contain the validated renamed target. It is
 pinned to its full commit ID. A test failing only because the old parent lacks
 the new import name is not a behavioral red control; use a mutation or a parent
 after the rename and before the behavioral repair.
+
+### The file a mutation red control may break
+<!-- pinned: kernel/redgreen.py::mutation_target_problem -->
+
+A mutation is a red half only if what it breaks is the code under test. The
+file is named the way `git ls-files` lists it: a spelling that resolves to the
+same file through `./`, a doubled separator or a `..` segment is refused rather
+than normalised, so the record says what git says and one file has one name in
+the ledger. The entry must be a regular tracked file; a symlink breaks whatever
+it points at, which may be outside the tree the red half runs in.
+
+Refused, for the same reason in three shapes: the closing test itself, and --
+within that test's own language -- a file under a test directory or one
+`subject_files.is_test` recognises. Breaking what a test compares against makes
+it fail without the code behaving differently. A test file in another language
+is not refused, because it can legitimately be the input a test reads.
+
+The question is asked three times, by the producer when the closure is bound,
+by the checker before it runs, and by `verify` before it writes. It was asked
+once, at bind; a payload already in the ledger reached the judge unchallenged,
+and the ledger records what a worker offered rather than what a guard approved.
+
+Nothing outside the throwaway worktree is written. Both the mutation and the
+copied closing test resolve inside it or the closure is refused.
 
 ### Executable proof for an old named-value coordinate
 <!-- pinned: kernel/review_coordinates.py::resolve_declaration -->

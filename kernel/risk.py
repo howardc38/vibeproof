@@ -196,8 +196,16 @@ def commit_anchor(root: Path) -> dict:
     }
 
 
+def _worktree_of(conn, task_id):
+    """Where the task was opened, or `None`.  Imported late: `lifecycle` reads
+    `risk` for the routes it prints, so importing it at module scope is a cycle.
+    """
+    from . import lifecycle
+    return lifecycle.worktree_of(conn, task_id)
+
+
 def accept(conn, cfg, *, claim_id, kind, why, require_tty=True, scope=TASK,
-           as_monitor=False):
+           as_monitor=False, task_id=None):
     if cfg.config.get("policy") == NO_RISK:
         raise RefusedToSign(
             f"this repo's .v4/config.json sets policy={NO_RISK!r}, so there is "
@@ -217,6 +225,26 @@ def accept(conn, cfg, *, claim_id, kind, why, require_tty=True, scope=TASK,
     row = conn.execute("SELECT * FROM claim WHERE id = ?", (claim_id,)).fetchone()
     if row is None:
         raise RefusedToSign(f"no such claim: {claim_id}")
+
+    # Which task is being signed for. `--task` was declared on this command and
+    # never reached here, so an id copied out of a stop-gate line -- which
+    # prints ids without saying whose task they are -- signed whatever claim it
+    # named, from whatever checkout ran it. The record then lands on the wrong
+    # branch and the ledger row cannot be taken back.
+    if scope == TASK and task_id is not None and task_id != row["task_id"]:
+        raise RefusedToSign(
+            f"{claim_id} belongs to {row['task_id']}, not {task_id}. A "
+            f"signature filed under the wrong task cannot be taken back: the "
+            f"ledger row is append-only.")
+    if scope == TASK and row["task_id"] and not _task_has_ended(conn, row["task_id"]):
+        where = _worktree_of(conn, row["task_id"])
+        if where and Path(where).resolve() != Path(cfg.root).resolve():
+            raise RefusedToSign(
+                f"{row['task_id']} was opened in {where}; signing here would "
+                f"write .v4/risks/{claim_id}.json into {cfg.root} and commit it "
+                f"on the wrong branch. Run it there:\n"
+                f"  v4 --repo {where} risk accept --task {row['task_id']} "
+                f"--claim {claim_id} --kind <risk-kind> --why '…'")
 
     if as_monitor and row["origin"] not in RAISED_BY_A_PROGRAM:
         raise RefusedToSign(

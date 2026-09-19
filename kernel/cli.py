@@ -1281,7 +1281,8 @@ def cmd_risk(args):
     try:
         record, path = risk.accept(conn, cfg, claim_id=args.claim, kind=args.kind,
                                    why=args.why, require_tty=not args.no_tty_check,
-                                   scope=args.scope, as_monitor=args.as_monitor)
+                                   scope=args.scope, as_monitor=args.as_monitor,
+                                   task_id=args.task)
     except risk.RefusedToSign as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
