@@ -1,37 +1,27 @@
 # What is included in vibeproof
 
-This map is grounded in the implementation and shipped assets, checked on 2026-09-09. It describes a workflow with distinct mechanical and judgment-based parts. It does not turn the existence of a prompt into proof that an agent followed it.
+This derived map is grounded in the implementation and shipped assets. Its command and registry inventory was rechecked on 2026-10-04. It describes a workflow with distinct mechanical and judgment-based parts. It does not turn the existence of a prompt into proof that an agent followed it.
 
 ## The whole path
 
-```text
-Request + allowed paths
-          |
-     task / scope       <- Claude /run and agent prompts help operate the loop
-          |
-       derive <--------- detectors inspect the applicable subject
-          |                          |
-          |                       claims
-          |                          |
-review lens -> reviewer -> review add +----> ledger
-                                     |
-                    engagement -> checkers -> attempts / current state
-                                     |
-                 ship reads this task's claims + configured policy
-                        /                         \
-                   blocking                 report-only
-                 holds this ship       visible without necessarily holding it
-```
+| Stage | Mechanism and boundary | Implementation |
+|---|---|---|
+| 1. Define the change | Record the request and allowed paths, confirm repo facts, engage with selected rule kinds and account for request clauses. Facts provide detector vocabulary; `cover` records accounting rather than judging delivery. | [Task lifecycle](../kernel/lifecycle.py), [facts](../kernel/facts.py), [engagement](../kernel/engagement.py), [request accounting](../kernel/request_cover.py) |
+| 2. Derive and check | Detectors inspect scoped subjects and propose claims; registered checkers record attempts. Supported hooks check edits/stops. Task policy and risk acceptance determine which unresolved claims hold ship. | [Derivation](../kernel/derive.py), [runner](../kernel/runner.py), [state/policy](../kernel/state.py), [hooks](../hooks/) |
+| 3. Prove behavior | Use the repo's test command, executable repair tests, configured surface runner receipts and runtime truth queries where applicable. Meaningful assertions and repo-specific setup determine what is proven. | [Test checker](../checkers/test.py), [repair checker](../checkers/review_finding.py), [surface](../kernel/surface.py), [runtime](../checkers/runtime_proof.py) |
+| 4. Keep evidence current | Relevant input hashes determine whether prior attempts apply. Versioned reviews link source/configuration fingerprints to review results and distinguish partial, complete and stale work. | [Evidence state](../kernel/state.py), [local ledger](../kernel/ledger.py), [maintenance snapshots/results](../kernel/maintenance.py) |
+| 5. Coordinate and maintain | The coding-agent host launches parallel work in worktrees and revalidates merged code. Maintenance coordinates authorized repair handoffs; monitor reviews inspect framework criteria, fixtures, facts and review activity. | [Host workflows](CODEX.md), [merge accounting](../kernel/remerge.py), [handoffs](../kernel/maintenance.py), [monitor brief](../.github/monitor/PROMPT.md) |
+| 6. Extend and inspect | Fixture verification supports custom checkers/detectors. `doctor` inspects wiring; coverage maps declared risk classes to kinds. Trends, recorded cost, ledger export and optional notices help inspect and route work. | [Registration](../kernel/register.py), [doctor](../kernel/doctor.py), [coverage](../kernel/coverage.py), [trend](../kernel/trend.py), [cost/export CLI](../kernel/cli.py), [notifications](../kernel/notifications.py) |
 
-All claim/attempt paths above use the ledger. Report-only is a gate classification, not a separate destination for otherwise discarded findings. Write hooks operate before supported edits; the scope checker also inspects the resulting diff.
+Claims and actual checker attempts use the local ledger. Report-only is a gate classification; emitted report claims and their attempts remain recorded. Write hooks operate before supported edits; the scope checker also inspects the resulting diff. Agent launch and recurring scheduling belong to the host. The CLI's due reports do not perform a review.
 
 ## Components and their practical purpose
 
 | Component | What it does | What it does not establish |
 |---|---|---|
 | Task and scope | Records the request, starting commit and allowed paths; records widening/narrowing decisions | That the original request was understood correctly |
-| Detectors | Raise applicable questions from code/subjects and declarations | A verdict that the code is correct |
-| Checkers | Execute particular checks, report exit codes and preserve actual attempt output | Complete semantic correctness |
+| Detectors | Raise applicable claims from scoped code/subjects and declarations; some need language tools | A verdict that the code is correct |
+| Checkers | Execute already registered checks, report exit codes and preserve actual attempt output | Automatic checker authorship or complete semantic correctness |
 | Review lenses | Supply structured questions for human/agent review, including design fit, request fidelity and test sufficiency | That a reviewer actually read everything or reviewed independently |
 | Agent and slash-command templates | Help Claude and Codex split, implement, review, author checkers and coordinate work | An autonomous Python scheduler that starts or isolates every agent |
 | Hooks | Check supported Write/Edit/Bash/Stop interactions and record observed activity where possible | An unbypassable security boundary |
@@ -39,7 +29,7 @@ All claim/attempt paths above use the ledger. Report-only is a gate classificati
 | Ship policy | Separates immediate blockers from reports and evaluates the task's ship predicate | A deployment command or an all-requirements correctness guarantee |
 | Runtime / surface proof | Execute declared triggers/truth queries; require fresh surface case results, with an optional Playwright adapter | Automatic comprehensive tests without repo-specific setup |
 | Registry validation | Exercise checkers/detectors against fixtures before registration; check installed identities | That the fixture corpus covers every possible failure |
-| Maintenance tools | Expose review cadence, debt/state summaries, cost, coverage and handoff-related information | That every scheduled review has been performed |
+| Maintenance tools | Expose review cadence, versioned results, authorized repair handoffs and debt/state summaries | That a due review was performed or a worker's completion report proves a repair |
 
 ## Claude assets versus CLI commands
 
@@ -97,7 +87,9 @@ The ledger has append-only triggers and chained records, but is local storage. N
 
 ## Who checks the checkers?
 
-Registration calls the fixture verifier for each claimed kind. It requires red cases to fail, green cases to pass and bypass cases to fail; byte-identical copies of red cases do not qualify as distinct bypass cases. The same fixture is run twice to compare its exit code and stdout. Failed verification prevents successful registration. Registration pins the entry and its transitive program fingerprint; changing either requires passing the fixtures again. `doctor` reports older entries whose dependencies have not yet been pinned. Sources: [fixture checks](../kernel/register.py), [repeatability check](../kernel/register.py), [register](../kernel/register.py).
+Checker registration calls the fixture verifier for each claimed kind. It requires red cases to fail, green cases to pass and bypass cases to fail; byte-identical copies of red cases do not qualify as distinct bypass cases. The same fixture is run twice to compare its exit code and stdout. Failed verification prevents successful registration. Registration pins the entry and its transitive program fingerprint; changing either requires passing the fixtures again. `doctor` reports older entries whose dependencies have not yet been pinned. Sources: [fixture checks and registration](../kernel/register.py).
+
+Detector verification has a different contract: the detector must exit 0 and emit claims on red/bypass cases, and emit no claims on green cases. A detector proposes questions; failing its process is not how it reports a detected defect. See [detector verification](../kernel/register.py).
 
 This provides a useful check on custom rule code. It does not make fixtures exhaustive or turn a known blind spot into coverage.
 
@@ -108,7 +100,9 @@ This provides a useful check on custom rule code. It does not make fixtures exha
 - The stop hook interrupts once and then permits a further stop: [stop_gate.py](../hooks/stop_gate.py).
 - Sweep timing and review execution remain distinct. The CLI reports when work is due; an agent/automation must actually perform the review: [sweep.py](../kernel/sweep.py) and [the slash-command workflow](../.claude/commands/sweep.md).
 - Request coverage records how clauses are accounted for; it is not an intent-understanding oracle: [request_cover.py](../kernel/request_cover.py).
+- `doctor` inspects configuration, facts, registries, installed fingerprints, hooks and recorded activity. Its results concern framework wiring and history, not generic environment/dependency readiness: [doctor.py](../kernel/doctor.py).
+- Coverage maps the declared risk rubric to registered kinds; review completion is recorded separately. Neither measures code coverage or exhaustive correctness. Trend reports summarize ledger history; cost reports summarize recorded observations rather than complete vendor billing. Export writes portable ledger records: [coverage.py](../kernel/coverage.py), [trend.py](../kernel/trend.py), [cost/export commands](../kernel/cli.py).
 
 For an adoption path use [GETTING_STARTED.md](GETTING_STARTED.md); for a market comparison use [the code-grounded positioning analysis](launch/POSITIONING.zh-TW.md).
 
-Maintenance adds a shared Claude `/maintain` / Codex `$vibeproof-maintain` entrance for current attention, native job setup, versioned review and authorized repair handoffs. Telegram transport and its macOS receiver keep delivery/acknowledgement separate from claim closure. A selected-lens review does not reset full-review cadence. See [USING](USING.md#periodic-maintenance-and-findings) and [SPEC](SPEC.md#maintenance-workflow-and-versioned-review).
+Maintenance adds a shared Claude `/maintain` / Codex `$vibeproof-maintain` entrance for current attention, native job setup, versioned review and authorized repair handoffs. Its snapshots store source/configuration fingerprints and link review results; they do not archive the source tree. Monitor work concerns framework setup and criteria drift, rather than service uptime. Telegram transport and its macOS receiver keep delivery/acknowledgement separate from claim closure. A selected-lens review does not reset full-review cadence. See [USING](USING.md#periodic-maintenance-and-findings) and [SPEC](SPEC.md#maintenance-workflow-and-versioned-review).

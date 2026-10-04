@@ -2,11 +2,11 @@
 
 # vibeproof
 
-### Your agent says done. What proves it?
+### Autonomous development, with an evidence trail.
 
 **Does it work? Is the fix proven? Does the proof still apply after another edit?**
 
-vibeproof connects Claude Code and Codex tasks to executable checks, repair evidence and current results. Start with a deliberately broken discount: **100 − 20 returns 120. The tests still pass.**
+vibeproof connects Claude Code and Codex development tasks to scoped requests, executable checks, repair evidence and results tied to current inputs. Start with a deliberately broken discount: **100 − 20 returns 120. The tests still pass.**
 
 [![Three moments: green tests with a wrong total; a repair verified before and after; another edit makes the old evidence STALE.](docs/launch/assets/v4/images/hero-en.png)](docs/launch/assets/v4/demo-en.mp4)
 
@@ -85,17 +85,18 @@ You provide the requested outcome, allowed files, real test command and decision
 | Review current code through applicable lenses | `/sweep` | `$vibeproof-sweep` |
 | Inspect findings and coordinate maintenance | `/maintain` | `$vibeproof-maintain` |
 
-## What else is included?
+## Evidence through the workflow
 
-| Capability | What it adds |
+| Stage | What stays connected |
 |---|---|
-| Scope checks | Early checks on supported edits, plus checks against the resulting Git diff |
-| Test-change checks | Reports live-test count reductions and selected expectation/shape changes; not complete assertion-quality analysis |
-| Runtime proof | Runs your declared trigger and queries your declared truth owner for this run's result |
-| UI proof | Requires fresh runner case results; an optional Playwright adapter supports browser proof |
-| Review lenses | Questions about request fidelity, design, security and test sufficiency; reviewer judgment is still required |
-| Structural and credential checks | Selected error-handling, external-write, secret, signature and reference patterns; coverage varies by language and facts |
-| Checker registration | Red/green/bypass fixtures and repeatability checks before accepting a checker |
+| 1. Define the change | Record the request, allowed paths and repo facts; engage with selected rules and account for request clauses. Accounting does not prove delivery. |
+| 2. Derive and check | Detectors propose applicable claims; registered checkers record results. Supported hooks check edits and stops; task policy distinguishes blockers from reports. |
+| 3. Prove behavior | Run the real suite, repair tests, configured surface runner and runtime truth queries as applicable. Suitable assertions determine what those observations prove. |
+| 4. Keep evidence current | Preserve attempts in a local ledger; input hashes determine applicability. Versioned reviews link source/config fingerprints to partial, complete or stale results. |
+| 5. Coordinate and maintain | The host coordinates tasks in worktrees and revalidates merged code. Maintenance tracks scoped repair handoffs; monitor reviews inspect framework criteria and facts changes. |
+| 6. Extend and inspect | Validate custom checkers/detectors with fixtures; inspect wiring with `doctor`, declared risk-class coverage, trends, recorded cost and exports. Optional notices help route attention. |
+
+The host launches agents and schedules recurring work. The CLI supplies checks and recorded state; review judgment and business acceptance still need suitable tests and decisions. Structural and credential checks cover selected patterns according to language and repo facts. Test-change checks report count reductions and selected expectation/shape changes, with limited assertion-quality analysis.
 
 Ordinary changed-file execution tracing is Python-only. Executable review repair paths include Python, Go and Node/V8, depending on the runner. Verified same-file Python function/method renames can preserve the original finding. Structural checks support Python, Go and TS/JS to different depths, with limited Rust support.
 

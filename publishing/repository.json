@@ -1,9 +1,10 @@
 {
   "repository": "howardc38/vibeproof",
-  "description": "Executable checks for Claude Code tasks. Track test execution, review findings, and evidence tied to your current code.",
+  "description": "An evidence trail for Claude Code and Codex development tasks: executable checks, repair tests, and results tied to current inputs.",
   "topics": [
     "ai-coding",
     "claude-code",
+    "codex",
     "code-review",
     "developer-tools",
     "testing",
