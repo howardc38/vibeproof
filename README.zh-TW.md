@@ -2,11 +2,11 @@
 
 # vibeproof
 
-### AI 說做好了。用什麼證明？
+### 自主開發，留下可追查的證據。
 
 **真的能用嗎？修好有證據嗎？再改一次，之前的證據還算數嗎？**
 
-vibeproof 把 Claude Code 和 Codex 任務接到可執行的檢查、修復證據與目前仍有效的結果。先看一個故意寫錯的折扣例子：**100 − 20 算出 120，測試卻全過。**
+vibeproof 把 Claude Code 和 Codex 開發任務接到有明確範圍的需求、可執行的檢查、修復證據與對應目前輸入的結果。先看一個故意寫錯的折扣例子：**100 − 20 算出 120，測試卻全過。**
 
 [![三個瞬間：測試全綠但金額錯誤；驗證修正前後與函式執行；再改程式，舊證據變成 STALE。](docs/launch/assets/v4/images/hero-zh-TW.png)](docs/launch/assets/v4/demo-zh-TW.mp4)
 
@@ -85,17 +85,18 @@ python3 examples/first-proof/run.py
 | 按適用的 lenses 審查目前程式 | `/sweep` | `$vibeproof-sweep` |
 | 查看 findings 並協調維護 | `/maintain` | `$vibeproof-maintain` |
 
-## 還包含什麼？
+## 工作流程中的證據
 
-| 功能 | 幫你做什麼 |
+| 階段 | 流程連起什麼 |
 |---|---|
-| Scope 檢查 | 在支援的編輯操作提早檢查，也檢查最後的 Git diff |
-| 測試改動檢查 | 報告有效測試數量下降及部分 expectation／shape 變化；不等於完整斷言品質分析 |
-| Runtime 證明 | 執行你宣告的 trigger，向你宣告的真相來源查詢本次結果 |
-| UI 證明 | 要求本次 runner 的新鮮案例結果；可選的 Playwright adapter 支援 browser proof |
-| Review lenses | 從需求忠實度、設計、安全及測試充分性提問；仍需要 reviewer 判斷 |
-| 結構與憑證檢查 | 部分錯誤處理、外部寫入、secret、signature 及 reference 模式；覆蓋取決於語言和 facts |
-| Checker 註冊驗證 | 接受 checker 前，跑 red／green／bypass fixtures 及重跑一致性檢查 |
+| 1. 定義改動 | 記錄需求、允許路徑與專案 facts；回應指定規則，逐段交代需求。交代紀錄本身不證明已交付。 |
+| 2. 推導與檢查 | Detectors 提出適用 claims，已註冊 checkers 記錄結果。支援的 hooks 檢查編輯與停止；任務政策區分阻擋與報告。 |
+| 3. 證明行為 | 按適用情況執行真正的 suite、修復測試、已設定的 surface runner 與 runtime 真相查詢。合適的斷言決定觀察能證明什麼。 |
+| 4. 保持證據有效 | 本地 ledger 保留執行紀錄，輸入 hash 決定證據是否適用。有版本的 review 將程式／設定指紋連到部分完成、完整或過期的結果。 |
+| 5. 協調與維護 | 宿主協調 worktrees 中的任務，合併後重新驗證。Maintenance 追蹤已授權範圍內的修復交接；monitor reviews 檢查 framework 判準與 facts 改動。 |
+| 6. 擴充與檢視 | 以 fixtures 驗證自訂 checkers／detectors；用 `doctor` 檢視接線，查看已宣告風險類別的機制覆蓋、趨勢、已記錄成本及匯出。可選通知協助提醒處理。 |
+
+宿主啟動 agents 並排程定期工作。CLI 提供檢查與已記錄狀態；review 判斷與業務驗收仍需要合適的測試及決定。結構與憑證檢查按語言和專案 facts 涵蓋部分模式。測試改動檢查報告數量下降及部分 expectation／shape 變化，斷言品質分析有限。
 
 一般測試的改動檔案執行追蹤只支援 Python。可執行的 review 修復路徑包括 Python、Go 和 Node/V8，取決於 runner。經驗證的同檔案 Python 函式／方法改名可保留原 finding。結構檢查對 Python、Go、TS/JS 的支援深度不同，Rust 較有限。
 

@@ -323,17 +323,17 @@
     },
     "README.md": {
       "mode": "100644",
-      "sha256": "693030c6d51e425720e12ebe677b6d190df9fb41892d0176e78974a2d3a0f960",
+      "sha256": "cbc0dc8588adc96bd662160df7e3fb59cdfedc2e3d2bb6783aef0cdd03078a41",
       "source": "README.md"
     },
     "README.zh-CN.md": {
       "mode": "100644",
-      "sha256": "a62346b817398d05c7c92ddd02bffd5964283a73ebb66a462b4a45f0b51f7d07",
+      "sha256": "b2cd7bee076fb7e182a5f5e59287a025839460c373151333471a7c0c983bb4b7",
       "source": "README.zh-CN.md"
     },
     "README.zh-TW.md": {
       "mode": "100644",
-      "sha256": "8af1c043ccf8d280d3ba4e59adf0a5dd363fa91e7c1eceb366e6487696a414e6",
+      "sha256": "a5c5fba8f2b6e91c3572cb551a77349794acef4c7e12e8a8849882e49f847955",
       "source": "README.zh-TW.md"
     },
     "bin/v4": {
@@ -568,7 +568,7 @@
     },
     "docs/FEATURES.md": {
       "mode": "100644",
-      "sha256": "6dff17de9d2aa7e0f373bbc535b4539a2e2f29c3d1c6fa2a00e605fd7870089b",
+      "sha256": "88e1bf636c07764d8655a70584310d8b25aebb685cd2f1132b6d8f90082c432f",
       "source": "docs/FEATURES.md"
     },
     "docs/GETTING_STARTED.md": {
@@ -1183,7 +1183,7 @@
     },
     "publishing/repository.json": {
       "mode": "100644",
-      "sha256": "832103240d665cdb652e9b6ff1decece2bf3766c3bf3dc6a1db3d87d24eb4caa",
+      "sha256": "c34ad76f0d43a9a6253488c486e2ea6c46d9c1529c1a762f27e56b57091a7fc2",
       "source": "publishing/repository.json"
     },
     "tests/browser/acceptance.py": {
@@ -14508,7 +14508,7 @@
     }
   },
   "policy_sha256": "a0e2137ce5d1aa2704008b496950286242212e9520d7238472fb49e6f39f0ac5",
-  "public_parent": "9df0039dad409f6a9b5dfa73b5f0f74412cb0d1b",
+  "public_parent": "58869a53900ed9f3ae2de140e4e75bd5eed69f74",
   "schema": 1,
-  "source_revision": "4cb35a97e9bad35cb470ee3ae51afa61302477f9"
+  "source_revision": "2f4320d5789fef12f3793b7afb826f3300451696"
 }
