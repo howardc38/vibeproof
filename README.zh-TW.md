@@ -2,19 +2,59 @@
 
 # vibeproof
 
-### 自主開發，留下可追查的證據。
+### 用 coding agent 開發，讓工作有據可查。
 
-**真的能用嗎？修好有證據嗎？再改一次，之前的證據還算數嗎？**
+vibeproof 是供 **Claude Code 和 Codex** 使用的開發工作流程。從有明確範圍的需求開始，驗證改動、整合並行任務，並在專案持續演進時追蹤審查與修復。
 
-vibeproof 把 Claude Code 和 Codex 開發任務接到有明確範圍的需求、可執行的檢查、修復證據與對應目前輸入的結果。先看一個故意寫錯的折扣例子：**100 − 20 算出 120，測試卻全過。**
+你能查看一份任務紀錄：允許改哪些檔案、執行過哪些檢查、修復有什麼證據，以及哪些結果仍適用於目前的程式。根據這些結果，決定要接受哪些工作、哪些還需要處理。
+
+[從專案的一項改動開始 →](docs/GETTING_STARTED.zh-TW.md) · [先跑獨立示範](#自己跑一次) · [了解工作流程](#從需求到有據可查的工作)
+
+## 什麼時候值得試
+
+- **開發功能或修復缺陷。** 讓預期結果、允許改動的檔案與驗證紀錄，跟著 agent 的工作一起保留。
+- **整合並行任務。** 在獨立 Git worktrees 開發，整合後針對合併的程式重新檢查。
+- **持續維護專案。** 追蹤審查發現與已授權的修復，知道哪些審查尚未完成、哪些證據已經過期。
+
+**最適合先試：** 已有真正 Python 測試的 Git 專案，你已經用 coding agent，也花不少時間檢查它的工作。
+
+## 從需求到有據可查的工作
+
+1. **先說清楚任務範圍。** 指定想要的結果與 agent 可以修改的檔案，確認檢查所需的專案事實，並要求 agent 逐項交代需求。這些紀錄方便你核對交付內容，本身不判定需求是否已滿足。
+2. **執行適用的檢查。** 框架依任務範圍找出適用的檢查，記錄結果。支援的編輯與停止 hooks 協助指出尚未處理的工作。任務政策區分會阻擋完成的問題，以及先報告、待處理的問題。
+3. **拿出行為證據。** 執行專案真正使用的測試。審查發現的修復可連到一條測試：修正前失敗、修正後通過，而且執行過目標。已設定的瀏覽器／UI 測試與執行期查詢也可檢查其他行為。斷言是否有意義、專案如何設定，決定能證明什麼。
+4. **知道何時重新驗證。** 先前的執行仍留在本地紀錄中；相關程式、設定或檢查有所改動時，先前結果可能過期。審查紀錄與受檢輸入相連，讓你區分完整、部分完成與已過期的審查。
+5. **整合成果，繼續追蹤。** Coding agent 的宿主協調 worktrees 中的任務，合併後重新驗證。維護流程追蹤已授權的修復交接，可在相連的 worktree 重新檢查修復，並讀回原發現的狀態。定期審查需要宿主排程器內真正存在的工作。
+6. **配合專案擴充檢查。** 加入自訂規則，用 fixtures 驗證。透過 `doctor` 檢視接線，查看已宣告風險的機制覆蓋、趨勢、已記錄成本與匯出紀錄。Monitor 審查檢查框架判準與專案事實的改動；可選通知協助提醒處理。
+
+宿主啟動 agents 並排程定期工作。CLI 提供檢查與已記錄狀態；審查判斷與業務驗收仍需要合適的測試及決定。Telegram 通知送達或確認已讀，都不會關閉發現。
+
+[完整功能地圖](docs/FEATURES.md) · [維護操作](docs/USING.md#periodic-maintenance-and-findings) · [技術參考](docs/REFERENCE.md)
+
+## 用在你的專案
+
+[從安裝到第一個任務 →](docs/GETTING_STARTED.zh-TW.md)
+
+先在已經使用 agent 的專案中，選一項功能或修復。你提供想要的結果、允許修改的檔案、真正的測試命令，以及未解決風險的決定。指南帶你完成安裝與第一個任務，並附上可貼給 agent 的指示。
+
+完整安裝會加入 checkers、detectors、fixtures、hooks 和提示檔，驗證 fixtures，並要求確認專案事實，因此比短示範花更多時間。
+
+**選擇宿主：** 預設是 Claude Code。使用 Codex 時選 `--hosts codex` 或 `--hosts both`。`--activate-hooks` 會合併 framework handlers，保留無關的既有設定；Codex hooks 還需要在宿主內審閱及信任。[任務綁定與權限](docs/CODEX.md)
+
+| 要做的工作 | Claude Code | Codex |
+|---|---|---|
+| 完成一項有明確範圍的改動 | `/run` | `$vibeproof-run` |
+| 在獨立 worktrees 協調多個任務 | `/wave` | `$vibeproof-wave` |
+| 按適用的 lenses 審查目前程式 | `/sweep` | `$vibeproof-sweep` |
+| 查看 findings 並協調維護 | `/maintain` | `$vibeproof-maintain` |
+
+## 示範：一次改動，三個證據重點
+
+這個例子展示工作流程中的三個部分：測試沒有執行改動、修復經過驗證，以及再改程式後證據過期。從一個故意寫錯的折扣開始：**100 − 20 算出 120，測試卻全過。**
 
 [![三個瞬間：測試全綠但金額錯誤；驗證修正前後與函式執行；再改程式，舊證據變成 STALE。](docs/launch/assets/v4/images/hero-zh-TW.png)](docs/launch/assets/v4/demo-zh-TW.mp4)
 
-[看普通話配音示範](docs/launch/assets/v4/demo-zh-TW.mp4) · [自己跑一次](#自己跑一次) · [用在你的專案](docs/GETTING_STARTED.zh-TW.md)
-
-**最適合先試：** 已有真正 Python 測試的 Git 專案，你已經用 coding agent，也花不少時間檢查它的工作。Claude Code 和 Codex adapters 共用 kernel；原生宿主驗證在 macOS 進行。[宿主設定與限制](docs/CODEX.md)
-
-## 一次改動，三件值得確認的事
+[看普通話配音示範](docs/launch/assets/v4/demo-zh-TW.mp4) · [自己跑一次](#自己跑一次)
 
 ### 1. 測試全過，結果卻錯了。
 
@@ -58,45 +98,11 @@ python3 examples/first-proof/run.py
 
 圖片與影片重播 **2026-09-14 刻意建立案例**的實測輸出，包括真正的 checker 執行及 kernel 證據狀態查詢。旁白為合成語音，主持人像是虛構角色；它們不是錄下來的 AI 對話，也沒有展示完整安裝或 ship 流程。[原始碼、執行紀錄與反例](examples/first-proof/README.md)
 
-## 為什麼下一個任務還要用？
+## 支援的檢查與限制
 
-| 工作開始變複雜時 | 流程幫你連起什麼 |
-|---|---|
-| 剛剛檢查通過，agent 又改程式 | 根據目前輸入的 hash，判斷舊證據是否仍適用 |
-| Reviewer 找到缺陷 | Finding 可連到可執行的修復測試，追蹤到驗證結果 |
-| Worker 說已完成 | Maintenance 可在相連的修復 worktree 執行 checker，讀回原 finding 狀態 |
-| 一個問題可以稍後處理 | 只報告的 claims 與嘗試仍留在 ledger；任務政策決定是否阻擋 |
-| Review 中斷或受檢程式改變 | Maintenance 區分部分完成、完整與已過期的 review |
+Claude Code 和 Codex adapters 共用 kernel；原生宿主驗證在 macOS 進行。[宿主設定與限制](docs/CODEX.md)
 
-定期維護需要宿主排程器內真正存在的工作；修復需要已授權範圍。Telegram 通知送達或確認已讀，都不會關閉 finding。[維護操作](docs/USING.md#periodic-maintenance-and-findings)
-
-## 用在你的專案
-
-[從安裝到第一個任務 →](docs/GETTING_STARTED.zh-TW.md)
-
-你提供想要的結果、允許修改的檔案、真正的測試命令，以及未解決風險的決定。指南附可貼給 agent 的指示。完整安裝會加入 checkers、detectors、fixtures、hooks 和提示檔，驗證 fixtures，並要求確認專案事實，因此比短示範花更多時間。
-
-**選擇宿主：** 預設是 Claude Code。使用 Codex 時選 `--hosts codex` 或 `--hosts both`。`--activate-hooks` 會合併 framework handlers，保留無關的既有設定；Codex hooks 還需要在宿主內審閱及信任。[任務綁定與權限](docs/CODEX.md)
-
-| 要做的工作 | Claude Code | Codex |
-|---|---|---|
-| 完成一項有明確範圍的改動 | `/run` | `$vibeproof-run` |
-| 在獨立 worktrees 協調多個任務 | `/wave` | `$vibeproof-wave` |
-| 按適用的 lenses 審查目前程式 | `/sweep` | `$vibeproof-sweep` |
-| 查看 findings 並協調維護 | `/maintain` | `$vibeproof-maintain` |
-
-## 工作流程中的證據
-
-| 階段 | 流程連起什麼 |
-|---|---|
-| 1. 定義改動 | 記錄需求、允許路徑與專案 facts；回應指定規則，逐段交代需求。交代紀錄本身不證明已交付。 |
-| 2. 推導與檢查 | Detectors 提出適用 claims，已註冊 checkers 記錄結果。支援的 hooks 檢查編輯與停止；任務政策區分阻擋與報告。 |
-| 3. 證明行為 | 按適用情況執行真正的 suite、修復測試、已設定的 surface runner 與 runtime 真相查詢。合適的斷言決定觀察能證明什麼。 |
-| 4. 保持證據有效 | 本地 ledger 保留執行紀錄，輸入 hash 決定證據是否適用。有版本的 review 將程式／設定指紋連到部分完成、完整或過期的結果。 |
-| 5. 協調與維護 | 宿主協調 worktrees 中的任務，合併後重新驗證。Maintenance 追蹤已授權範圍內的修復交接；monitor reviews 檢查 framework 判準與 facts 改動。 |
-| 6. 擴充與檢視 | 以 fixtures 驗證自訂 checkers／detectors；用 `doctor` 檢視接線，查看已宣告風險類別的機制覆蓋、趨勢、已記錄成本及匯出。可選通知協助提醒處理。 |
-
-宿主啟動 agents 並排程定期工作。CLI 提供檢查與已記錄狀態；review 判斷與業務驗收仍需要合適的測試及決定。結構與憑證檢查按語言和專案 facts 涵蓋部分模式。測試改動檢查報告數量下降及部分 expectation／shape 變化，斷言品質分析有限。
+結構與憑證檢查按語言和專案 facts 涵蓋部分模式。測試改動檢查報告數量下降及部分 expectation／shape 變化，斷言品質分析有限。
 
 一般測試的改動檔案執行追蹤只支援 Python。可執行的 review 修復路徑包括 Python、Go 和 Node/V8，取決於 runner。經驗證的同檔案 Python 函式／方法改名可保留原 finding。結構檢查對 Python、Go、TS/JS 的支援深度不同，Rust 較有限。
 

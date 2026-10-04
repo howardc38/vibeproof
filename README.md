@@ -2,19 +2,59 @@
 
 # vibeproof
 
-### Autonomous development, with an evidence trail.
+### Develop with a coding agent. Keep the work checkable.
 
-**Does it work? Is the fix proven? Does the proof still apply after another edit?**
+vibeproof is a development workflow for **Claude Code and Codex**. Start with a scoped request, check the change, combine parallel work, and track reviews and repairs as your repo evolves.
 
-vibeproof connects Claude Code and Codex development tasks to scoped requests, executable checks, repair evidence and results tied to current inputs. Start with a deliberately broken discount: **100 − 20 returns 120. The tests still pass.**
+You get a task record you can inspect: what was allowed to change, which checks ran, what evidence supports a repair, and which results still apply to the current code. Use those results to decide what to accept and what still needs work.
+
+[Start with one change in your repo →](docs/GETTING_STARTED.md) · [Try the standalone demo](#run-it-yourself) · [Explore the workflow](#from-a-request-to-work-you-can-inspect)
+
+## When to try it
+
+- **Build a feature or fix a defect.** Keep the requested outcome, allowed files and verification together while the agent works.
+- **Combine parallel tasks.** Work in separate Git worktrees, then run fresh checks on the combined code.
+- **Maintain reviews and repairs over time.** Track review findings through authorized repairs, and see when a review is incomplete or its evidence is out of date.
+
+**Best first fit:** an existing Git repo with a real Python test suite, where you already use a coding agent and spend time checking its work.
+
+## From a request to work you can inspect
+
+1. **Give the task a clear boundary.** State the outcome and the files the agent may change. Confirm project facts used by the checks, and have the agent account for the requested work. That accounting helps you inspect delivery; it does not judge whether the request was met.
+2. **Run the checks that apply.** The framework identifies relevant checks for the scoped work and records their results. Supported editing and stop hooks help surface unresolved work. Your task policy distinguishes issues that block completion from issues that are reported for attention.
+3. **Ask for evidence of the behavior.** Run your real test suite. A review repair can be tied to a test that fails before the fix, passes after it and executes the target. Configured browser/UI tests and runtime queries can check other behavior. Useful assertions and project setup determine what is proven.
+4. **Know when to check again.** Earlier runs stay in the local history. Relevant code, configuration or check changes can make their results stale. Reviews are recorded against their inputs, so you can distinguish complete, partial and outdated reviews.
+5. **Bring the work together and follow through.** The coding-agent host coordinates tasks in worktrees, with revalidation after merging. Maintenance tracks authorized repair handoffs, can recheck a repair in its linked worktree, and reads back the original finding's state. Recurring reviews require an actual job in your host scheduler.
+6. **Adapt the checks to your project.** Add custom rules and validate them against fixtures. Use `doctor` to inspect wiring, and inspect declared risk coverage, trends, recorded cost and exported records. Monitor reviews examine changes to framework criteria and project facts; optional notices help route attention.
+
+The host launches agents and schedules recurring work. The CLI supplies checks and recorded state; review judgment and business acceptance still need suitable tests and decisions. A delivered or acknowledged Telegram notice does not close a finding.
+
+[Full feature map](docs/FEATURES.md) · [Maintenance operation](docs/USING.md#periodic-maintenance-and-findings) · [Technical reference](docs/REFERENCE.md)
+
+## Use it in your repo
+
+[Follow the adoption guide →](docs/GETTING_STARTED.md)
+
+Start with one feature or fix in a repo you already use with an agent. You provide the requested outcome, allowed files, real test command and decisions about unresolved risks. The guide walks through installation and the first task, with a pasteable agent prompt.
+
+Full installation adds checkers, detectors, fixtures, hooks and prompts, verifies fixtures, and asks you to confirm facts about your repo. It takes longer than the short demo.
+
+**Choose your host:** installation defaults to Claude Code. Use `--hosts codex` or `--hosts both` for Codex. `--activate-hooks` merges framework handlers while preserving unrelated settings; Codex hooks also need review and trust in the host. [Task binding and permissions](docs/CODEX.md)
+
+| Work to do | Claude Code | Codex |
+|---|---|---|
+| Make one scoped change | `/run` | `$vibeproof-run` |
+| Coordinate tasks in separate worktrees | `/wave` | `$vibeproof-wave` |
+| Review current code through applicable lenses | `/sweep` | `$vibeproof-sweep` |
+| Inspect findings and coordinate maintenance | `/maintain` | `$vibeproof-maintain` |
+
+## Demo: one change, three proof moments
+
+This supporting example shows three parts of the workflow: missing test execution, a verified repair, and evidence that expires after another edit. It starts with a deliberately broken discount: **100 − 20 returns 120. The tests still pass.**
 
 [![Three moments: green tests with a wrong total; a repair verified before and after; another edit makes the old evidence STALE.](docs/launch/assets/v4/images/hero-en.png)](docs/launch/assets/v4/demo-en.mp4)
 
-[Watch the narrated demo](docs/launch/assets/v4/demo-en.mp4) · [Run it yourself](#run-it-yourself) · [Use it in your repo](docs/GETTING_STARTED.md)
-
-**Best first fit:** an existing Git repo with a real Python test suite, where you already use a coding agent and spend time checking its work. Claude Code and Codex adapters share the kernel; native host validation is on macOS. [Host setup and limits](docs/CODEX.md)
-
-## One change. Three things worth checking.
+[Watch the narrated demo](docs/launch/assets/v4/demo-en.mp4) · [Run it yourself](#run-it-yourself)
 
 ### 1. Green tests. Wrong result.
 
@@ -58,45 +98,11 @@ The script creates and removes a temporary repo. After cloning, it runs offline 
 
 The images and videos replay measured output from the **2026-09-14 constructed example**, including real checker execution and kernel evidence-state queries. Narration is synthetic and the presenter portrait is fictional. These are not a captured AI conversation or a complete installation/ship run. [Source, transcript and controls](examples/first-proof/README.md)
 
-## Why keep it for the next task?
+## Supported checks and their limits
 
-| When the work gets messy | What stays connected |
-|---|---|
-| The agent changes code after a successful check | Current input hashes determine whether the earlier evidence still applies |
-| A reviewer finds a defect | The finding can be tied to an executable repair test, instead of ending at “fixed” |
-| A worker reports completion | Maintenance can run the checker in the linked repair worktree and read back the original finding's state |
-| A finding can wait | Report-only claims and attempts remain in the ledger; task policy determines whether they block |
-| A review is interrupted or the source changes | Maintenance distinguishes partial, complete and stale review results |
+Claude Code and Codex adapters share the kernel; native host validation is on macOS. [Host setup and limits](docs/CODEX.md)
 
-Recurring maintenance needs a real host-scheduled job; repairs need an authorized scope. A delivered or acknowledged Telegram notice does not close a finding. [Maintenance operation](docs/USING.md#periodic-maintenance-and-findings)
-
-## Use it in your repo
-
-[Follow the adoption guide →](docs/GETTING_STARTED.md)
-
-You provide the requested outcome, allowed files, real test command and decisions about unresolved risks. The guide includes a pasteable agent prompt. Full installation adds checkers, detectors, fixtures, hooks and prompts, verifies fixtures, and asks you to confirm facts about your repo. It takes longer than the short demo.
-
-**Choose your host:** installation defaults to Claude Code. Use `--hosts codex` or `--hosts both` for Codex. `--activate-hooks` merges framework handlers while preserving unrelated settings; Codex hooks also need review and trust in the host. [Task binding and permissions](docs/CODEX.md)
-
-| Work to do | Claude Code | Codex |
-|---|---|---|
-| Make one scoped change | `/run` | `$vibeproof-run` |
-| Coordinate tasks in separate worktrees | `/wave` | `$vibeproof-wave` |
-| Review current code through applicable lenses | `/sweep` | `$vibeproof-sweep` |
-| Inspect findings and coordinate maintenance | `/maintain` | `$vibeproof-maintain` |
-
-## Evidence through the workflow
-
-| Stage | What stays connected |
-|---|---|
-| 1. Define the change | Record the request, allowed paths and repo facts; engage with selected rules and account for request clauses. Accounting does not prove delivery. |
-| 2. Derive and check | Detectors propose applicable claims; registered checkers record results. Supported hooks check edits and stops; task policy distinguishes blockers from reports. |
-| 3. Prove behavior | Run the real suite, repair tests, configured surface runner and runtime truth queries as applicable. Suitable assertions determine what those observations prove. |
-| 4. Keep evidence current | Preserve attempts in a local ledger; input hashes determine applicability. Versioned reviews link source/config fingerprints to partial, complete or stale results. |
-| 5. Coordinate and maintain | The host coordinates tasks in worktrees and revalidates merged code. Maintenance tracks scoped repair handoffs; monitor reviews inspect framework criteria and facts changes. |
-| 6. Extend and inspect | Validate custom checkers/detectors with fixtures; inspect wiring with `doctor`, declared risk-class coverage, trends, recorded cost and exports. Optional notices help route attention. |
-
-The host launches agents and schedules recurring work. The CLI supplies checks and recorded state; review judgment and business acceptance still need suitable tests and decisions. Structural and credential checks cover selected patterns according to language and repo facts. Test-change checks report count reductions and selected expectation/shape changes, with limited assertion-quality analysis.
+Structural and credential checks cover selected patterns according to language and repo facts. Test-change checks report count reductions and selected expectation/shape changes, with limited assertion-quality analysis.
 
 Ordinary changed-file execution tracing is Python-only. Executable review repair paths include Python, Go and Node/V8, depending on the runner. Verified same-file Python function/method renames can preserve the original finding. Structural checks support Python, Go and TS/JS to different depths, with limited Rust support.
 
