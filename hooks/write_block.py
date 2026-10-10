@@ -21,6 +21,11 @@ Reads a Claude Code PreToolUse payload on stdin and answers on stdout:
                             "permissionDecisionReason": "..."}}   outside scope
     {}                                                            allowed
 
+A write-shaped payload this hook cannot inspect is refused in that same deny
+shape rather than allowed -- a `tool_input` that is not an object, an
+`apply_patch` whose patch will not parse, and a write tool that names no file
+(`file_path`, `notebook_path`, or a path inside `edits`).
+
 **The shape is load-bearing.** PreToolUse reads
 `hookSpecificOutput.permissionDecision`; the top-level `decision` field other
 events use is not supported here. This file printed that field for its entire
@@ -73,6 +78,11 @@ except ImportError:                                             # noqa: E402
                                  repo_root=lambda: Path(__file__).resolve().parent.parent)
 
 WRITE_TOOLS = {"Write", "Edit", "NotebookEdit", "MultiEdit"}
+
+#: The keys a write tool's payload uses to name the file it writes. `Write`,
+#: `Edit` and `MultiEdit` send `file_path`; `NotebookEdit` sends
+#: `notebook_path`; and a `MultiEdit` may carry a path per edit instead.
+PATH_KEYS = ("file_path", "notebook_path")
 
 # Where the ledger is now comes from `_framework.db_path`. The body used to be
 # a private `_ledger` here, and `stop_gate` held four more copies of the same
@@ -702,6 +712,39 @@ def _judge_write(payload, repo_root, rel):
     return refusal[1]
 
 
+def _write_paths(data) -> list:
+    """Every path a write tool's `tool_input` names.
+
+    `main` read `data.get("file_path") or data.get("notebook_path")`, so a
+    `MultiEdit` carrying only `edits` produced `names == []`: the judging loop
+    never ran, nothing was checked, and `main` printed the allow payload for a
+    write it had not looked at -- no scope check, no engagement gate, no
+    `hook_seen` row. Its sibling branches refuse a payload they cannot inspect
+    (non-object `tool_input`, unparseable `apply_patch`); this was the one that
+    allowed. Reproduced with `MultiEdit` carrying only `{"edits": {}}`.
+
+    `edits` is read because it is the other place a `MultiEdit` can name the
+    file it writes, and a name carried there is judged like any other. Only a
+    non-empty string is a path; anything else is not a path and does not become
+    one. Empty is a fact the caller refuses on -- a write-shaped payload that
+    names no file is not a write this hook may wave through.
+    """
+    names: list = []
+
+    def collect(entry):
+        for key in PATH_KEYS:
+            value = entry.get(key)
+            if isinstance(value, str) and value.strip():
+                names.append(value)
+        edits = entry.get("edits")
+        if isinstance(edits, list):
+            for edit in edits:
+                if isinstance(edit, dict):
+                    collect(edit)
+
+    collect(data)
+    return names
+
 
 def main():
     try:
@@ -733,8 +776,16 @@ def main():
         except (ValueError, ImportError, OSError, subprocess.SubprocessError) as exc:
             return refuse_the_write(f"Cannot inspect the complete patch: {exc}")
     else:
-        path = data.get("file_path") or data.get("notebook_path")
-        names = [path] if path else []
+        names = _write_paths(data)
+        if not names:
+            # A write tool names the file it writes. A payload that names none
+            # cannot be judged -- "is this in scope", "does the mark carry the
+            # engagement gate" -- and the two sibling branches above refuse
+            # what they cannot inspect. This one fell through to `print("{}")`.
+            return refuse_the_write(
+                f"Cannot inspect a {tool} that names no file: tool_input has "
+                "no file_path/notebook_path, and nothing named inside "
+                "edits[] either")
     results = []
     for name in names:
         path = Path(name)

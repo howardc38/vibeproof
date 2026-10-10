@@ -783,7 +783,7 @@
     },
     "hooks/write_block.py": {
       "mode": "100755",
-      "sha256": "d733a9bde91da129c0d9bdb2d859a627d5e75d479a4ff0a9a8340d8337b81d0e",
+      "sha256": "960276a6f2edbf71dc495b4d32eaa9f37e02fbb549bd381e9c4192b24f361339",
       "source": "hooks/write_block.py"
     },
     "kernel/__init__.py": {
@@ -13883,7 +13883,7 @@
     },
     "tests/test_chain_integrity.py": {
       "mode": "100644",
-      "sha256": "26992e49c70a06587738c12bf438a3b3974609ac626a8c85ae0d1c5fb4612d22",
+      "sha256": "33932d9b605207af7309d3592f475a3007ba7aad846e92540f5059ccfa6a0ead",
       "source": "tests/test_chain_integrity.py"
     },
     "tests/test_checker_registration_program.py": {
@@ -14508,7 +14508,7 @@
     }
   },
   "policy_sha256": "a0e2137ce5d1aa2704008b496950286242212e9520d7238472fb49e6f39f0ac5",
-  "public_parent": "39ad5265fdc2d50769b3323f5bdb6358c900b1e9",
+  "public_parent": "bc303f8141d8dc16c3ecbf1975cf7e8396acf2e8",
   "schema": 1,
-  "source_revision": "689c38b7dd3fc4af6c04794bdf47a5f9059fce2c"
+  "source_revision": "e259258c9f7e1effec15b97a11cad7ddcf1a6f34"
 }

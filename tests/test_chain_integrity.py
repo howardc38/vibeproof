@@ -497,6 +497,55 @@ class HookOutputMatchesWhatTheHostReads(unittest.TestCase):
             out.get("hookSpecificOutput", {}).get("permissionDecision"), "deny",
             f"a NotebookEdit outside the scope was allowed: {out!r}")
 
+    def test_a_write_that_names_no_file_is_refused(self):
+        """A write-shaped payload the hook cannot inspect is denied, not allowed.
+
+        `main` read `data.get("file_path") or data.get("notebook_path")`, so a
+        `MultiEdit` carrying only `edits` produced `names == []`: the judging
+        loop never ran, no scope check and no engagement check happened, and
+        `main` printed the allow payload for a write it had not looked at. The
+        reproduction is the `MultiEdit` case below; the other three write tools
+        name nothing at all here.
+
+        Non-object `tool_input` and an unparseable `apply_patch` are refused in
+        the two branches above this one. This was the sibling that allowed.
+        """
+        with tempfile.TemporaryDirectory() as td:
+            root = self._repo_with_one_task(td, ["a.py"])
+            for tool, payload in (("Write", {}), ("Edit", {}),
+                                  ("MultiEdit", {"edits": {}}),
+                                  ("NotebookEdit", {})):
+                with self.subTest(tool=tool):
+                    out = self._run_hook(root, payload, tool_name=tool)
+                    denial = out.get("hookSpecificOutput", {})
+                    self.assertEqual(
+                        denial.get("permissionDecision"), "deny",
+                        f"{tool} named no file and was allowed: {out!r}")
+                    self.assertTrue(denial.get("permissionDecisionReason"),
+                                    "a refusal with no reason is not actionable")
+
+    def test_and_paths_inside_edits_are_judged_too(self):
+        """They are read, not skipped: the same payload in and out of scope.
+
+        `edits` is the other place a `MultiEdit` can name the file it writes,
+        and reading it is what keeps the refusal above from being the whole
+        answer -- a hook that refused everything it could not see through
+        `file_path` alone would be one nobody keeps.
+        """
+        with tempfile.TemporaryDirectory() as td:
+            root = self._repo_with_one_task(td, ["a.py"])
+            allowed = self._run_hook(
+                root, {"edits": [{"file_path": str(root / "a.py")}]},
+                tool_name="MultiEdit")
+            denied = self._run_hook(
+                root, {"edits": [{"file_path": str(root / "b.py")}]},
+                tool_name="MultiEdit")
+        self.assertEqual(allowed, {},
+                         f"an in-scope edit was refused: {allowed!r}")
+        self.assertEqual(
+            denied.get("hookSpecificOutput", {}).get("permissionDecision"),
+            "deny", f"an edit outside the scope was allowed: {denied!r}")
+
     def test_a_refused_widen_does_not_widen(self):
         """`widen` records the event and then raises, and the readers summed
         every row. So the CLI printed REFUSED, exited 2, and the scope had grown
