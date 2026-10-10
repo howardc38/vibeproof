@@ -461,7 +461,14 @@ class TheReviewerSaysWhenItIsFinished(unittest.TestCase):
         code, _out, _err = _run(cli.cmd_review,
                                 self._args(root, lens="probe", findings=0))
         self.assertEqual(code, 0)
-        self.assertEqual(self._rows(root), [{"lens": "probe", "findings": 0}])
+        # `result` is part of the row now. This expectation was
+        # `[{"lens": "probe", "findings": 0}]`, which pinned the defect: the
+        # writer dropped the result whenever no maintenance run was named, so
+        # `not_evaluable` and "ran and found nothing" were the same row. The
+        # reader half is
+        # tests/test_a_lens_that_could_not_be_evaluated_is_not_a_clean_review.py.
+        self.assertEqual(self._rows(root),
+                         [{"lens": "probe", "findings": 0, "result": "completed"}])
 
     def test_omitting_findings_is_refused(self):
         """Defaulting it to 0 would make `I forgot` and `I found nothing` the

@@ -911,6 +911,24 @@ LENS_RUN_KIND = "lens_run"
 LENS_REVIEWED_KIND = "lens_reviewed"
 
 
+def lens_evaluated(payload):
+    """Did this `lens_reviewed` row report a lens that was evaluated?
+
+    Here, beside the kind and the writer, because the readers -- `sweep` and
+    `lifecycle` -- already import this module and a predicate of their own
+    would be a second copy of a rule that has one home: a `not_evaluable` or
+    `failed` row is a report, and not a review, and counting it as coverage is
+    claiming a review that did not happen. The vocabulary itself stays in
+    `maintenance`, where `lens_result` validates against it.
+
+    A row written before `result` existed carries none and means `completed`:
+    every row written then was one, and reading the absence as anything else
+    would retract the old record.
+    """
+    from . import maintenance
+    return (payload.get("result") or "completed") in maintenance.EVALUATED_RESULTS
+
+
 def record_lens_run(conn, *, slug, lens, task_id=None, root=None, run_id=None):
     """A reviewer was handed this brief.  `sweep.ran_since` reads it.
 
@@ -954,6 +972,15 @@ def record_lens_reviewed(conn, root, *, slug, findings, task_id=None, run_id=Non
     and `v4 ship` prints it. Refused here, where the row is written, because a
     refusal that lives in the parser branch is a rule that only argv is held
     to.
+
+    `result` -- and `note`/`evidence` when given -- is stored whether or not
+    `--run` names a maintenance run. It used to be dropped on the run-less
+    row while `cmd_review` passed it in every time, so
+    `--result not_evaluable --findings 0` exited 0 and left
+    `{"lens": X, "findings": 0}`: a lens that could not be evaluated, stored
+    as one that ran and found nothing. That is the confusion `--findings`
+    exists to prevent, one field over. The vocabulary is checked here, at the
+    writer, against the same `maintenance.RESULTS` `lens_result` uses.
     """
     known, skipped = lens_files(root, include_legacy=True)
     if slug in skipped:
@@ -969,14 +996,21 @@ def record_lens_reviewed(conn, root, *, slug, findings, task_id=None, run_id=Non
     # The same normalisation as its sibling, and this is the row that matters
     # more: `sweep` reads `lens_reviewed` to answer "did anybody review", and an
     # empty `--task` filed it where that query cannot see it.
+    from . import maintenance
     payload = {"lens": slug, "findings": findings}
     if run_id:
-        from . import maintenance
         r = maintenance.get_run(conn, run_id)
         if task_id != r["task"]:
             raise BadCoordinates("review task differs from assigned maintenance run")
         payload = maintenance.lens_result(conn, root, run_id, slug, result=result,
                                           findings=findings, note=note, evidence=evidence)
+    else:
+        maintenance.check_lens_result(result, findings)
+        payload["result"] = result
+        if note:
+            payload["note"] = note
+        if evidence:
+            payload["evidence"] = list(evidence)
     insert(conn, "event", task_id=task_id or None, claim_id=None,
            kind=LENS_REVIEWED_KIND, actor="reviewer", payload=payload, created_at=_now())
 
