@@ -19,6 +19,11 @@ HANDOFF = "maintenance_handoff"
 DECISIONS = ("needs_fix", "needs_evidence", "needs_checker", "finding_disputed",
              "needs_user_decision", "risk_recommended")
 RESULTS = ("completed", "not_applicable", "not_evaluable", "failed")
+#: The results that say the lens was evaluated. The other two say why it was
+#: not, and a reader that counts them as coverage is claiming a review that did
+#: not happen. `v4 review done --result not_evaluable` (no `--run`) used to
+#: arrive with the result dropped, so every reader did exactly that.
+EVALUATED_RESULTS = ("completed", "not_applicable")
 ROLES = ("monitor", "reviewer", "task-splitter", "worker", "checker-author")
 REPORT_DECISIONS = (*DECISIONS, "work_completed", "work_failed", "review_completed", "review_failed", "plan_completed", "plan_failed", "no_findings")
 DEFAULT_LIMITS = {"max_repair_attempts": 3}
@@ -334,13 +339,26 @@ def validate_run(conn, root, run_id, slug):
     return r
 
 
-def lens_result(conn, root, run_id, slug, *, result, findings, note="", evidence=()):
+def check_lens_result(result, findings):
+    """The vocabulary and the count, for both spellings of a lens report.
+
+    Two writers produce a `lens_reviewed` row: `lens_result` for a run-bound
+    report and `review.record_lens_reviewed` for one that names no run. Only
+    the first checked either value, which is how a reviewer's
+    `--result not_evaluable` came back as `{"lens": X, "findings": 0}` -- a
+    report a reader could not tell from "ran and found nothing". One copy, so
+    the two writers cannot drift into different vocabularies again.
+    """
     if result not in RESULTS or not isinstance(findings, int) or isinstance(findings, bool) or findings < 0:
         raise ValueError("valid result and a nonnegative finding count are required")
+
+
+def lens_result(conn, root, run_id, slug, *, result, findings, note="", evidence=()):
+    check_lens_result(result, findings)
     r = validate_run(conn, root, run_id, slug)
     if result != "completed" and not note.strip():
         raise ValueError("a non-completed result needs its reason")
-    if r["expected"][slug]["requires_context"] and not r["context"] and result in ("completed", "not_applicable"):
+    if r["expected"][slug]["requires_context"] and not r["context"] and result in EVALUATED_RESULTS:
         raise ValueError("missing request/change input is not a completed or inapplicable review")
     briefed = any(p.get("run_id") == run_id and p.get("lens") == slug
                   for _, p in events(conn, review.LENS_RUN_KIND))
@@ -379,7 +397,7 @@ def finish(root, run_id, *, abandon_reason=None, coordination=None):
         valid = snapshot(root) == r["snapshot"] and all(
             name in current and lens_stamp(current[name]) == spec["sha256"] for name, spec in r["expected"].items())
         complete = valid and set(results) == set(r["expected"]) and all(
-            p.get("result") in ("completed", "not_applicable") and p.get("snapshot") == r["snapshot"]
+            review.lens_evaluated(p) and p.get("snapshot") == r["snapshot"]
             for p in results.values())
         seen = {name: set() for name in r["expected"]}
         for _, observation in events(conn, "review_observed"):

@@ -138,7 +138,7 @@
     },
     ".v4/checkers.json": {
       "mode": "100644",
-      "sha256": "71c2e36ab69a23cb28c5aa7608ba8c555747a613e55eff5482cdb78d8776ac65",
+      "sha256": "07e2088d4f29e7df2df93edd9670c5f18cf6dea7e9ac2e14d4d1903ead4d97e0",
       "source": ".v4/checkers.json"
     },
     ".v4/claim_kinds.json": {
@@ -568,7 +568,7 @@
     },
     "docs/FEATURES.md": {
       "mode": "100644",
-      "sha256": "88e1bf636c07764d8655a70584310d8b25aebb685cd2f1132b6d8f90082c432f",
+      "sha256": "5a9b1d7e27e4d5ab2a2f31f539cb1085d642f79fefc16e77613d14da89cacd80",
       "source": "docs/FEATURES.md"
     },
     "docs/GETTING_STARTED.md": {
@@ -603,7 +603,7 @@
     },
     "docs/SPEC.md": {
       "mode": "100644",
-      "sha256": "5965d8ee2832ef19ec6e6e853da20f8a519a1a1a2e12739218e777983e001806",
+      "sha256": "41bab3c66afe70c6d891f845106a880fc5a2698f58fe9c706972c76d4dac70ae",
       "source": "docs/SPEC.md"
     },
     "docs/SYNC.md": {
@@ -973,7 +973,7 @@
     },
     "kernel/cli.py": {
       "mode": "100644",
-      "sha256": "dd9b08fd773c02b0906731b13350b25a249a286ecd0dcb185e2ca89893f2d449",
+      "sha256": "25ebe79b181f5e7cf7e55463715dd6b9fbbef0d365aa298dc5e4a848f8e14cee",
       "source": "kernel/cli.py"
     },
     "kernel/composition.py": {
@@ -1068,12 +1068,12 @@
     },
     "kernel/lifecycle.py": {
       "mode": "100644",
-      "sha256": "02b4b03869b7badf177859c22307bd4f9526696330719f574147935d4f0a7fc0",
+      "sha256": "218e021115af77631c2f8bcd79e5a481ff51bf0951a05761f8a11fe3231d9268",
       "source": "kernel/lifecycle.py"
     },
     "kernel/maintenance.py": {
       "mode": "100644",
-      "sha256": "41233908e01a942b380618917b5c86ad63bb7d9cc0ab2cb8363b622f3c78d2f5",
+      "sha256": "c681d5a96a15c34b41446a7ca29a6b49678249cd017ac2f8b750df5c2911fcaa",
       "source": "kernel/maintenance.py"
     },
     "kernel/maintenance_cli.py": {
@@ -1113,7 +1113,7 @@
     },
     "kernel/review.py": {
       "mode": "100644",
-      "sha256": "34760bc8b025159e4abb0613a86c7ba1d3c2eec60e05bcf5f8aca1b23f17d8ae",
+      "sha256": "78df97cd400ed1eea7a565f210e5bde7611a598d00ce53a52d9f1a43b019fb85",
       "source": "kernel/review.py"
     },
     "kernel/review_coordinates.py": {
@@ -1163,7 +1163,7 @@
     },
     "kernel/sweep.py": {
       "mode": "100644",
-      "sha256": "9499373c1bff2b102a9da64c9bdff3d177a5c7bf17b357f516d5eb485ac4b54b",
+      "sha256": "152623f909057fe9b56406b47728d05b0d67cdf8c3e3f764f548ef1547bdeba9",
       "source": "kernel/sweep.py"
     },
     "kernel/trend.py": {
@@ -13748,7 +13748,7 @@
     },
     "tests/test_a_finding_is_not_overwritten_by_the_next_one.py": {
       "mode": "100644",
-      "sha256": "32d32b85f70019ad183c01a59f79b204dba04f9b24a392ec437591decc99d249",
+      "sha256": "5f7584fd40efadfa77c880f19df861318b0c07c9fb38d5f20651f6857879cb09",
       "source": "tests/test_a_finding_is_not_overwritten_by_the_next_one.py"
     },
     "tests/test_a_go_handler_that_only_formats_a_string.py": {
@@ -13780,6 +13780,11 @@
       "mode": "100644",
       "sha256": "b6cfe87aadd510551c2608333f8676b49be2c02ee94e009b419e043a34e522fb",
       "source": "tests/test_a_lens_reaches_the_reviewer.py"
+    },
+    "tests/test_a_lens_that_could_not_be_evaluated_is_not_a_clean_review.py": {
+      "mode": "100644",
+      "sha256": "1adad2340b8637f67ddf02a11b6472e0fe10de9a05297aa79c52099e2c6c1210",
+      "source": "tests/test_a_lens_that_could_not_be_evaluated_is_not_a_clean_review.py"
     },
     "tests/test_a_mutation_is_the_file_git_names.py": {
       "mode": "100644",
@@ -14188,7 +14193,7 @@
     },
     "tests/test_the_cli_says_what_happened.py": {
       "mode": "100644",
-      "sha256": "c43b69ac678d683e1bad75ba2f3ef2e988dac27b92889840104e0329cdd03eb3",
+      "sha256": "99a0d304596832f779aafd90a964c2e42a6473a354268b7ce192234a8b811d51",
       "source": "tests/test_the_cli_says_what_happened.py"
     },
     "tests/test_the_documents_this_checker_never_opened.py": {
@@ -14508,7 +14513,7 @@
     }
   },
   "policy_sha256": "a0e2137ce5d1aa2704008b496950286242212e9520d7238472fb49e6f39f0ac5",
-  "public_parent": "bc303f8141d8dc16c3ecbf1975cf7e8396acf2e8",
+  "public_parent": "a28dd48558c42edd5ec0ecdf23844464a364d5ad",
   "schema": 1,
-  "source_revision": "e259258c9f7e1effec15b97a11cad7ddcf1a6f34"
+  "source_revision": "77909aedb4dbca840a7e7910edd3cb6a491b41d1"
 }
