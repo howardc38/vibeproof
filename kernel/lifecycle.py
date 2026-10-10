@@ -32,8 +32,8 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 
-def _lenses_reviewed(conn, task_id):
-    """`{lens: findings}` for the lenses that reported on this task.
+def _lens_rows(conn, task_id):
+    """`{lens: payload}` for this task's `lens_reviewed` rows.
 
     Last row wins per lens: a reviewer that ran again after a repair is saying
     something newer, not something additional, and summing them would report a
@@ -48,8 +48,28 @@ def _lenses_reviewed(conn, task_id):
         except (ValueError, TypeError):
             continue
         if p.get("lens") is not None:
-            out[p["lens"]] = p.get("findings")
+            out[p["lens"]] = p
     return out
+
+
+def _lenses_reviewed(conn, task_id):
+    """`{lens: findings}` for the lenses that reported an evaluated review.
+
+    A `not_evaluable` or `failed` report is not a review, and it is read by
+    `_lenses_inconclusive` instead: `v4 ship` printed `reviewed by: X` about a
+    row whose reviewer had said X could not be evaluated, which is the same
+    claim `lenses_run` used to make, moved one row over. A row with no `result`
+    predates the field and means completed, for the same reason it does in
+    `sweep.reviewed_since`.
+    """
+    return {name: p.get("findings") for name, p in _lens_rows(conn, task_id).items()
+            if review_mod.lens_evaluated(p)}
+
+
+def _lenses_inconclusive(conn, task_id):
+    """`{lens: result}` for the lenses that reported and evaluated nothing."""
+    return {name: p.get("result") for name, p in _lens_rows(conn, task_id).items()
+            if not review_mod.lens_evaluated(p)}
 
 
 def carry_forward(conn, after: str) -> str:
@@ -851,6 +871,11 @@ def ship(conn, cfg, task_id, max_rounds=None):
         # nothing" stop looking the same -- which the row above could not do,
         # because printing a brief is free and reviewing is not.
         "lenses_reviewed": _lenses_reviewed(conn, task_id),
+        # The rows the line above leaves out: a reviewer came back and said the
+        # lens could not be evaluated (or failed). They are not coverage, and
+        # they are not silence either -- `v4 ship` printed them as
+        # `reviewed by:` before the result existed on the row.
+        "lenses_inconclusive": _lenses_inconclusive(conn, task_id),
         # Where this task's claims came from. The column carrying it had three
         # declared values, two writers and no reader at all -- the shape
         # `dead-wiring` exists to find, in the one directory `dead-wiring`

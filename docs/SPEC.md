@@ -3143,9 +3143,10 @@ records that it happened; it does not review.
 
 <!-- pinned: kernel/sweep.py::record -->
 <!-- pinned: kernel/sweep.py::reviewed_since -->
+<!-- pinned: kernel/sweep.py::inconclusive_since -->
 <!-- pinned: kernel/sweep.py::_lens_events -->
 
-§10.2 is about the three states on the ship side. **The sweep side is the same
+§10.2 is about the states on the ship side. **The sweep side is the same
 fact and the same repair.**
 
 The durable record held only `ran`, and `ran` came from `lens_run` — written the
@@ -3154,11 +3155,20 @@ the sweep side read `lens_reviewed`, so 13 reviewers taking briefs and none
 coming back still recorded `ran: 13` for that sweep — the layer meant to replace
 that self-report, wearing the ledger's name.
 
-`record` stores both. An incomplete legacy `v4 sweep --done` returns 1 and does not advance complete-review cadence. Legacy evidence windows close at each attempt; versioned maintenance evidence is not borrowed by the legacy path. `v4 sweep --done` prints all three states:
+`record` stores both, and now stores the reviewer's result beside them: a row
+that says `not_evaluable` or `failed` is a report about a lens, not a review of
+one, so it is kept in `inconclusive` and never counted into `reviewed`. Both
+keys count towards "this sweep accounted for the lens" — a tree sweep always
+carries context-requiring lenses, and their `not_evaluable` is the answer, not
+silence, so it does not hold the cadence partial forever. A row written before
+the `result` field existed carries none and means `completed`.
+
+An incomplete legacy `v4 sweep --done` returns 1 and does not advance complete-review cadence. Legacy evidence windows close at each attempt; versioned maintenance evidence is not borrowed by the legacy path. Legacy rows are asked the same questions. `v4 sweep --done` prints all four states:
 
 | Printed | Meaning |
 |---|---|
-| `n of m reported: X (k finding(s))` | A reviewer recorded completion and k (**k may be 0**); this is not independently verified reading coverage |
+| `n of m reported: X (k finding(s))` | A reviewer recorded an evaluated completion and k (**k may be 0**); this is not independently verified reading coverage |
+| `reported without evaluating: X (not_evaluable\|failed)` | X's reviewer came back and said the lens was not evaluated (**not coverage**, not silence) |
 | `briefed and never reported back: X` | Somebody took X's brief and did not come back |
 | `no brief printed since the last sweep: X` | No brief was printed at all |
 
@@ -3178,7 +3188,7 @@ that did not happen.
 > nobody had looked at.
 
 **Neither side gates**, for the reason given in §10.2: a lens is a judgement, and
-gating on whether anybody judged buys a tick. What it buys is those three states
+gating on whether anybody judged buys a tick. What it buys is those states
 no longer being identical.
 
 `raised_since`'s window was not narrowed to match, and that is not drift:
@@ -3275,15 +3285,18 @@ credentials and cannot be replaced by transport or service-fixture tests.
 <!-- pinned: kernel/review.py::record_lens_run -->
 <!-- pinned: kernel/review.py::record_lens_reviewed -->
 <!-- pinned: kernel/lifecycle.py::_lenses_reviewed -->
+<!-- pinned: kernel/lifecycle.py::_lenses_inconclusive -->
 
 `v4 ship` prints a `reviewed by: …` line every time and **then ships anyway**.
-The line has 3 states:
+The line has 5 states:
 
 | Printed | Meaning |
 |---|---|
-| `reviewed by: X (n finding(s))` | A reviewer reported completion and n (**n may be 0**); the event is self-reported |
+| `reviewed by: X (n finding(s))` | A reviewer reported an evaluated completion and n (**n may be 0**); the event is self-reported |
+| `reviewed by: no lens evaluated this task` | Every report came back not evaluated: no completed review was recorded, but the task is not silent — the `reported without evaluating:` line below names each lens and why it did not evaluate |
+| `reported without evaluating: X (not_evaluable\|failed)` | X's reviewer came back and said the lens was not evaluated; the ship payload carries it as `lenses_inconclusive`, and it is not coverage |
 | `briefed and never reported back: X` | Somebody took X's brief and did not come back |
-| `no lens has reported on this task` | No completed-review event was recorded; brief coverage is reported separately |
+| `no lens has reported on this task` | Neither a completed review nor a not-evaluated report was recorded; brief coverage is reported separately |
 
 **There used to be two, and the missing one was the most common.** `v4 review
 lens` writes a `lens_run` the moment it prints a brief, and printing a brief is
@@ -3293,16 +3306,29 @@ found nothing" reading alike), and the `reviewed by:` line. Measured: `near-miss
 had two `lens_run` rows, zero findings, and nobody had read a diff with it, while
 both ships that built it printed `reviewed by: near-miss`.
 
+The fourth state arrived the same way. `record_lens_reviewed` stored `result`,
+`note` and `evidence` only when `--run` named a maintenance run, while
+`cmd_review` passed them in every time — so
+`v4 review done --lens near-miss --result not_evaluable --findings 0` exited 0
+and left `{"lens": "near-miss", "findings": 0}`, the identical row a lens that
+ran and found nothing writes. Every reader counted it as a clean review. The
+result is now stored on both rows and checked against `maintenance.RESULTS` at
+the writer; a row written before the field existed means `completed`, so the old
+record is not retracted.
+
 So a reviewer says so when finished, in exactly the sweep's shape:
 
 ```
-v4 review done --lens <name> --task <T> --findings <n>
+v4 review done --lens <name> --task <T> --findings <n> --result completed|not_applicable|not_evaluable|failed
 ```
 
 **`--findings` has no default, and 0 is an answer.** Defaulting it to 0 makes "I
 forgot to say" and "I reviewed and had nothing to report" the same row, which is
 the same defect one level down. The middle state is the most common one, and it
 used to have no words at all — somebody took the brief and walked away.
+`--result` is the same distinction one field over: a review that could not be
+evaluated is not a review that found nothing, and `--note`/`--evidence` carry
+the reason when they are given.
 
 **Both events are written by `kernel/review.py`, not inserted directly by
 `cmd_review`.** Every other write in the review domain (`raise_finding`,

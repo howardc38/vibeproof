@@ -374,8 +374,13 @@ class TheReviewCommandWritesThroughTheLayerThatOwnsTheWrites(unittest.TestCase):
                                           findings=0))
         self.assertEqual(code, 0)
         self.assertEqual([k["findings"] for k in seen], [0])
+        # `result` is part of the row now; this expectation was
+        # `[{"lens": "probe", "findings": 0}]`, which is the row the writer
+        # left when it dropped the result -- see
+        # tests/test_a_lens_that_could_not_be_evaluated_is_not_a_clean_review.py.
         self.assertEqual(self.events(review.LENS_REVIEWED_KIND),
-                         [{"lens": "probe", "findings": 0}])
+                         [{"lens": "probe", "findings": 0,
+                           "result": "completed"}])
 
     def test_the_refusals_belong_to_the_write_and_not_to_argv(self):
         """A caller that is not the command line gets the same two answers."""

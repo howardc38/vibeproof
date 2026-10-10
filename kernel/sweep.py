@@ -54,9 +54,22 @@ def complete_payload(payload):
     if payload.get("run_id") and payload.get("cadence_complete") is not True:
         return False  # Older selected-run records did not establish full cadence coverage.
     expected, reviewed = payload.get("lenses"), payload.get("reviewed")
-    return (isinstance(expected, list) and bool(expected) and isinstance(reviewed, dict)
-            and set(expected) <= set(reviewed)
-            and all(isinstance(reviewed[x], int) and not isinstance(reviewed[x], bool) and reviewed[x] >= 0 for x in expected))
+    inconclusive = payload.get("inconclusive") or {}
+    if not (isinstance(expected, list) and bool(expected) and isinstance(reviewed, dict)
+            and isinstance(inconclusive, dict)):
+        return False
+    # A lens that reported `not_evaluable` accounts for its place in the sweep
+    # the way `excluded` does on the maintenance side: it was looked at and the
+    # answer was "this cannot be answered here". It is not counted as a review
+    # -- the two keys are read apart, and `reviewed` is still the only one the
+    # reader may print as coverage -- but it is not silence either, and silence
+    # is what holds a sweep partial forever for the context-requiring lenses a
+    # tree sweep always carries.
+    if not set(expected) <= set(reviewed) | set(inconclusive):
+        return False
+    return (all(isinstance(reviewed[x], int) and not isinstance(reviewed[x], bool) and reviewed[x] >= 0
+                for x in set(expected) & set(reviewed))
+            and all(isinstance(inconclusive[x], str) for x in set(expected) & set(inconclusive)))
 
 
 def last(conn):
@@ -332,22 +345,48 @@ def ran_since(conn, since=None):
 
 
 def reviewed_since(conn, since=None):
-    """`{lens: findings}` for the lenses a reviewer came back on.  The other
-    half of `ran_since`, and the half this side of the tree did not have.
+    """`{lens: findings}` for the lenses a reviewer came back on, evaluated.
+    The other half of `ran_since`, and the half this side of the tree did not
+    have.
 
     `v4 review done --lens X --findings n` writes it, and `--findings 0` is the
     whole point of the row existing: "ran and found nothing" is a fact, and
     without somewhere to put it, it is stored as the same silence as "took the
     brief and walked away".
 
+    A row that says `not_evaluable` or `failed` is a report and not a review,
+    and it is left to `inconclusive_since` -- counting it here would make the
+    second fact this function exists for unreadable again. A row with no
+    `result` predates the field and means completed, so the old record is not
+    retracted by this.
+
     Not gated, for the reason §10.2 gives about the ship side: a lens is
     judgement, and gating on "did a judgement happen" buys a checkbox. What it
     buys instead is that a sweep of thirteen lenses nobody reviewed stops
     looking like a sweep of thirteen.
     """
-    from .review import LENS_REVIEWED_KIND
+    from .review import LENS_REVIEWED_KIND, lens_evaluated
     return {name: p.get("findings")
-            for name, p in _lens_events(conn, LENS_REVIEWED_KIND, since).items()}
+            for name, p in _lens_events(conn, LENS_REVIEWED_KIND, since).items()
+            if lens_evaluated(p)}
+
+
+def inconclusive_since(conn, since=None):
+    """`{lens: result}` for the reported lenses that evaluated nothing.
+
+    `not_evaluable` (the input the lens needs is missing) and `failed` are
+    reports *about* a lens, and not reviews of one. `record_lens_reviewed`
+    dropped the result on a row that named no maintenance run, so these rows
+    arrived indistinguishable from "ran and found nothing" and
+    `reviewed_since` counted them as coverage. They are still reports -- a
+    sweep that gets one has accounted for the lens -- so they are stored
+    beside `reviewed` rather than thrown away, and `complete_payload` reads
+    both.
+    """
+    from .review import LENS_REVIEWED_KIND, lens_evaluated
+    return {name: p.get("result")
+            for name, p in _lens_events(conn, LENS_REVIEWED_KIND, since).items()
+            if not lens_evaluated(p)}
 
 
 def raised_since(conn, since=None):
@@ -452,7 +491,8 @@ def record(conn, *, lenses, findings=None, note=""):
     """
     since = last_attempted(conn)
     payload = {"lenses": list(lenses), "ran": sorted(ran_since(conn, since)),
-               "reviewed": reviewed_since(conn, since), "findings": findings,
+               "reviewed": reviewed_since(conn, since),
+               "inconclusive": inconclusive_since(conn, since), "findings": findings,
                "raised_since_last_sweep": raised_since(conn, since), "note": note}
     payload["complete"] = complete_payload(payload)
     insert(conn, "event", task_id=None, claim_id=None, kind=KIND, actor="worker",

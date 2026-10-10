@@ -1203,23 +1203,34 @@ def cmd_ship(args):
               f"has none', not a person. Every detector over {name} is reporting "
               f"a clean repo on a verb-ending sweep. Confirm it and rewrite the "
               f"line without AUTO:, or add the rows.")
-    # Three states, because there are three. `lenses_run` records that a brief
-    # printed; `lenses_reviewed` records that a reviewer came back and said
-    # how many findings it had. Printing the first as the second is how this
-    # ship said `reviewed by: near-miss` about a lens no reviewer had ever
-    # read a diff with -- twice, on the two ships that built it.
+    # Four states, because a review can also come back saying it could not
+    # evaluate the lens. `lenses_run` records that a brief printed;
+    # `lenses_reviewed` records that a reviewer came back and said how many
+    # findings it had. Printing the first as the second is how this ship said
+    # `reviewed by: near-miss` about a lens no reviewer had ever read a diff
+    # with -- twice, on the two ships that built it. `lenses_inconclusive`
+    # records the reports that are not reviews; before the result was stored
+    # on a run-less row they arrived as reviews too.
     #
     # The middle state is the common one and had no words at all: somebody
     # took the brief and never reported. It is not a review and it is not
     # nothing, and a reader deciding whether to trust this ship needs it.
     briefed = set(rep.get("lenses_run") or [])
     reviewed = rep.get("lenses_reviewed") or {}
+    inconclusive = rep.get("lenses_inconclusive") or {}
     if reviewed:
         print("\nreviewed by: " + ", ".join(
             f"{n} ({reviewed[n]} finding(s))" for n in sorted(reviewed)))
+    elif inconclusive:
+        # Reporting "no lens has reported" here would be false: they reported,
+        # and the line below is what they reported.
+        print("\nreviewed by: no lens evaluated this task")
     else:
         print("\nreviewed by: no lens has reported on this task")
-    unfinished = sorted(briefed - set(reviewed))
+    if inconclusive:
+        print("  reported without evaluating: " + ", ".join(
+            f"{n} ({inconclusive[n]})" for n in sorted(inconclusive)))
+    unfinished = sorted(briefed - set(reviewed) - set(inconclusive))
     if unfinished:
         print(f"  briefed and never reported back: {', '.join(unfinished)}"
               f" -- a brief that printed is not a review")
@@ -1353,6 +1364,7 @@ def cmd_sweep(args):
             # printing those as `0 reviewed` would be this command inventing a
             # measurement the row never took -- the failure one column over.
             rev = p.get("reviewed")
+            inc = len(p.get("inconclusive") or {})
             if rev is None:
                 lens_txt = (f"{n_lens} lens(es)" if n_lens == n_ran
                             else f"{n_lens} lens(es) claimed, {n_ran} ran")
@@ -1360,7 +1372,8 @@ def cmd_sweep(args):
                 lens_txt = f"{n_lens} lens(es) reviewed"
             else:
                 lens_txt = (f"{n_lens} lens(es) available, {n_ran} briefed, "
-                            f"{len(rev)} reviewed")
+                            f"{len(rev)} reviewed"
+                            + (f", {inc} not evaluated" if inc else ""))
             if claimed is None:
                 find_txt = ""
             elif seen is None or claimed == seen:
@@ -1375,6 +1388,7 @@ def cmd_sweep(args):
         prev = sweep_mod.last_attempted(conn)
         briefed = sweep_mod.ran_since(conn, prev)
         reviewed = sweep_mod.reviewed_since(conn, prev)
+        inconclusive = sweep_mod.inconclusive_since(conn, prev)
         # Refused before the sweep is closed, not reported after. Both counts
         # have been stored since `record` was written and nothing compared
         # them -- 61 reported against 1 in the ledger, and no command had to
@@ -1387,27 +1401,33 @@ def cmd_sweep(args):
         recorded = sweep_mod.record(conn, lenses=lenses, findings=args.findings, note=args.note or "")
         print(f"recorded: {len(lenses)} lens(es) available"
               f"{'' if args.findings is None else f', {args.findings} finding(s)'}")
-        # The same three states `v4 ship` prints, because it is the same fact:
+        # The same states `v4 ship` prints, because it is the same fact:
         # `lens_run` says a brief printed and printing one is free. This line
         # said `N of M printed their brief` and stopped there, so a sweep where
         # thirteen reviewers took a brief and none came back read exactly like
-        # a sweep thirteen reviewers had finished.
+        # a sweep thirteen reviewers had finished. A reviewer that came back
+        # `not_evaluable` is the fourth state: it reported, and the report says
+        # the lens examined nothing.
         #
         # Not a refusal, either half of it: a sweep may deliberately skip a
         # lens, and gating on "did a judgement happen" buys a checkbox (§10.2).
-        # What it buys is that the three stop looking like one.
+        # What it buys is that the states stop looking like one.
         if reviewed:
             print(f"\n{len(reviewed)} of {len(lenses)} reported: "
                   + ", ".join(f"{n} ({reviewed[n]} finding(s))"
                               for n in sorted(reviewed)))
-        else:
+        elif not inconclusive:
             print(f"\nno lens reported on this sweep -- "
                   f"`v4 review done --lens <name> --findings <n>` is how one does")
-        unfinished = sorted(briefed - set(reviewed))
+        if inconclusive:
+            print("  reported without evaluating: " + ", ".join(
+                f"{n} ({inconclusive[n]})" for n in sorted(inconclusive)))
+        done = set(reviewed) | set(inconclusive)
+        unfinished = sorted(briefed - done)
         if unfinished:
             print(f"  briefed and never reported back: {', '.join(unfinished)}"
                   f" -- a brief that printed is not a review")
-        never = sorted(set(lenses) - briefed - set(reviewed))
+        never = sorted(set(lenses) - briefed - done)
         if never:
             print(f"  no brief printed since the last sweep: {', '.join(never)}")
         if recorded["complete"]:
@@ -1899,15 +1919,20 @@ def cmd_review(args):
         # So the reviewer says when it is finished, the same way a sweep does
         # (`v4 sweep --done --findings N`). `--findings 0` is the whole point:
         # it is the only way "ran and found nothing" can exist as a fact.
+        result = getattr(args, "result", None) or "completed"
         try:
             review.record_lens_reviewed(conn, cfg.root, slug=args.lens,
                                         findings=args.findings, task_id=args.task,
-                                        run_id=getattr(args, "run", None), result=getattr(args, "result", None) or "completed",
+                                        run_id=getattr(args, "run", None), result=result,
                                         note=args.note or "", evidence=getattr(args, "evidence", None) or [])
         except (review.BadCoordinates, ValueError) as exc:
             print(f"REFUSED: {exc}", file=sys.stderr)
             return 2
-        print(f"recorded: {args.lens} reviewed"
+        # `reviewed` was printed for every result, including the ones that say
+        # the lens was not reviewed. The row now carries the result, so this
+        # line says it too.
+        print(f"recorded: {args.lens} "
+              f"{'reviewed' if result == 'completed' else result}"
               f"{'' if not args.task else ' ' + args.task}"
               f", {args.findings} finding(s)")
         return 0

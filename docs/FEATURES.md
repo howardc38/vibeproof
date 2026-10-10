@@ -69,7 +69,7 @@ A report-only claim can escalate when the evaluated task has too many unresolved
 
 The current 13 lens files cover architecture fit, configuration/hardcoded-secret placement, DevX, runtime electrification, general rules with false instances, implementation boundaries, LLM-agent action surfaces, near misses, observability, runtime reliability/performance, request fidelity, permissions/security and test sufficiency.
 
-`review lens` renders the questions and records that the brief was taken. `review done` records the reviewer's stated completion/count. They are distinct events. Neither is a mechanical proof that the reviewer read the code correctly. Sources: [brief generation](../kernel/review.py), [brief event](../kernel/review.py), [completion event](../kernel/review.py).
+`review lens` renders the questions and records that the brief was taken. `review done` records the reviewer's stated result (`completed`, `not_applicable`, `not_evaluable`, `failed`), its finding count, and the note/evidence when given; a `not_evaluable` or `failed` report is carried separately from a completed review in `sweep` and `ship`, so it is not counted as coverage. They are distinct events. Neither is a mechanical proof that the reviewer read the code correctly. Sources: [brief generation](../kernel/review.py), [brief event](../kernel/review.py), [completion event](../kernel/review.py).
 
 `review add` creates the fixed `review-finding` kind at validated file/symbol coordinates. With `--task`, it belongs to that task. Without a task, the code creates/uses the standing `repo-review` task. **A finding on `repo-review` does not automatically block an unrelated feature task's ship.** See [finding creation](../kernel/review.py).
 
