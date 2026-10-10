@@ -148,10 +148,19 @@ class TheWriterKeepsTheResultOnARunLessRow(unittest.TestCase):
 
 class TheSweepReadsTheTwoApart(unittest.TestCase):
     def _report(self, root, lens, result, findings=0):
+        """Through the writer, with the reason it now requires.
+
+        A non-completed result without a non-blank note or evidence is refused
+        (`record_lens_reviewed` shares `maintenance.check_lens_reason` with the
+        run-bound writer), so the not_evaluable rows here carry one. What each
+        test asserts about the readers is unchanged: the note is not read.
+        """
         conn = ledger.connect(root)
         try:
-            review.record_lens_reviewed(conn, root, slug=lens,
-                                        findings=findings, result=result)
+            review.record_lens_reviewed(
+                conn, root, slug=lens, findings=findings, result=result,
+                note="" if result == "completed" else
+                "why this lens was not evaluated")
         finally:
             conn.close()
 

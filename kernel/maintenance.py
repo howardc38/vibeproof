@@ -353,11 +353,39 @@ def check_lens_result(result, findings):
         raise ValueError("valid result and a nonnegative finding count are required")
 
 
+def check_lens_reason(result, note, evidence=()):
+    """A non-completed result has to say why, for both spellings of the row.
+
+    Two writers produce a `lens_reviewed` row: `lens_result` for a run-bound
+    report and `review.record_lens_reviewed` for one that names no run. Only
+    the first refused a `not_evaluable` with nothing on it, so
+    `v4 review done --lens X --result not_evaluable --findings 0` (no `--run`,
+    no `--note`, no `--evidence`) exited 0 and left a row saying the lens was
+    not evaluated and not one word about why. That row cannot be argued with
+    now and its reason cannot be checked later -- the same silence the
+    `--findings` refusal exists to prevent, one field over. The run-less
+    spelling is the one a sweep's reviewer actually uses.
+
+    Note or evidence, because they are the same fact: what stopped the lens
+    being evaluated. The run-bound writer has always taken the first, and an
+    evidence reference is not a weaker floor -- it is the sentence with a
+    pointer on it. `review.record_lens_reviewed` answers this ValueError with
+    its own `BadCoordinates`, which the CLI prints as REFUSED and exits 2.
+    """
+    if result == "completed":
+        return
+    if (note or "").strip():
+        return
+    if any(isinstance(e, str) and e.strip() for e in (evidence or ())):
+        return
+    raise ValueError("a non-completed result needs its reason: a non-blank "
+                     "note or an evidence reference")
+
+
 def lens_result(conn, root, run_id, slug, *, result, findings, note="", evidence=()):
     check_lens_result(result, findings)
     r = validate_run(conn, root, run_id, slug)
-    if result != "completed" and not note.strip():
-        raise ValueError("a non-completed result needs its reason")
+    check_lens_reason(result, note, evidence)
     if r["expected"][slug]["requires_context"] and not r["context"] and result in EVALUATED_RESULTS:
         raise ValueError("missing request/change input is not a completed or inapplicable review")
     briefed = any(p.get("run_id") == run_id and p.get("lens") == slug

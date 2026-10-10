@@ -981,6 +981,13 @@ def record_lens_reviewed(conn, root, *, slug, findings, task_id=None, run_id=Non
     as one that ran and found nothing. That is the confusion `--findings`
     exists to prevent, one field over. The vocabulary is checked here, at the
     writer, against the same `maintenance.RESULTS` `lens_result` uses.
+
+    A non-completed result also has to carry its reason here: a report with
+    neither a non-blank `note` nor a non-blank `evidence` reference is
+    refused as `BadCoordinates`. The run-bound writer has refused a reasonless
+    `not_evaluable` since it was written and this one did not, so the
+    spelling a sweep's reviewer uses was the one that left a report nobody
+    could argue with. `maintenance.check_lens_reason` holds the rule for both.
     """
     known, skipped = lens_files(root, include_legacy=True)
     if slug in skipped:
@@ -1006,6 +1013,18 @@ def record_lens_reviewed(conn, root, *, slug, findings, task_id=None, run_id=Non
                                           findings=findings, note=note, evidence=evidence)
     else:
         maintenance.check_lens_result(result, findings)
+        # The reason, from the same function the run-bound writer uses. Only
+        # `lens_result` refused a `not_evaluable` with nothing on it, so this
+        # spelling -- the one a sweep's reviewer uses, since a sweep has no
+        # run -- stored a report that said the lens was not evaluated and not
+        # one word about why. `BadCoordinates` here rather than the shared
+        # function's `ValueError`, because every refusal in this module that
+        # is about the coordinates a reviewer handed in is that class, and
+        # the CLI prints it as REFUSED with exit 2.
+        try:
+            maintenance.check_lens_reason(result, note, evidence)
+        except ValueError as exc:
+            raise BadCoordinates(str(exc)) from exc
         payload["result"] = result
         if note:
             payload["note"] = note
