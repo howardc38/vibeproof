@@ -3316,6 +3316,15 @@ result is now stored on both rows and checked against `maintenance.RESULTS` at
 the writer; a row written before the field existed means `completed`, so the old
 record is not retracted.
 
+A non-completed result also has to carry why. `--note` or `--evidence`, and a
+report with neither non-blank is refused where the row would be written —
+REFUSED, exit 2. The run-bound writer refused that from the start and the
+run-less one did not, so the spelling a sweep's reviewer uses — a sweep has no
+run to name — was the one that could say `not_evaluable` and nothing else.
+`maintenance.check_lens_reason` is the one copy of the rule; both writers call
+it, and an evidence reference is the reason with a pointer on it, not a weaker
+floor.
+
 So a reviewer says so when finished, in exactly the sweep's shape:
 
 ```
@@ -3327,8 +3336,8 @@ forgot to say" and "I reviewed and had nothing to report" the same row, which is
 the same defect one level down. The middle state is the most common one, and it
 used to have no words at all — somebody took the brief and walked away.
 `--result` is the same distinction one field over: a review that could not be
-evaluated is not a review that found nothing, and `--note`/`--evidence` carry
-the reason when they are given.
+evaluated is not a review that found nothing, and `--note`/`--evidence` are
+that reason — a non-completed result with neither, non-blank, is refused.
 
 **Both events are written by `kernel/review.py`, not inserted directly by
 `cmd_review`.** Every other write in the review domain (`raise_finding`,
