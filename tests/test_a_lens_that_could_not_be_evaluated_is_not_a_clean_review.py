@@ -302,5 +302,187 @@ class ARowFromBeforeTheFieldMeansCompleted(unittest.TestCase):
             conn.close()
 
 
+class FailedSweepsStayDue(unittest.TestCase):
+    def test_failed_reports_do_not_advance_database_or_export_cadence(self):
+        from kernel.config import RepoConfig
+        root = _repo(self)
+        conn = ledger.connect(root)
+        self.addCleanup(conn.close)
+        for lens in ("probe", "context-lens"):
+            review.record_lens_reviewed(conn, root, slug=lens, findings=0,
+                                        result="failed", note="reviewer crashed")
+        args = SimpleNamespace(repo=str(root), done=True, history=False,
+                               if_due=False, findings=0, note=None)
+        code, said, err = _run(cli.cmd_sweep, args)
+        self.assertEqual(code, 1, (said, err))
+        payload = sweep.history(conn)[0][1]
+        self.assertFalse(payload["complete"])
+        self.assertEqual(payload["inconclusive"],
+                         {"probe": "failed", "context-lens": "failed"})
+        self.assertIsNone(sweep.last(conn))
+        self.assertTrue(sweep.due(conn, RepoConfig(root))[0])
+        ledger.export_jsonl(conn, root / sweep.EXPORT, root)
+        self.assertIsNone(sweep.last_exported(root))
+        self.assertTrue(sweep.due_from_export(root, RepoConfig(root))[0])
+        self.assertIn("PARTIAL", said)
+        self.assertNotIn("next due", said)
+
+    def test_historical_complete_flag_cannot_bless_failed_or_unknown_results(self):
+        for result in ("failed", "unknown", "", None, 0, {}, []):
+            with self.subTest(result=result):
+                self.assertFalse(sweep.complete_payload({
+                    "lenses": ["probe"], "reviewed": {}, "complete": True,
+                    "inconclusive": {"probe": result}}))
+        self.assertTrue(sweep.complete_payload({
+            "lenses": ["probe"], "reviewed": {},
+            "inconclusive": {"probe": "not_evaluable"}}))
+
+
+class AReportSnapshotSurvivesAConcurrentRetry(unittest.TestCase):
+    def _exercise(self, before, after, surface):
+        from kernel.config import RepoConfig
+        from unittest.mock import patch
+        root = _repo(self)
+        reader, writer = ledger.connect(root), ledger.connect(root)
+        self.addCleanup(reader.close)
+        self.addCleanup(writer.close)
+        task = "t" if surface == "ship" else None
+        if task:
+            lifecycle.open_task(reader, RepoConfig(root), task_id=task,
+                                request="Review x.py", scope_globs=["x.py"])
+        # One unrelated lens also reports so the CLI has no silence to conflate.
+        review.record_lens_reviewed(writer, root, slug="context-lens", findings=0,
+                                    task_id=task, result="not_evaluable",
+                                    note="no change context", evidence=["context.json"])
+        def report(result, version):
+            review.record_lens_reviewed(writer, root, slug="probe", findings=0,
+                                        task_id=task, result=result,
+                                        note=version, evidence=[version + ".log"])
+        report(before, "first attempt")
+        if task:
+            ledger.write_chain_head(reader, root)
+        selected, retried, errors = [], [], []
+
+        def interleave(sql):
+            # SQLite calls this before executing a statement. Commit the retry
+            # immediately after the first real report SELECT has been consumed,
+            # before any later query (including the former second projection).
+            if selected and not retried:
+                retried.append(sql)
+                try:
+                    report(after, "retry attempt")
+                except Exception as exc:
+                    errors.append(exc)
+            if sql.startswith("SELECT") and "FROM event" in sql and "lens_reviewed" in sql:
+                selected.append(sql)
+
+        reader.set_trace_callback(interleave)
+        try:
+            if surface == "ship":
+                ok, payload = lifecycle.ship(reader, RepoConfig(root), task)
+                self.assertTrue(ok, payload)
+                reviewed, inconclusive = payload["lenses_reviewed"], payload["lenses_inconclusive"]
+                reports = payload.get("lenses_reports", {})
+            elif surface == "sweep":
+                payload = sweep.record(reader, lenses=["probe", "context-lens"], findings=0)
+                reviewed, inconclusive = payload["reviewed"], payload["inconclusive"]
+                reports = payload.get("reports", {})
+            else:
+                args = SimpleNamespace(repo=str(root), done=True, history=False,
+                                       if_due=False, findings=0, note=None)
+                # Only supply the real traced connection; all reads, writes and
+                # CLI rendering execute normally, without a test-only transaction.
+                with patch.object(ledger, "connect", return_value=reader):
+                    code, said, err = _run(cli.cmd_sweep, args)
+                reader.set_trace_callback(None)
+                payload = sweep.history(reader)[0][1]
+                reviewed, inconclusive = payload["reviewed"], payload["inconclusive"]
+                reports = payload.get("reports", {})
+                self.assertEqual(code, 0 if payload["complete"] else 1, err)
+                self.assertEqual("probe (0 finding(s))" in said, "probe" in reviewed, said)
+                self.assertEqual("probe (failed)" in said, inconclusive.get("probe") == "failed", said)
+                self.assertIn("first attempt", said)
+                self.assertNotIn("retry attempt", said)
+        finally:
+            reader.set_trace_callback(None)
+        self.assertEqual(errors, [])
+        self.assertTrue(retried, "the real concurrent writer must commit during the read")
+        self.assertEqual(reviewed.get("probe"), 0 if before == "completed" else None)
+        self.assertEqual(inconclusive.get("probe"), before if before == "failed" else None)
+        self.assertEqual(set(reviewed) & set(inconclusive), set())
+        self.assertIn("probe", set(reviewed) | set(inconclusive))
+        self.assertEqual(reports["probe"]["result"], before)
+        self.assertEqual(reports["probe"]["note"], "first attempt")
+        self.assertEqual(reports["probe"]["evidence"], ["first attempt.log"])
+        latest = json.loads(writer.execute(
+            "SELECT payload FROM event WHERE kind = 'lens_reviewed' ORDER BY id DESC LIMIT 1"
+        ).fetchone()[0])
+        self.assertEqual(latest["result"], after)
+        if surface != "ship":
+            self.assertEqual(sweep.history(reader)[0][1], payload)
+            self.assertEqual(payload["complete"], before == "completed")
+
+    def test_sweep_failed_to_completed_keeps_one_report(self):
+        self._exercise("failed", "completed", "sweep")
+
+    def test_sweep_completed_to_failed_keeps_one_report(self):
+        self._exercise("completed", "failed", "sweep")
+
+    def test_real_ship_failed_to_completed_keeps_one_report(self):
+        self._exercise("failed", "completed", "ship")
+
+    def test_real_ship_completed_to_failed_keeps_one_report(self):
+        self._exercise("completed", "failed", "ship")
+
+    def test_done_displays_the_persisted_failed_snapshot(self):
+        self._exercise("failed", "completed", "done")
+
+    def test_done_displays_the_persisted_completed_snapshot(self):
+        self._exercise("completed", "failed", "done")
+
+
+class SummariesKeepThePersistedReason(unittest.TestCase):
+    def test_done_and_history_keep_failure_note_and_evidence(self):
+        root = _repo(self)
+        conn = ledger.connect(root)
+        self.addCleanup(conn.close)
+        review.record_lens_reviewed(conn, root, slug="probe", findings=0,
+                                    result="failed", note="artifact permission denied",
+                                    evidence=["review-stderr.log", "unreadable-artifact.json"])
+        args = SimpleNamespace(repo=str(root), done=True, history=False,
+                               if_due=False, findings=0, note=None)
+        code, said, err = _run(cli.cmd_sweep, args)
+        self.assertEqual(code, 1, err)
+        for token in ("artifact permission denied", "review-stderr.log", "unreadable-artifact.json"):
+            self.assertIn(token, said)
+        persisted = sweep.history(conn)[0][1]
+        # A subsequent report must not change the historical explanation.
+        review.record_lens_reviewed(conn, root, slug="probe", findings=0)
+        args.done, args.history = False, True
+        code, said, err = _run(cli.cmd_sweep, args)
+        self.assertEqual(code, 0, err)
+        for token in ("probe (failed)", "artifact permission denied", "review-stderr.log", "unreadable-artifact.json"):
+            self.assertIn(token, said)
+        self.assertEqual(sweep.history(conn)[0][1], persisted)
+
+    def test_real_ship_prints_failure_reason_and_evidence_without_holding_ship(self):
+        from kernel.config import RepoConfig
+        root = _repo(self)
+        conn = ledger.connect(root)
+        self.addCleanup(conn.close)
+        lifecycle.open_task(conn, RepoConfig(root), task_id="t",
+                            request="Review x.py", scope_globs=["x.py"])
+        review.record_lens_reviewed(conn, root, slug="probe", findings=0, task_id="t",
+                                    result="failed", note="artifact permission denied",
+                                    evidence=["review-stderr.log"])
+        ledger.write_chain_head(conn, root)
+        code, said, err = _run(cli.cmd_ship, SimpleNamespace(repo=str(root), task="t", json=False))
+        self.assertEqual(code, 0, (said, err))
+        for token in ("probe (failed)", "artifact permission denied", "review-stderr.log"):
+            self.assertIn(token, said)
+        self.assertIn("reviewed by: no lens evaluated this task", said)
+        self.assertIn("SHIP", said)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -911,6 +911,41 @@ LENS_RUN_KIND = "lens_run"
 LENS_REVIEWED_KIND = "lens_reviewed"
 
 
+def lens_events(conn, kind, *, task_id=None, since=None):
+    """Latest payload per lens from one SELECT, for a task or legacy sweep.
+
+    Task reports belong to that task; a legacy sweep reads only taskless,
+    run-less events after its previous attempt. Last row wins, preserving
+    the note and evidence belonging to that same report.
+    """
+    sql = "SELECT payload FROM event WHERE kind = ? AND task_id IS ?"
+    args = [kind, task_id]
+    if since is not None:
+        sql += " AND created_at > ?"
+        args.append(since.isoformat())
+    out = {}
+    for row in conn.execute(sql + " ORDER BY id", args):
+        try:
+            p = json.loads(row["payload"])
+        except (ValueError, TypeError):
+            continue
+        if p.get("lens") and (task_id is not None or not p.get("run_id")):
+            out[p["lens"]] = p
+    return out
+
+
+def lens_reports(conn, *, task_id=None, since=None):
+    """Classifications and diagnostics from one selected set of reports.
+
+    Composing separate reads can lose or double-count a lens when a retry
+    commits between them. Every consumer of multiple fields uses this result.
+    """
+    reports = lens_events(conn, LENS_REVIEWED_KIND, task_id=task_id, since=since)
+    return {"reports": reports,
+            "reviewed": {n: p.get("findings") for n, p in reports.items() if lens_evaluated(p)},
+            "inconclusive": {n: p.get("result") for n, p in reports.items() if not lens_evaluated(p)}}
+
+
 def lens_evaluated(payload):
     """Did this `lens_reviewed` row report a lens that was evaluated?
 
@@ -947,7 +982,7 @@ def record_lens_run(conn, *, slug, lens, task_id=None, root=None, run_id=None):
     # An empty `--task` is no task, and it was stored as one. The reviewer role
     # is told to pass `--task $V4_TASK`, `V4_TASK` is set by nothing in this
     # repo, so the shell expands it to `''` and this row landed with
-    # `task_id = ''` -- while `sweep._lens_events` selects `task_id IS NULL`.
+    # `task_id = ''` -- while `lens_events` selects the null task.
     # A lens that ran and reported recorded as a lens that never ran, which is
     # the one distinction this row exists to make. One reviewer in the last
     # sweep noticed and deviated from its own prompt to avoid it; the other
