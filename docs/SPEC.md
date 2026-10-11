@@ -3144,7 +3144,8 @@ records that it happened; it does not review.
 <!-- pinned: kernel/sweep.py::record -->
 <!-- pinned: kernel/sweep.py::reviewed_since -->
 <!-- pinned: kernel/sweep.py::inconclusive_since -->
-<!-- pinned: kernel/sweep.py::_lens_events -->
+<!-- pinned: kernel/review.py::lens_events -->
+<!-- pinned: kernel/review.py::lens_reports -->
 
 §10.2 is about the states on the ship side. **The sweep side is the same
 fact and the same repair.**
@@ -3157,11 +3158,19 @@ that self-report, wearing the ledger's name.
 
 `record` stores both, and now stores the reviewer's result beside them: a row
 that says `not_evaluable` or `failed` is a report about a lens, not a review of
-one, so it is kept in `inconclusive` and never counted into `reviewed`. Both
-keys count towards "this sweep accounted for the lens" — a tree sweep always
-carries context-requiring lenses, and their `not_evaluable` is the answer, not
-silence, so it does not hold the cadence partial forever. A row written before
-the `result` field existed carries none and means `completed`.
+one, so it is kept in `inconclusive` and never counted into `reviewed`.
+`not_evaluable` accounts for a context-limited lens without claiming coverage;
+`failed` and unknown or malformed inconclusive results keep cadence partial.
+This also applies when reading an older sweep whose `complete` flag was true.
+A row written before the `result` field existed carries none and means
+`completed`.
+
+`review.lens_reports` selects the latest report for each lens once, then
+projects `reviewed`, `inconclusive` and the full `reports` snapshot together.
+A concurrent retry cannot make a lens disappear or appear in both categories.
+`--done` renders this persisted snapshot; `--history` displays its saved result,
+note and evidence rather than rereading reports that may have changed. Older
+sweep records without saved diagnostics cannot reconstruct those reasons.
 
 An incomplete legacy `v4 sweep --done` returns 1 and does not advance complete-review cadence. Legacy evidence windows close at each attempt; versioned maintenance evidence is not borrowed by the legacy path. Legacy rows are asked the same questions. `v4 sweep --done` prints all four states:
 
@@ -3174,7 +3183,7 @@ An incomplete legacy `v4 sweep --done` returns 1 and does not advance complete-r
 
 **The only difference from the ship side is how a row is recognised as one's
 own.** Ship has a task and keys on `task_id = ?`; a sweep has none — by design,
-which is what `ledger.REVIEW_TASK` exists for — so `_lens_events` keys on the
+which is what `ledger.REVIEW_TASK` exists for — so `review.lens_events` keys on the
 window plus "rows carrying no task or maintenance run ID". `v4 review lens --task T` records somebody
 reading **T's diff**, and the back gate reads the code as it stands: two
 different subjects, and taking one as coverage for the other reports something
@@ -3323,7 +3332,9 @@ run-less one did not, so the spelling a sweep's reviewer uses — a sweep has no
 run to name — was the one that could say `not_evaluable` and nothing else.
 `maintenance.check_lens_reason` is the one copy of the rule; both writers call
 it, and an evidence reference is the reason with a pointer on it, not a weaker
-floor.
+floor. Ship uses the same single-read projection as sweep and carries the full
+reports as `lenses_reports`; its summary prints their saved notes and evidence.
+A failed lens still does not introduce a ship gate.
 
 So a reviewer says so when finished, in exactly the sweep's shape:
 

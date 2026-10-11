@@ -1230,6 +1230,7 @@ def cmd_ship(args):
     if inconclusive:
         print("  reported without evaluating: " + ", ".join(
             f"{n} ({inconclusive[n]})" for n in sorted(inconclusive)))
+    _print_lens_reasons(rep.get("lenses_reports") or {})
     unfinished = sorted(briefed - set(reviewed) - set(inconclusive))
     if unfinished:
         print(f"  briefed and never reported back: {', '.join(unfinished)}"
@@ -1311,6 +1312,15 @@ def cmd_risk(args):
     return 0
 
 
+def _print_lens_reasons(reports):
+    """Render the diagnostic fields from the same reports as the summary."""
+    for name, report in sorted(reports.items()):
+        if report.get("note") or report.get("evidence"):
+            print(f"  {name} ({report.get('result', 'completed')}): {report.get('note', '')}")
+            for reference in report.get("evidence", []):
+                print(f"    evidence: {reference}")
+
+
 def cmd_sweep(args):
     """Is the after-gate due, and what does a reviewer run.  SPEC.md §10.1."""
     from . import sweep as sweep_mod
@@ -1381,14 +1391,11 @@ def cmd_sweep(args):
             else:
                 find_txt = f", {claimed} finding(s) claimed and {seen} in the ledger"
             print(f"  {when[:19]}  {lens_txt}{find_txt}  {p.get('note', '')}")
+            _print_lens_reasons(p.get("reports") or {})
         return 0
 
     if args.done:
         lenses = sorted(review.lenses(cfg.root))
-        prev = sweep_mod.last_attempted(conn)
-        briefed = sweep_mod.ran_since(conn, prev)
-        reviewed = sweep_mod.reviewed_since(conn, prev)
-        inconclusive = sweep_mod.inconclusive_since(conn, prev)
         # Refused before the sweep is closed, not reported after. Both counts
         # have been stored since `record` was written and nothing compared
         # them -- 61 reported against 1 in the ledger, and no command had to
@@ -1399,6 +1406,7 @@ def cmd_sweep(args):
             print(f"REFUSED: {why_not}", file=sys.stderr)
             return 2
         recorded = sweep_mod.record(conn, lenses=lenses, findings=args.findings, note=args.note or "")
+        briefed, reviewed, inconclusive = set(recorded["ran"]), recorded["reviewed"], recorded["inconclusive"]
         print(f"recorded: {len(lenses)} lens(es) available"
               f"{'' if args.findings is None else f', {args.findings} finding(s)'}")
         # The same states `v4 ship` prints, because it is the same fact:
@@ -1422,6 +1430,7 @@ def cmd_sweep(args):
         if inconclusive:
             print("  reported without evaluating: " + ", ".join(
                 f"{n} ({inconclusive[n]})" for n in sorted(inconclusive)))
+        _print_lens_reasons(recorded["reports"])
         done = set(reviewed) | set(inconclusive)
         unfinished = sorted(briefed - done)
         if unfinished:

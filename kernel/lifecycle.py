@@ -32,26 +32,6 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 
-def _lens_rows(conn, task_id):
-    """`{lens: payload}` for this task's `lens_reviewed` rows.
-
-    Last row wins per lens: a reviewer that ran again after a repair is saying
-    something newer, not something additional, and summing them would report a
-    second pass of the same diff as twice the findings.
-    """
-    out = {}
-    for r in conn.execute(
-            "SELECT payload FROM event WHERE task_id = ? AND "
-            "kind = 'lens_reviewed' ORDER BY id", (task_id,)):
-        try:
-            p = json.loads(r["payload"])
-        except (ValueError, TypeError):
-            continue
-        if p.get("lens") is not None:
-            out[p["lens"]] = p
-    return out
-
-
 def _lenses_reviewed(conn, task_id):
     """`{lens: findings}` for the lenses that reported an evaluated review.
 
@@ -62,14 +42,12 @@ def _lenses_reviewed(conn, task_id):
     predates the field and means completed, for the same reason it does in
     `sweep.reviewed_since`.
     """
-    return {name: p.get("findings") for name, p in _lens_rows(conn, task_id).items()
-            if review_mod.lens_evaluated(p)}
+    return review_mod.lens_reports(conn, task_id=task_id)["reviewed"]
 
 
 def _lenses_inconclusive(conn, task_id):
     """`{lens: result}` for the lenses that reported and evaluated nothing."""
-    return {name: p.get("result") for name, p in _lens_rows(conn, task_id).items()
-            if not review_mod.lens_evaluated(p)}
+    return review_mod.lens_reports(conn, task_id=task_id)["inconclusive"]
 
 
 def carry_forward(conn, after: str) -> str:
@@ -818,6 +796,7 @@ def ship(conn, cfg, task_id, max_rounds=None):
         # tried to finish. Without it every ended turn looks the same.
         insert(conn, "event", task_id=task_id, claim_id=None, kind="shipped",
                actor="kernel", payload={"claims": len(rows)}, created_at=_now())
+    lens_reports = review_mod.lens_reports(conn, task_id=task_id)
     return ok, {
         "converged": True, "rounds": rounds,
         "claims": [(r["id"], r["kind"], s) for r, s in rows],
@@ -870,12 +849,13 @@ def ship(conn, cfg, task_id, max_rounds=None):
         # instead is that "nobody reviewed this" and "three reviewers found
         # nothing" stop looking the same -- which the row above could not do,
         # because printing a brief is free and reviewing is not.
-        "lenses_reviewed": _lenses_reviewed(conn, task_id),
+        "lenses_reviewed": lens_reports["reviewed"],
         # The rows the line above leaves out: a reviewer came back and said the
         # lens could not be evaluated (or failed). They are not coverage, and
         # they are not silence either -- `v4 ship` printed them as
         # `reviewed by:` before the result existed on the row.
-        "lenses_inconclusive": _lenses_inconclusive(conn, task_id),
+        "lenses_inconclusive": lens_reports["inconclusive"],
+        "lenses_reports": lens_reports["reports"],
         # Where this task's claims came from. The column carrying it had three
         # declared values, two writers and no reader at all -- the shape
         # `dead-wiring` exists to find, in the one directory `dead-wiring`

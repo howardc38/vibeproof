@@ -138,7 +138,7 @@
     },
     ".v4/checkers.json": {
       "mode": "100644",
-      "sha256": "871e5fd1beda52618eda09d555c9126a2fd8ae2d60a497ccb8753bcc63163be8",
+      "sha256": "7dc6a6f32056969910edf3e792fabacfdde1b272f17bc0b0778c4502b4d480b9",
       "source": ".v4/checkers.json"
     },
     ".v4/claim_kinds.json": {
@@ -568,7 +568,7 @@
     },
     "docs/FEATURES.md": {
       "mode": "100644",
-      "sha256": "0aaa0cc2202c7d253b0d8a0b06bffc73c63fcc0ead8b436206b01fa4fc99e81b",
+      "sha256": "0d63e8222b3cca716491dc2459d260f3209f44514700a0285f717effb4082dbb",
       "source": "docs/FEATURES.md"
     },
     "docs/GETTING_STARTED.md": {
@@ -603,7 +603,7 @@
     },
     "docs/SPEC.md": {
       "mode": "100644",
-      "sha256": "f6c909077288175648c3923e007be589c4b9f307423799882dc3dd54f4c2604a",
+      "sha256": "be6dc8414ccecdc8de05ca5ed88ff35d127a1b7fc986d1955565a0f7b29949be",
       "source": "docs/SPEC.md"
     },
     "docs/SYNC.md": {
@@ -973,7 +973,7 @@
     },
     "kernel/cli.py": {
       "mode": "100644",
-      "sha256": "25ebe79b181f5e7cf7e55463715dd6b9fbbef0d365aa298dc5e4a848f8e14cee",
+      "sha256": "01dfc9cd9d2083b6989de18212cce62fef05fa6a3722349b58f8151bdcd77395",
       "source": "kernel/cli.py"
     },
     "kernel/composition.py": {
@@ -1068,7 +1068,7 @@
     },
     "kernel/lifecycle.py": {
       "mode": "100644",
-      "sha256": "218e021115af77631c2f8bcd79e5a481ff51bf0951a05761f8a11fe3231d9268",
+      "sha256": "6cc2e6b7ad76f1d04ae7a526ca92db0bd78c5f3b88f25da78e545876d4742121",
       "source": "kernel/lifecycle.py"
     },
     "kernel/maintenance.py": {
@@ -1113,7 +1113,7 @@
     },
     "kernel/review.py": {
       "mode": "100644",
-      "sha256": "dc4bcf028ce8b249db49b3d2d9a28321de51894cfdef3c4e60844ebe46bac95d",
+      "sha256": "3f6d475bc2bda2120605b88df8b375a0c13a6204570fe2183321ce04f3bc92a3",
       "source": "kernel/review.py"
     },
     "kernel/review_coordinates.py": {
@@ -1163,7 +1163,7 @@
     },
     "kernel/sweep.py": {
       "mode": "100644",
-      "sha256": "152623f909057fe9b56406b47728d05b0d67cdf8c3e3f764f548ef1547bdeba9",
+      "sha256": "3e1ad711d24af7bb692ea4055184ffe7bac0f3972400ccac78ec16ff8768cdca",
       "source": "kernel/sweep.py"
     },
     "kernel/trend.py": {
@@ -13783,7 +13783,7 @@
     },
     "tests/test_a_lens_that_could_not_be_evaluated_is_not_a_clean_review.py": {
       "mode": "100644",
-      "sha256": "c1cfd3bbbb7b7cd90f39aeaf7e7ea879f6a9d1f47f02434382a26dda7e56de4d",
+      "sha256": "28b9dea1b50c967f0fe291ff2315ff83b4cfd24181375886da0b20d512dc0ca8",
       "source": "tests/test_a_lens_that_could_not_be_evaluated_is_not_a_clean_review.py"
     },
     "tests/test_a_mutation_is_the_file_git_names.py": {
@@ -14518,7 +14518,7 @@
     }
   },
   "policy_sha256": "a0e2137ce5d1aa2704008b496950286242212e9520d7238472fb49e6f39f0ac5",
-  "public_parent": "dff39fcc815afabc6e93bcfdd22bf5c3be0d4359",
+  "public_parent": "64b7fdc8f2eee881541bc2ff3c6786554723601f",
   "schema": 1,
-  "source_revision": "037ddb47deb8b11769f9658a358b240b115df490"
+  "source_revision": "15375ee944388dfb9af88e467aefc49dde6f76f5"
 }

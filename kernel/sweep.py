@@ -22,7 +22,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from .ledger import insert
-from . import state
+from . import review, state
 
 KIND = "lens_sweep"
 
@@ -69,7 +69,7 @@ def complete_payload(payload):
         return False
     return (all(isinstance(reviewed[x], int) and not isinstance(reviewed[x], bool) and reviewed[x] >= 0
                 for x in set(expected) & set(reviewed))
-            and all(isinstance(inconclusive[x], str) for x in set(expected) & set(inconclusive)))
+            and all(inconclusive[x] == "not_evaluable" for x in set(expected) & set(inconclusive)))
 
 
 def last(conn):
@@ -287,47 +287,6 @@ def due(conn, cfg, now=None):
     return True, f"last sweep {since}, and nothing is open"
 
 
-def _lens_events(conn, kind, since):
-    """`{lens: payload}` for one lens event kind, in the window a sweep owns.
-
-    Two clauses, and both of them are what "this sweep" means:
-
-    `created_at > since`, because a sweep reports on what happened since the
-    last one. `task_id IS NULL`, because a sweep has no task and neither does
-    a brief printed for it -- `v4 review lens --task T` records a reviewer
-    reading *T's diff*, which is a different subject from the tree this
-    after-gate reads ("this is the after-gate, so it reads code that exists,
-    not a diff"). `lifecycle` keys the same two rows on `task_id = ?`; this is
-    the same filter from the other side, and it is the only form available to
-    a path that by design has no task.
-
-    Measured on this repo's own ledger, at the sweep of 2026-08-27: eleven
-    lenses were opened for it and all eleven reported, and `v4 sweep --done`
-    printed `12 of 13 printed their brief since the last sweep`. The twelfth
-    was `request-fidelity`, whose `lens_run` rows in that window were written
-    on tasks `fw-rust`, `fw-reqfid` and `fw-tax` -- three workers reading three
-    diffs, counted as coverage of a tree none of them was looking at.
-
-    Last row wins per lens, the same reason `lifecycle._lenses_reviewed` gives:
-    a reviewer that ran again after a repair is saying something newer, not
-    something additional.
-    """
-    sql = "SELECT payload FROM event WHERE kind = ? AND task_id IS NULL"
-    args = [kind]
-    if since is not None:
-        sql += " AND created_at > ?"
-        args.append(since.isoformat())
-    out = {}
-    for r in conn.execute(sql + " ORDER BY id", args):
-        try:
-            p = json.loads(r["payload"])
-        except (ValueError, TypeError):
-            continue
-        if p.get("lens") and not p.get("run_id"):
-            out[p["lens"]] = p
-    return out
-
-
 def ran_since(conn, since=None):
     """Which lenses actually printed their brief since a moment.
 
@@ -340,8 +299,7 @@ def ran_since(conn, since=None):
     A brief printed and nothing more. What it is not is a review, and the two
     readers on this side of the tree both took it for one -- see `record`.
     """
-    from .review import LENS_RUN_KIND
-    return set(_lens_events(conn, LENS_RUN_KIND, since))
+    return set(review.lens_events(conn, review.LENS_RUN_KIND, since=since))
 
 
 def reviewed_since(conn, since=None):
@@ -365,10 +323,7 @@ def reviewed_since(conn, since=None):
     buys instead is that a sweep of thirteen lenses nobody reviewed stops
     looking like a sweep of thirteen.
     """
-    from .review import LENS_REVIEWED_KIND, lens_evaluated
-    return {name: p.get("findings")
-            for name, p in _lens_events(conn, LENS_REVIEWED_KIND, since).items()
-            if lens_evaluated(p)}
+    return review.lens_reports(conn, since=since)["reviewed"]
 
 
 def inconclusive_since(conn, since=None):
@@ -380,13 +335,10 @@ def inconclusive_since(conn, since=None):
     arrived indistinguishable from "ran and found nothing" and
     `reviewed_since` counted them as coverage. They are still reports -- a
     sweep that gets one has accounted for the lens -- so they are stored
-    beside `reviewed` rather than thrown away, and `complete_payload` reads
-    both.
+    beside `reviewed` rather than thrown away. Only `not_evaluable` accounts
+    for cadence; `failed` remains partial.
     """
-    from .review import LENS_REVIEWED_KIND, lens_evaluated
-    return {name: p.get("result")
-            for name, p in _lens_events(conn, LENS_REVIEWED_KIND, since).items()
-            if not lens_evaluated(p)}
+    return review.lens_reports(conn, since=since)["inconclusive"]
 
 
 def raised_since(conn, since=None):
@@ -409,7 +361,7 @@ def raised_since(conn, since=None):
     precision problem that has not misled anyone yet. When it does, the id is
     the fix. Until then the field says what it measures.
 
-    So this window is deliberately wider than `_lens_events`, and the two are
+    So this window is deliberately wider than `review.lens_events`, and the two are
     not drifting apart: the error that hides a finding count is under-reporting
     it, and the error that hides a coverage count is over-reporting it. Adding
     `AND task_id IS NULL` here would make a sweep look like it raised fewer
@@ -474,7 +426,7 @@ def record(conn, *, lenses, findings=None, note=""):
 
     `v4 ship` was the same defect and is repaired the same way (§10.2), with
     the one difference the two paths cannot share: ship keys its rows on a
-    task, and a sweep has none, so `_lens_events` keys on the window and on
+    task, and a sweep has none, so `review.lens_events` keys on the window and on
     the rows that name no task. What is deliberately *not* copied is a gate --
     neither side refuses, for the reason §10.2 measured.
 
@@ -491,8 +443,7 @@ def record(conn, *, lenses, findings=None, note=""):
     """
     since = last_attempted(conn)
     payload = {"lenses": list(lenses), "ran": sorted(ran_since(conn, since)),
-               "reviewed": reviewed_since(conn, since),
-               "inconclusive": inconclusive_since(conn, since), "findings": findings,
+               **review.lens_reports(conn, since=since), "findings": findings,
                "raised_since_last_sweep": raised_since(conn, since), "note": note}
     payload["complete"] = complete_payload(payload)
     insert(conn, "event", task_id=None, claim_id=None, kind=KIND, actor="worker",
