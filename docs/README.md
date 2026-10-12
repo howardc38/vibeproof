@@ -5,6 +5,28 @@ states the intended mechanisms and invariants with code links; a pin confirms a
 symbol exists, not that every sentence is correct. When they disagree, inspect
 the behavior and record whether code or explanation needs repair.
 
+## Choose a reading route
+
+| Reader | Route |
+|---|---|
+| First use | Run the [standalone demo](../examples/first-proof/README.md), then follow [GETTING_STARTED](GETTING_STARTED.md) to adopt it and complete one real task. Use [CODEX](CODEX.md) for Codex or dual-host setup. |
+| Daily use | Follow [USING](USING.md) for tasks, updates and maintenance. Use [FEATURES](FEATURES.md) to find a capability or command and [REFERENCE](REFERENCE.md) to interpret its evidence and limits. |
+| Framework development | Start with [AGENTS](../AGENTS.md) and the map below, read [SPEC](SPEC.md) alongside implementation/tests, and use [SYNC](SYNC.md) for the canonical-source/public-release boundary. Consult the historical evidence below for dated rationale. |
+
+## Repository map
+
+| Location | Responsibility |
+|---|---|
+| [bin/v4](../bin/v4), [kernel/](../kernel/) | CLI entry and shared task, evidence and policy mechanisms |
+| [detectors/](../detectors/), [checkers/](../checkers/) | Claim discovery and executable checks |
+| [hooks/](../hooks/), [.claude/](../.claude/), [.codex/](../.codex/), [.agents/](../.agents/) | Host adapters, prompts, roles and skills |
+| [.v4/](../.v4/) | Tracked configuration, registries, facts and declared proof integration; public selection is governed by [the release policy](../publishing/public-files.json) |
+| `<git-common-dir>/v4/`, `.v4/ledger_export*`, `.v4/risks/<claim>.json`, `.v4/risks/repo/<kind>.json`, `.v4/deferred/<claim>.json` | Local runtime/history and private operational records, generated when used and excluded from public distribution; see [ledger storage and trust limits](REFERENCE.md#ledger-and-evidence-lifetime) |
+| [tests/](../tests/), [examples/](../examples/) | Regression tests, checker/detector fixtures and runnable examples |
+| [.github/](../.github/) | CI/release workflows, issue templates and monitor instructions |
+| [tools/](../tools/), [publishing/](../publishing/) | Maintenance/release utilities and public-file selection policy |
+| [docs/](.) | Operating guides, mechanism references and dated evidence; private launch planning is distinguished below |
+
 ## Current reference and operating instructions
 
 | Document | Purpose | Verification |
@@ -13,7 +35,7 @@ the behavior and record whether code or explanation needs repair.
 | [CODEX.md](CODEX.md) | Claude/Codex host installation, identity, hooks and permission boundaries | Native disposable-adopter tests and generated-asset checks |
 | [USING.md](USING.md) | Operating sequence for a task | CLI examples and source review; examples do not become a second contract |
 | [FACTS.md](FACTS.md) | Facts format, provenance and updates | Executable grammar, citation checks and review of vocabulary completeness |
-| [REFERENCE.md](REFERENCE.md) | Derived summary of behavior and limits | Recheck against code/SPEC when relevant sources change |
+| [REFERENCE.md](REFERENCE.md) | Detailed derived explanation of mechanisms, evidence and limits | Recheck against code/SPEC when relevant sources change |
 | [FEATURES.md](FEATURES.md) | Derived feature and command map | Source links and registry/CLI comparison |
 | [GETTING_STARTED.md](GETTING_STARTED.md), [繁體](GETTING_STARTED.zh-TW.md), [简体](GETTING_STARTED.zh-CN.md) | First adoption and one real task | Run the instructions in an isolated repo; preserve existing host settings |
 | [SYNC.md](SYNC.md) | Canonical private source and public release procedure | Export policy, distribution tests and public manifest checks |

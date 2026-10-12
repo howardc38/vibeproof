@@ -568,12 +568,12 @@
     },
     "docs/FEATURES.md": {
       "mode": "100644",
-      "sha256": "0d63e8222b3cca716491dc2459d260f3209f44514700a0285f717effb4082dbb",
+      "sha256": "1cbbaf5607175654bea26c373a30e9cdabf64dbf50c9cbe77b706dd952e5508e",
       "source": "docs/FEATURES.md"
     },
     "docs/GETTING_STARTED.md": {
       "mode": "100644",
-      "sha256": "df1399f056fb3c097463c27c970d9768dd943785b38c6e660922040dfd85b6a4",
+      "sha256": "6c391fc750407d083e524123bdaddb2041073264e7474d5a3efbb5be5e500d5d",
       "source": "docs/GETTING_STARTED.md"
     },
     "docs/GETTING_STARTED.zh-CN.md": {
@@ -593,12 +593,12 @@
     },
     "docs/README.md": {
       "mode": "100644",
-      "sha256": "200c1422a4481e37305d22a59bfe353829fe8ad8a26c9f4f0d1cfd677a10992d",
+      "sha256": "a8a9a4d407e97a1ad6fc074286cc2361a3e5c3e39a014afc9e0dfd456be29726",
       "source": "docs/README.md"
     },
     "docs/REFERENCE.md": {
       "mode": "100644",
-      "sha256": "3965d5072981750699c4322c43a6316598ef7e4d18b86693fab916ae61c54952",
+      "sha256": "8b31c45106cc21934531c4429b8bd4cd2678a4f7235bf3bfcca0ccc8fe333910",
       "source": "docs/REFERENCE.md"
     },
     "docs/SPEC.md": {
@@ -613,7 +613,7 @@
     },
     "docs/USING.md": {
       "mode": "100644",
-      "sha256": "7af4c5f3fcaab64db7793d1aa24907786badd99532cf8d07b844e8f7b053ab89",
+      "sha256": "fe6f9dffbd5de8dadd4342081b88163707de6c177944b6a062d4b3bf92741583",
       "source": "docs/USING.md"
     },
     "docs/launch/POSITIONING.zh-TW.md": {
@@ -14086,6 +14086,11 @@
       "sha256": "7f17322cd9edd38e180d3a21eaf39fd063ee91805faa073d951944c5ba2e1dec",
       "source": "tests/test_probe_containment.py"
     },
+    "tests/test_promotion_package.py": {
+      "mode": "100644",
+      "sha256": "d0ac8923955640116c81ed399de14e8c89f04d285da63c683a38bb7a58457f6c",
+      "source": "tests/test_promotion_package.py"
+    },
     "tests/test_public_distribution.py": {
       "mode": "100644",
       "sha256": "953787a3a09471280e23870cf1155bdafceaf29ff4ed82f7bbe626dfe4bed819",
@@ -14518,7 +14523,7 @@
     }
   },
   "policy_sha256": "a0e2137ce5d1aa2704008b496950286242212e9520d7238472fb49e6f39f0ac5",
-  "public_parent": "64b7fdc8f2eee881541bc2ff3c6786554723601f",
+  "public_parent": "783856f6459f372187a285c1b82e88302b470fa4",
   "schema": 1,
-  "source_revision": "15375ee944388dfb9af88e467aefc49dde6f76f5"
+  "source_revision": "747c928f6d80bb057bd80892c0af6a436c0ee0f6"
 }

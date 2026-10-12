@@ -20,48 +20,7 @@ repository: `<framework>/bin/v4 --repo <your repo> …`.
 
 ## Before you start, once
 
-A repository adopts the framework in this order, and the order matters:
-`install` refuses a repository that has not been through `init`, and there is no
-`./bin/v4 doctor` to run until `install` has written the launcher.
-
-```sh
-<framework>/bin/v4 --repo <your repo> init       # writes .v4/config.json and the registries; leaves the answers only you know as TODO
-# in <your repo>/.v4/config.json set "test_command" to what runs your suite. The others are optional.
-<framework>/bin/v4 --repo <your repo> install    # copies checkers, detectors, hooks and lenses; each checker passes its own fixtures first
-cd <your repo>
-# Merge the template hook entries into existing .claude/settings.json.
-# Create from the template only if there is no settings file to preserve.
-./bin/v4 doctor
-```
-
-`doctor` answers, line by line, whether this repo is actually wired or only looks
-it. `BAD` is silent in normal use — if you see one, do not start. Warnings are not automatically blocking; inspect whether they affect the
-operation you intend to verify. on a fresh adoption these are the usual ones:
-
-| warn | what it means |
-|---|---|
-| `hooks … wired and none has ever fired` | wiring is configuration, firing is a fact; the first Write from a session opened inside the repo turns it green |
-| `sweep … no sweep has ever been recorded` | layer 3 has never run |
-| `CI … nothing has been exported yet` / `no workflows` | nothing has shipped yet, or this repo has no workflow that walks the chain |
-| `open tasks … N unshipped` | with exactly one open and no `V4_TASK`, the hooks guard that one; with two or more they refuse to guess and deny every write until you export `V4_TASK` or end one of them |
-
-**If you want the hooks to actually guard you:** open the session inside this
-repo (`cd <repo> && claude`). Claude Code reads `.claude/settings.json` from the
-**session's root**, not from wherever you `cd` to — run the commands from
-another repo and these settings never load at all.
-
-⚠️ **A sub-agent that `cd`s elsewhere does not change which repo is guarding.**
-The hook command resolves its own path from the *session's* toplevel, so the
-launching repo's hooks run and judge against the launching repo's protected
-paths and ledger. Measured on an adopter running nine worktrees from a session
-rooted one directory up: 526 `hook_seen` rows landed in the launching repo's
-ledger under no task, 11 denials fired there, the worktrees' own ledgers had
-zero rows, and every Write into a worktree was outside the guarded repo — so it
-was allowed with nothing recorded. Their ships printed DEGRADED for every lane,
-which is the visible half; the invisible half is that the write-time guard was
-never on. **Run each lane from a session rooted in the repo that owns it**, and
-if you cannot, the ship-time `scope` checker is the guard of record — say so
-rather than reading DEGRADED as a formality.
+Complete [preparation](GETTING_STARTED.md#1-prepare), [installation](GETTING_STARTED.md#2-install), then [facts and hook setup](GETTING_STARTED.md#3-confirm-facts-and-connect-hooks) before starting the task loop below. The adoption guide owns the setup commands, `doctor` warnings and session/worktree cautions. For Codex or dual-host setup, use [CODEX.md](CODEX.md).
 
 ---
 
@@ -273,11 +232,12 @@ second ending, and the claims stay in the ledger — what was found does not
 become false because nobody followed it up. `--why` uses configured `min_chars` (default 40). The ending event also records
 unsettled FAILs; other commands may have their own reason-length rules.
 
-That has a practical consequence. With no `V4_TASK` set and exactly one task
-open, the hooks guard that one, so a task left lying around becomes the one
-guarding you. With two or more open they refuse to guess: every write is denied
-with the list of open tasks until you export `V4_TASK` or end one of them.
-`v4 doctor` has an `open tasks` line naming them.
+That has a practical consequence. A task left open can become the inferred task
+when it is the only unassigned candidate in that worktree. With ambiguous
+candidates, hooks refuse to guess and name the open tasks. Use the supplied host
+identity to [bind the intended task](CODEX.md#bind-an-agent-to-its-task), or end a
+finished task; exporting `V4_TASK` inside a tool call does not change the host's
+hook environment. `v4 doctor` has an `open tasks` line naming them.
 
 ---
 
@@ -310,9 +270,7 @@ Framework maintainers edit the canonical private source and publish through
 not an actively edited development copy, if they need controlled kernel updates.
 
 
-```sh
-cd <framework repo> && ./bin/v4 --repo <adopter> install
-```
+Rerun the [installation command](GETTING_STARTED.md#2-install) from the chosen framework checkout against the adopter, then inspect the result as described below.
 
 - change `kernel/**` → the shared code loads immediately, but a changed checker
   dependency invalidates its registered program fingerprint. Run `install` to
@@ -324,11 +282,6 @@ cd <framework repo> && ./bin/v4 --repo <adopter> install
   about two on a three-file repo. Timing is not a guarantee or a health check:
   inspect which eligible programs actually passed their gates. An earlier fast
   install was broken because most programs died on import.
-
-After a first install, `git status` shows new directories (`checkers/`,
-`detectors/`, `hooks/`, `.v4/lenses/`, `.v4/fixtures/`), a new `bin/v4`, and two
-edits to files you own: a short pinned-example block appended to your
-`README.md`, and `.v4/home` appended to your `.gitignore`. Commit them together.
 
 After a later install, `git diff` shows a pile of `checkers/*.py`. **Inspect the update rather than reverting solely because the diff is large** — `.v4/installed.json` records each file's sha, and `scope`
 and `test` can both tell "you did not write this". Change one byte and the sha

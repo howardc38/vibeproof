@@ -18,6 +18,10 @@ You do not need to type every lifecycle command yourself. The installed Claude c
 
 Use macOS or Linux with Git and Python 3.12+. Native Windows is not validated. Use a clean branch or another checkout of your project. Keep a restorable commit before installation. Confirm that your real test command works outside vibeproof first.
 
+A repository adopts the framework in this order, and the order matters:
+`install` refuses a repository that has not been through `init`, and there is no
+`./bin/v4 doctor` to run until `install` has written the launcher.
+
 ```sh
 git clone https://github.com/howardc38/vibeproof.git ~/vibeproof
 ~/vibeproof/bin/v4 --repo /absolute/path/to/project init
@@ -52,6 +56,13 @@ Installation runs the checkers' and conditional detectors' own fixtures. Expect 
 
 Read the complete install result. A reported refusal or missing tool needs attention even if some components installed successfully.
 
+After a first install, `git status` shows new directories (`checkers/`,
+`detectors/`, `hooks/`, `.v4/lenses/`, `.v4/fixtures/`) and a new `bin/v4`.
+The installer adds `.v4/home` to `.gitignore` if needed. When it finds an
+unpinned architecture document or README and a suitable Python symbol, it
+appends a worked pin there; that optional example is not always in README.
+Review and commit the intended installation changes together.
+
 ## 3. Confirm facts and connect hooks
 
 The installer drafts `.v4/facts.<repo>.json.draft`. Check the suggested calls against source, correct their kinds, and confirm or replace each `AUTO:` absence in your own words. A wrapper can hide an external write from the draft. Rename the reviewed file by removing only the final `.draft`, then run:
@@ -74,6 +85,41 @@ For Claude hooks:
 ```
 
 `doctor` checks wiring, and may still report warnings. Read them. An exit 0 or a settings file does not prove that a hook has fired; the task's ship report records observed hook activity.
+
+### Read doctor and confirm hook activity
+
+`doctor` answers, line by line, whether this repo is actually wired or only looks
+it. `BAD` is silent in normal use — if you see one, do not start. Warnings are not automatically blocking; inspect whether they affect the
+operation you intend to verify. On a fresh adoption these are the usual ones:
+
+| warn | what it means |
+|---|---|
+| `hooks … wired and none has ever fired` | wiring is configuration; doctor checks recorded activity for each hook. A Write can exercise the write hook, but does not prove the shell and stop hooks fired |
+| `sweep … no sweep has ever been recorded` | layer 3 has never run |
+| `CI … nothing has been exported yet` / `no workflows` | nothing has shipped yet, or this repo has no workflow that walks the chain |
+| `open tasks … N unshipped` | hooks select tasks in the current worktree; without an explicit assignment, one candidate can be inferred and ambiguous candidates are refused. Bind the task using the supplied host identity as described in [CODEX.md](CODEX.md#bind-an-agent-to-its-task), or end a finished task. A shell export inside a tool call does not bind the host. |
+
+**If you want the hooks to actually guard you:** open the session inside this
+repo (`cd <repo> && claude`). Claude Code reads `.claude/settings.json` from the
+**session's root**, not from wherever you `cd` to — run the commands from
+another repo and these settings never load at all.
+
+⚠️ **Verify which worktree the host is guarding.** Current adapters select the
+task worktree and use an explicit agent binding when the host supplies identity;
+see [host binding and coverage](CODEX.md#bind-an-agent-to-its-task). A shell `cd`
+or export alone does not bind an agent or prove that the intended hook ran.
+
+An earlier implementation was measured on an adopter running nine worktrees from a session
+rooted one directory up: 526 `hook_seen` rows landed in the launching repo's
+ledger under no task, 11 denials fired there, the worktrees' own ledgers had
+zero rows, and every Write into a worktree was outside the guarded repo — so it
+was allowed with nothing recorded. Their ships printed DEGRADED for every lane,
+which is the visible half; the invisible half is that the write-time guard was
+never on. This is historical evidence of the session-root failure, not a
+measurement of current adapters. **Use the task's worktree and supplied host
+identity for each lane.** If native hook coverage cannot be established, the
+ship-time `scope` checker is the guard of record — say so rather than reading
+DEGRADED as a formality.
 
 ## 4. Give the agent one bounded request
 

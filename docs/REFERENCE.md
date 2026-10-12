@@ -1,6 +1,6 @@
 # Checks, evidence and limits
 
-This is the technical companion to the short README. For the operating loop see [USING.md](USING.md); for installation see [GETTING_STARTED.md](GETTING_STARTED.md).
+This is the detailed companion to the [feature and command map](FEATURES.md) and the short README. It explains mechanisms, evidence and limits; implementation and [SPEC.md](SPEC.md) remain the sources to check when behavior changes. For the operating loop see [USING.md](USING.md); for installation see [GETTING_STARTED.md](GETTING_STARTED.md).
 
 ## What happens in a task
 
@@ -30,9 +30,35 @@ See [runner.py](../kernel/runner.py) and [state.py](../kernel/state.py) for the 
 
 ## Which checks hold ship
 
-Threshold escalation is evaluated on the current task, not across every task in the ledger. The current registry gives immediate blocking status to `test`, `scope`, `secret`, `fail-closed`, `external-write`, `review-finding`, `runtime-proof` and `surface-proof`. Other registered kinds report initially; age, count and repeated failure thresholds can make them block later. Accepted risk follows the configured policy.
+The shipped tree has 20 detector files, of which 11 have conditional-detector registrations, and 21 registered checker/kind entries. Installation filters framework-only and inapplicable components; another repo does not necessarily receive every entry.
+
+Current immediate ship kinds:
+
+`test`, `scope`, `secret`, `fail-closed`, `external-write`, `review-finding`, `runtime-proof`, `surface-proof`.
+
+Current initially report-only kinds:
+
+`test-shape`, `test-weakened`, `test-expectation`, `test-token-shape`, `signature-change`, `dangling-ref`, `lint`, `layer-boundary`, `design-pins`, `control-plane-budget`, `dead-wiring`, `registry-consistency`, `spec-coverage`.
+
+The last four framework self-checks are not ordinary adopter checks. `layer-boundary` also needs a layer declaration. The actual table is [claim_kinds.json](../.v4/claim_kinds.json).
+
+`derive` stores a claim before any checker verdict. `check` records attempts regardless of whether the kind is a blocker or a report. `ship` then derives current states and splits them using the kind's gate policy. Sources: [claim insertion](../kernel/derive.py), [attempt recording](../kernel/runner.py), [state split](../kernel/state.py), [ship predicate](../kernel/lifecycle.py).
+
+A report-only claim can escalate when the evaluated task has too many unresolved claims of the same kind, a claim is too old, or its distinct failing attempts exceed the configured limit. The comparisons are strict `>` checks. Defaults are 10, 14 days and 5 failures. **This is not a global background collector that makes every old report block every future task.** The split receives the current task's report. See [threshold logic](../kernel/state.py) and [task selection](../kernel/state.py).
+
+Accepted risk follows the configured policy.
 
 In particular, **test deletion detection is not an unconditional ship blocker by default**. See [the registry](../.v4/claim_kinds.json) and [the grouping predicate](../kernel/state.py).
+
+## Review lenses and findings
+
+`review lens` renders the questions and records that the brief was taken. `review done` records the reviewer's stated result (`completed`, `not_applicable`, `not_evaluable`, `failed`), its finding count, and the note/evidence when given; a result other than `completed` is refused (REFUSED, exit 2) unless a non-blank note or evidence reference carries the reason, on the run-less and run-bound writers alike; a `not_evaluable` or `failed` report is carried separately from a completed review in `sweep` and `ship`, so it is not counted as coverage. Sweep and ship classify one selected report snapshot and display its saved notes and evidence; sweep history retains those diagnostics. A failed lens keeps sweep cadence partial, while `not_evaluable` accounts for a context-limited lens without claiming review coverage. They are distinct events. Neither is a mechanical proof that the reviewer read the code correctly. Sources: [brief generation](../kernel/review.py), [brief event](../kernel/review.py), [completion event](../kernel/review.py).
+
+`review add` creates the fixed `review-finding` kind at validated file/symbol coordinates. With `--task`, it belongs to that task. Without a task, the code creates/uses the standing `repo-review` task. **A finding on `repo-review` does not automatically block an unrelated feature task's ship.** See [finding creation](../kernel/review.py).
+
+The repair-checker path can run the closing test at the supplied parent commit and the current tree, and observe target execution. Text-based closure and accepted-risk paths also exist, so do not describe every closed finding as a behavior test. See [review checker](../checkers/review_finding.py) and [red-green execution](../kernel/redgreen.py).
+
+A committed same-file Python function/method rename can be offered with `review close --rename-commit`. The kernel verifies an unchanged function structure across each rename step, preserves the original claim, and rechecks execution of the resolved name with the normal red/green conditions. Renamed closure parameters participate in evidence staleness. See [rename validation](../kernel/review_renames.py).
 
 ## Language and runner support
 
@@ -61,15 +87,33 @@ The earlier README said the Go/Node tracing code was unreachable from the review
 - An engagement sentence passes mechanical checks; its acceptance is not proof of understanding.
 - Prompts requesting independent or blind reviews are not proof that reviewers operated independently.
 
+## Ledger and evidence lifetime
+
+The SQLite ledger lives under the Git common directory, so worktrees of one repo share it. Claims and actual checker attempts are records; current state is derived from those records and present inputs. Sources: [ledger location](../kernel/ledger.py), [state calculation](../kernel/state.py).
+
+Passes are checked against relevant subject content, config, checker implementation, facts, detector identity and, for repo-scoped questions, a relevant worktree digest. Accepted risks also cover an input-state key rather than remaining valid forever. Sources: [stale reasons](../kernel/state.py), [accepted-risk state](../kernel/state.py).
+
+The ledger uses append-only SQLite triggers and hash chains to make ordinary writes controlled and recorded. It is not an immutable external trust service. The `task` table is not covered by the same chain as attempts and events. A process with sufficient file access can tamper with local state; do not market the ledger as impossible to edit. Some signer identities are supplied by the calling process; see [Hooks and accepted risk](#hooks-and-accepted-risk).
+
 ## Hooks and accepted risk
 
 The shipped host adapters target Claude Code and Codex. Installation defaults to Claude; --hosts selects Claude, Codex or both. See [CODEX.md](CODEX.md) for activation, identity binding and permissions.
 
 Write/Edit hooks examine supported tool payloads and the declared scope. They also require engagement on visible claims until the initial engagement gate is cleared. Both hosts select the task worktree first. Ambiguous local tasks are refused instead of selecting the newest. Explicit native agent bindings are used when the host supplies that identity. The shell guard examines command text. Shell scripts and other execution routes are not a security boundary. Hooks stand down when required state cannot be read. The stop hook blocks once per host stop continuation; later turns can be checked again.
 
-The ledger uses SQLite triggers and hash chains to make ordinary writes controlled and recorded. It is not an immutable external trust service. The `task` table is not covered by the same chain as attempts and events. A process with sufficient file access can tamper with local state; do not market the ledger as impossible to edit.
-
 The risk command permits an agent-signing path, including `--no-tty-check`. A stored name is not independently verified human approval. A risk signature must meet the kernel's acceptance conditions and expires against the inputs it covers. Read [risk.py](../kernel/risk.py) for attribution and [lifecycle.py](../kernel/lifecycle.py) for what ship actually accepts.
+
+## Who checks the checkers?
+
+Checker registration calls the fixture verifier for each claimed kind. It requires red cases to fail, green cases to pass and bypass cases to fail; byte-identical copies of red cases do not qualify as distinct bypass cases. The same fixture is run twice to compare its exit code and stdout. Failed verification prevents successful registration. Registration pins the entry and its transitive program fingerprint; changing either requires passing the fixtures again. `doctor` reports older entries whose dependencies have not yet been pinned. Sources: [fixture checks and registration](../kernel/register.py).
+
+Detector verification has a different contract: the detector must exit 0 and emit claims on red/bypass cases, and emit no claims on green cases. A detector proposes questions; failing its process is not how it reports a detected defect. See [detector verification](../kernel/register.py).
+
+This provides a useful check on custom rule code. It does not make fixtures exhaustive or turn a known blind spot into coverage.
+
+## Maintenance and host coordination
+
+Maintenance adds a shared Claude `/maintain` / Codex `$vibeproof-maintain` entrance for current attention, native job setup, versioned review and authorized repair handoffs. Its snapshots store source/configuration fingerprints and link review results; they do not archive the source tree. Monitor work concerns framework setup and criteria drift, rather than service uptime. Telegram transport and its macOS receiver keep delivery/acknowledgement separate from claim closure. A selected-lens review does not reset full-review cadence. See [USING](USING.md#periodic-maintenance-and-findings) and [SPEC](SPEC.md#maintenance-workflow-and-versioned-review).
 
 ## Evidence you can reproduce
 
