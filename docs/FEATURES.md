@@ -49,49 +49,21 @@ The **34 `v4` CLI commands** are a separate executable interface, defined by [th
 
 ## Detectors, checkers and gate modes
 
-The shipped tree has 20 detector files, of which 11 have conditional-detector registrations, and 21 registered checker/kind entries. Installation filters framework-only and inapplicable components; another repo does not necessarily receive every entry.
-
-Current immediate ship kinds:
-
-`test`, `scope`, `secret`, `fail-closed`, `external-write`, `review-finding`, `runtime-proof`, `surface-proof`.
-
-Current initially report-only kinds:
-
-`test-shape`, `test-weakened`, `test-expectation`, `test-token-shape`, `signature-change`, `dangling-ref`, `lint`, `layer-boundary`, `design-pins`, `control-plane-budget`, `dead-wiring`, `registry-consistency`, `spec-coverage`.
-
-The last four framework self-checks are not ordinary adopter checks. `layer-boundary` also needs a layer declaration. The actual table is [claim_kinds.json](../.v4/claim_kinds.json).
-
-`derive` stores a claim before any checker verdict. `check` records attempts regardless of whether the kind is a blocker or a report. `ship` then derives current states and splits them using the kind's gate policy. Sources: [claim insertion](../kernel/derive.py), [attempt recording](../kernel/runner.py), [state split](../kernel/state.py), [ship predicate](../kernel/lifecycle.py).
-
-A report-only claim can escalate when the evaluated task has too many unresolved claims of the same kind, a claim is too old, or its distinct failing attempts exceed the configured limit. The comparisons are strict `>` checks. Defaults are 10, 14 days and 5 failures. **This is not a global background collector that makes every old report block every future task.** The split receives the current task's report. See [threshold logic](../kernel/state.py) and [task selection](../kernel/state.py).
+Detectors propose claims; checkers answer them. Installation selects applicable components for the adopter. The [registry inventory, gate modes and escalation limits](REFERENCE.md#which-checks-hold-ship) explain which unresolved claims hold a task's ship.
 
 ## Review lenses and findings
 
 The current 13 lens files cover architecture fit, configuration/hardcoded-secret placement, DevX, runtime electrification, general rules with false instances, implementation boundaries, LLM-agent action surfaces, near misses, observability, runtime reliability/performance, request fidelity, permissions/security and test sufficiency.
 
-`review lens` renders the questions and records that the brief was taken. `review done` records the reviewer's stated result (`completed`, `not_applicable`, `not_evaluable`, `failed`), its finding count, and the note/evidence when given; a result other than `completed` is refused (REFUSED, exit 2) unless a non-blank note or evidence reference carries the reason, on the run-less and run-bound writers alike; a `not_evaluable` or `failed` report is carried separately from a completed review in `sweep` and `ship`, so it is not counted as coverage. Sweep and ship classify one selected report snapshot and display its saved notes and evidence; sweep history retains those diagnostics. A failed lens keeps sweep cadence partial, while `not_evaluable` accounts for a context-limited lens without claiming review coverage. They are distinct events. Neither is a mechanical proof that the reviewer read the code correctly. Sources: [brief generation](../kernel/review.py), [brief event](../kernel/review.py), [completion event](../kernel/review.py).
-
-`review add` creates the fixed `review-finding` kind at validated file/symbol coordinates. With `--task`, it belongs to that task. Without a task, the code creates/uses the standing `repo-review` task. **A finding on `repo-review` does not automatically block an unrelated feature task's ship.** See [finding creation](../kernel/review.py).
-
-The repair-checker path can run the closing test at the supplied parent commit and the current tree, and observe target execution. Text-based closure and accepted-risk paths also exist, so do not describe every closed finding as a behavior test. See [review checker](../checkers/review_finding.py) and [red-green execution](../kernel/redgreen.py).
-
-A committed same-file Python function/method rename can be offered with `review close --rename-commit`. The kernel verifies an unchanged function structure across each rename step, preserves the original claim, and rechecks execution of the resolved name with the normal red/green conditions. Renamed closure parameters participate in evidence staleness. See [rename validation](../kernel/review_renames.py).
+Use the [review and closure reference](REFERENCE.md#review-lenses-and-findings) for brief/completion events, finding ownership, repair tests and supported renames. A lens or completion record does not prove review quality.
 
 ## Ledger and evidence lifetime
 
-The SQLite ledger lives under the Git common directory, so worktrees of one repo share it. Claims and actual checker attempts are records; current state is derived from those records and present inputs. Sources: [ledger location](../kernel/ledger.py), [state calculation](../kernel/state.py).
-
-Passes are checked against relevant subject content, config, checker implementation, facts, detector identity and, for repo-scoped questions, a relevant worktree digest. Accepted risks also cover an input-state key rather than remaining valid forever. Sources: [stale reasons](../kernel/state.py), [accepted-risk state](../kernel/state.py).
-
-The ledger has append-only triggers and chained records, but is local storage. Not every table has the same hash coverage; task text is not covered like attempts/events. Some signer identities are supplied by the calling process. Keep the [trust limitations](REFERENCE.md) visible.
+The local ledger records claims, attempts and events; current state depends on present inputs. See [evidence lifetime and trust limits](REFERENCE.md#ledger-and-evidence-lifetime) for worktree sharing, staleness and the boundaries of local storage.
 
 ## Who checks the checkers?
 
-Checker registration calls the fixture verifier for each claimed kind. It requires red cases to fail, green cases to pass and bypass cases to fail; byte-identical copies of red cases do not qualify as distinct bypass cases. The same fixture is run twice to compare its exit code and stdout. Failed verification prevents successful registration. Registration pins the entry and its transitive program fingerprint; changing either requires passing the fixtures again. `doctor` reports older entries whose dependencies have not yet been pinned. Sources: [fixture checks and registration](../kernel/register.py).
-
-Detector verification has a different contract: the detector must exit 0 and emit claims on red/bypass cases, and emit no claims on green cases. A detector proposes questions; failing its process is not how it reports a detected defect. See [detector verification](../kernel/register.py).
-
-This provides a useful check on custom rule code. It does not make fixtures exhaustive or turn a known blind spot into coverage.
+Registration verifies custom checkers and detectors against fixtures and pins their program identity. The [fixture contracts and limits](REFERENCE.md#who-checks-the-checkers) distinguish the two mechanisms; passing fixtures does not establish exhaustive coverage.
 
 ## Other useful mechanisms
 
@@ -105,4 +77,4 @@ This provides a useful check on custom rule code. It does not make fixtures exha
 
 For an adoption path use [GETTING_STARTED.md](GETTING_STARTED.md); for a market comparison use [the code-grounded positioning analysis](launch/POSITIONING.zh-TW.md).
 
-Maintenance adds a shared Claude `/maintain` / Codex `$vibeproof-maintain` entrance for current attention, native job setup, versioned review and authorized repair handoffs. Its snapshots store source/configuration fingerprints and link review results; they do not archive the source tree. Monitor work concerns framework setup and criteria drift, rather than service uptime. Telegram transport and its macOS receiver keep delivery/acknowledgement separate from claim closure. A selected-lens review does not reset full-review cadence. See [USING](USING.md#periodic-maintenance-and-findings) and [SPEC](SPEC.md#maintenance-workflow-and-versioned-review).
+For ongoing review and repair, use the shared Claude `/maintain` / Codex `$vibeproof-maintain` entrance. [Maintenance evidence limits](REFERENCE.md#maintenance-and-host-coordination) and the [operating guide](USING.md#periodic-maintenance-and-findings) distinguish review, authorized repair and notification delivery.
