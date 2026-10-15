@@ -138,7 +138,7 @@
     },
     ".v4/checkers.json": {
       "mode": "100644",
-      "sha256": "7dc6a6f32056969910edf3e792fabacfdde1b272f17bc0b0778c4502b4d480b9",
+      "sha256": "05b0bc87c36b8a5ce5742211360f15aeec9be76649f50e26e443b70d18052a17",
       "source": ".v4/checkers.json"
     },
     ".v4/claim_kinds.json": {
@@ -1058,7 +1058,7 @@
     },
     "kernel/ledger.py": {
       "mode": "100644",
-      "sha256": "4e19b4dc5752e1ea49a28144b0261d6c30e6000369e12db659ea989e3e485175",
+      "sha256": "519f518f6d51e5296a573feef5937b1455e03bb6e4aea2ec793cacab5512e592",
       "source": "kernel/ledger.py"
     },
     "kernel/lens_catalogue.py": {
@@ -14008,7 +14008,7 @@
     },
     "tests/test_kernel.py": {
       "mode": "100644",
-      "sha256": "c8cd015660422a3ec9da78e119bbc9a03d4169ee3781d5e4565fe8c44bc0c153",
+      "sha256": "fecd1632cc9aa45dac53b3665fdae093c1a4536f7cdfe61b56df882b5b914fe9",
       "source": "tests/test_kernel.py"
     },
     "tests/test_legacy_export_projection.py": {
@@ -14048,7 +14048,7 @@
     },
     "tests/test_notifications.py": {
       "mode": "100644",
-      "sha256": "65a86aeb896be17fd7ebff5131b3dcff95f59f006ad57f0d2e4dea5c0a95559c",
+      "sha256": "23b48bdbcd5fd4c5b4863c2329ac69e1bf3f8f0dd8c745ba0f40ffc935eae2eb",
       "source": "tests/test_notifications.py"
     },
     "tests/test_one_answer_to_one_question.py": {
