@@ -22,7 +22,43 @@ PUBLIC_URLS = {f"git@github.com:{PUBLIC_REPO}.git", f"https://github.com/{PUBLIC
                f"https://github.com/{PUBLIC_REPO}"}
 
 
-def baseline(target, source, expected_head):
+def verify_imported_public(target, source, imported_revision, public_head):
+    """An imported canonical snapshot accounts for every current public byte."""
+    previous = json.loads((target / MANIFEST).read_text())
+    if previous.get("schema") != 1:
+        raise ExportError("invalid prior public manifest")
+    previous_revision = git(source, "rev-parse", "--verify", "--end-of-options",
+                            previous["source_revision"] + "^{commit}")
+    ancestry = subprocess.run(["git", "-C", str(source), "merge-base", "--is-ancestor",
+                               previous_revision, imported_revision], capture_output=True)
+    if ancestry.returncode:
+        raise ExportError("imported revision is older than or diverges from the published source")
+    _, selected = plan(source, imported_revision, public_head)
+    actual = tree(target, "HEAD")
+    actual.pop(MANIFEST, None)
+    if set(actual) != set(selected):
+        raise ExportError("public tree differs from imported canonical export: "
+                          f"extra={sorted(set(actual) - set(selected))}, "
+                          f"missing={sorted(set(selected) - set(actual))}")
+    changed = [path for path, (_, data, mode) in selected.items()
+               if actual[path]["mode"] != mode
+               or git(target, "show", "HEAD:" + path, binary=True) != data]
+    if changed:
+        raise ExportError("public content/mode differs from imported canonical export: "
+                          + ", ".join(sorted(changed)))
+    # Git status can hide local replacements under skip-worktree/assume-unchanged.
+    # The writer uses the checkout, so committed-tree equality alone is insufficient.
+    for path, (_, data, mode) in selected.items():
+        checkout = target / path
+        if (checkout.is_symlink() or not checkout.is_file()
+                or not checkout.resolve().is_relative_to(target)):
+            raise ExportError(f"invalid public checkout file: {path}")
+        if (checkout.read_bytes() != data
+                or bool(checkout.stat().st_mode & 0o111) != (mode == "100755")):
+            raise ExportError(f"public checkout content/mode drift: {path}")
+
+
+def baseline(target, source, expected_head, *, imported_public_revision=None):
     target = Path(target).resolve()
     source = Path(source).resolve()
     if source == target or source.is_relative_to(target) or target.is_relative_to(source):
@@ -38,13 +74,24 @@ def baseline(target, source, expected_head):
     current = git(target, "rev-parse", "HEAD")
     if current != expected_head:
         raise ExportError(f"public HEAD moved: expected {expected_head}, got {current}")
-    if (target / MANIFEST).exists():
-        # A separately edited file AND manifest must not pass the preflight.
-        previous = verify(target, source=source)
-        parent = git(target, "rev-parse", "HEAD^")
-        if previous["public_parent"] != parent:
-            raise ExportError("public HEAD is not the recorded release commit; import its changes first")
+    manifest_path = target / MANIFEST
+    manifest_entry = tree(target, "HEAD").get(MANIFEST)
+    if manifest_entry is not None or manifest_path.exists() or manifest_path.is_symlink():
+        if (manifest_entry is None or manifest_entry["kind"] != "blob"
+                or manifest_entry["mode"] not in ("100644", "100755")
+                or manifest_path.is_symlink() or not manifest_path.is_file()):
+            raise ExportError("public manifest must be a tracked regular file")
+        if imported_public_revision is not None:
+            verify_imported_public(target, source, imported_public_revision, current)
+        else:
+            # A separately edited file AND manifest must not pass the preflight.
+            previous = verify(target, source=source)
+            parent = git(target, "rev-parse", "HEAD^")
+            if previous["public_parent"] != parent:
+                raise ExportError("public HEAD is not the recorded release commit; import its changes first")
     else:
+        if imported_public_revision is not None:
+            raise ExportError("import reconciliation requires a prior public manifest")
         config = json.loads((source / "publishing/bootstrap.json").read_text())
         if current != config["public_head"]:
             raise ExportError("unrecognized initial public snapshot")
@@ -54,14 +101,23 @@ def baseline(target, source, expected_head):
     return current
 
 
-def publish(source, target, revision, expected_head, *, apply=False, push=False, pr=False):
+def publish(source, target, revision, expected_head, *, apply=False, push=False, pr=False,
+            imported_public_revision=None):
     source, target = Path(source).resolve(), Path(target).resolve()
     if push and not apply or pr and not push:
         raise ExportError("--push needs --apply; --pr needs --push")
     if git(source, "status", "--porcelain", "--untracked-files=all"):
         raise ExportError("commit the canonical source before publishing")
     revision = git(source, "rev-parse", "--verify", "--end-of-options", revision + "^{commit}")
-    head = baseline(target, source, expected_head)
+    if imported_public_revision is not None:
+        imported_public_revision = git(source, "rev-parse", "--verify", "--end-of-options",
+                                       imported_public_revision + "^{commit}")
+        ancestry = subprocess.run(["git", "-C", str(source), "merge-base", "--is-ancestor",
+                                   imported_public_revision, revision], capture_output=True)
+        if ancestry.returncode:
+            raise ExportError("imported revision must be an ancestor of the requested release")
+    head = baseline(target, source, expected_head,
+                    imported_public_revision=imported_public_revision)
     if (target / MANIFEST).exists():
         previous = json.loads((target / MANIFEST).read_text())["source_revision"]
         ancestry = subprocess.run(["git", "-C", str(source), "merge-base", "--is-ancestor",
@@ -69,6 +125,15 @@ def publish(source, target, revision, expected_head, *, apply=False, push=False,
         if ancestry.returncode:
             raise ExportError("source is older than or diverges from the published source; reconcile first")
     manifest, selected = plan(source, revision, head)
+    # New release paths can traverse ignored symlinks absent from the imported
+    # tree. Validate every destination component before creating a branch.
+    for path in set(selected) | {MANIFEST}:
+        destination = target / path
+        for component in (destination, *destination.parents):
+            if component == target:
+                break
+            if component.is_symlink():
+                raise ExportError(f"unsafe public destination: {path}")
     old = tree(target, "HEAD")
     added = sorted(set(selected) - set(old))
     removed = sorted(set(old) - set(selected) - {MANIFEST})
@@ -77,9 +142,12 @@ def publish(source, target, revision, expected_head, *, apply=False, push=False,
                      or old[path]["mode"] != selected[path][2])
     report = {"source_revision": revision, "public_parent": head,
               "added": added, "changed": changed, "removed": removed, "applied": False}
+    if imported_public_revision is not None:
+        report["imported_public_revision"] = imported_public_revision
     if not apply:
         return report
-    if MANIFEST in old and not added and not removed and not changed:
+    if (imported_public_revision is None and MANIFEST in old
+            and not added and not removed and not changed):
         report["unchanged"] = True
         return report
     if push:
@@ -155,6 +223,9 @@ def main():
     parser.add_argument("--target", type=Path, required=True)
     parser.add_argument("--revision", default="HEAD")
     parser.add_argument("--expected-public-head", required=True)
+    parser.add_argument("--imported-public-revision",
+                        help="canonical commit whose export exactly matches the current public tree; "
+                             "prove the public contribution was imported before repairing provenance")
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--push", action="store_true")
     parser.add_argument("--pr", action="store_true")
@@ -163,7 +234,8 @@ def main():
         parser.error("--push needs --apply; --pr needs --push")
     try:
         print(json.dumps(publish(args.source, args.target, args.revision, args.expected_public_head,
-                                 apply=args.apply, push=args.push, pr=args.pr), indent=2))
+                                 apply=args.apply, push=args.push, pr=args.pr,
+                                 imported_public_revision=args.imported_public_revision), indent=2))
         return 0
     except (ExportError, OSError, ValueError, KeyError, subprocess.CalledProcessError) as exc:
         print(f"public publish refused: {exc}", file=sys.stderr)

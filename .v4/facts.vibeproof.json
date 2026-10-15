@@ -46,6 +46,12 @@
       "kind": "fs",
       "note": "Optional Playwright reporter and fixture write private surface receipts and Chromium coverage records. Existing .write_text/subprocess.run patterns cover Python output/process execution; the JS adapter is reviewed explicitly outside the Python census.",
       "match": "regex"
+    },
+    {
+      "pattern": "shutil.copy2",
+      "seen_at": "tools/publish_public.py:183",
+      "kind": "fs",
+      "note": "Copies the generated public manifest and policy-selected bytes into the checked public clone. Baseline rejects non-regular manifests; import verification checks actual checkout files and all prospective destination components are checked before writing. subprocess.run already covers Git/gh execution."
     }
   ],
   "outbound_read": [
@@ -165,6 +171,18 @@
       "seen_at": "kernel/notifications.py:340",
       "kind": "authz",
       "note": "Delivery checks the configured recipient authorization and current notice state before sending."
+    },
+    {
+      "pattern": "verify_imported_public",
+      "seen_at": "tools/publish_public.py:25",
+      "kind": "authz",
+      "note": "Authorizes explicit provenance repair only when the canonical import descends from the prior declared source and both committed public tree and actual checkout match exported paths, bytes and modes, excluding only the old manifest."
+    },
+    {
+      "pattern": "baseline",
+      "seen_at": "tools/publish_public.py:61",
+      "kind": "authz",
+      "note": "Requires separate Git storage, the authorized public origin, a clean target and expected HEAD, and a tracked regular manifest before validating ordinary release provenance or the explicit import."
     }
   ],
   "entrypoint_globs": [
@@ -176,7 +194,8 @@
     "kernel/maintenance_cli.py",
     ".v4/surface/playwright-reporter.cjs",
     ".v4/surface/playwright.cjs",
-    ".v4/surface/playwright-sourcemap.cjs"
+    ".v4/surface/playwright-sourcemap.cjs",
+    "tools/publish_public.py"
   ],
   "ui_globs": [],
   "config_files": [

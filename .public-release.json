@@ -163,7 +163,7 @@
     },
     ".v4/facts.vibeproof.json": {
       "mode": "100644",
-      "sha256": "9dc82f6ee9a232fcd76fca51107aa777db2ffa943815316eed76ffc3ca30f43b",
+      "sha256": "9bb226dc243601c00d2da0967f4a58e11876cba3ca5b2fa46358336daf43502f",
       "source": ".v4/facts.vibeproof.json"
     },
     ".v4/fail-closed_baseline.json": {
@@ -293,7 +293,7 @@
     },
     ".v4/test-shape_baseline.json": {
       "mode": "100644",
-      "sha256": "69e9383dd3d253236aef19e8aa99dd1f8fb0b12642a48381436873b3a4cacb5e",
+      "sha256": "87610174e4eeabc31fb1473504e0ca961889aa4800992f9d3226f2e95e5ec1c2",
       "source": ".v4/test-shape_baseline.json"
     },
     ".v4/test-token-shape_baseline.json": {
@@ -563,7 +563,7 @@
     },
     "docs/FACTS.md": {
       "mode": "100644",
-      "sha256": "a29854bc6d671df0c5766ba6ff4f7a34ae00327317eb372c726839e01cac8dda",
+      "sha256": "2bc95f5686bd21fa888958773ae29803052a5401dc8fc313ab2dfecab6b679c8",
       "source": "docs/FACTS.md"
     },
     "docs/FEATURES.md": {
@@ -608,7 +608,7 @@
     },
     "docs/SYNC.md": {
       "mode": "100644",
-      "sha256": "22a668d7465a8cbfa971adaa8ba970ccf562d98c1a6d58ba9428dcf880e4eba7",
+      "sha256": "44afbad38f2329a87954559d076e623b8734030d0697e68241c05dbfdde20225",
       "source": "docs/SYNC.md"
     },
     "docs/USING.md": {
@@ -14093,7 +14093,7 @@
     },
     "tests/test_public_distribution.py": {
       "mode": "100644",
-      "sha256": "953787a3a09471280e23870cf1155bdafceaf29ff4ed82f7bbe626dfe4bed819",
+      "sha256": "0c3043bae0ebe9380f152a395d0af49e7dd2f11c27294257d54694d308142e0d",
       "source": "tests/test_public_distribution.py"
     },
     "tests/test_public_first_proof.py": {
@@ -14503,7 +14503,7 @@
     },
     "tools/publish_public.py": {
       "mode": "100644",
-      "sha256": "fb6bce15b076ca3a4f5a7bfe52a2a56d6eabe7b79a05d7f0f2eabfabc7d8df58",
+      "sha256": "e5ed2bcbd15c0e1dad7591bbc42315d43b909d35ebb066ba2600bffa0e588ab7",
       "source": "tools/publish_public.py"
     },
     "tools/render_host_assets.py": {
@@ -14523,7 +14523,7 @@
     }
   },
   "policy_sha256": "a0e2137ce5d1aa2704008b496950286242212e9520d7238472fb49e6f39f0ac5",
-  "public_parent": "783856f6459f372187a285c1b82e88302b470fa4",
+  "public_parent": "149457042b103dc6a88b2a21a8986ecad4d23966",
   "schema": 1,
-  "source_revision": "747c928f6d80bb057bd80892c0af6a436c0ee0f6"
+  "source_revision": "ce9a5405271f9a879bae51aac4dda885cc44bc3b"
 }

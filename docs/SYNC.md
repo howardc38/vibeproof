@@ -81,6 +81,36 @@ commit; the next preflight deliberately rejects an unexplained public history.
 
 If public has a hotfix or other unexpected edit, stop, inspect and import it
 into private first. Do not reset/clean the public checkout to make the guard pass.
+
+Preserve a canonical import commit whose export exactly reproduces the public
+product tree, before adding any later release changes. Set
+`IMPORTED_PUBLIC_REVISION` to that commit and use the explicit reconciliation
+preflight:
+
+```sh
+python3 tools/publish_public.py --source . --target ../vibeproof-public-release \
+  --expected-public-head "$PUBLIC_HEAD" \
+  --imported-public-revision "$IMPORTED_PUBLIC_REVISION"
+```
+
+The import commit must descend from the old manifest's declared source and be
+an ancestor of the requested release revision. Its generated export must match
+all current public paths, bytes and file modes, excluding only the old manifest.
+The checkout itself must also contain those regular files with matching bytes
+and executable modes; Git index flags cannot hide local replacements. Every
+prospective release destination is checked for symlink components, including
+new paths beneath ignored directories. Missing or extra files, unimported edits
+and mode drift are refusals before the target is changed. The separate-clone, clean-tree, authorized-origin and expected
+public HEAD checks still apply. Importing a patch is insufficient if another
+public change remains unaccounted for.
+
+After reviewing that report, repeat the same command with `--apply --push --pr`.
+Reconciliation creates a fresh canonical manifest and a release commit whose
+parent is the actual public HEAD, even when the manifest is the only changed
+file. Subsequent ordinary releases use the default preflight without the import
+option. Private risk records and private Git objects remain excluded; they are
+not synchronization inputs.
+
 Only one pending `publish/` PR is allowed; resolve it before proposing another.
 A source revision older than or divergent from the last published source is
 refused, including a late CI completion. An uncertain push/PR result must be inspected remotely before retrying; the
