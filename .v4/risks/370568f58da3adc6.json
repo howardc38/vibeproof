@@ -1,0 +1,19 @@
+{
+  "claim": "370568f58da3adc6",
+  "kind": "scope_widen_protected",
+  "scope": "task",
+  "who": "howardc38@users.noreply.github.com",
+  "signed_by": "person",
+  "why": "Howard approved ap_0c507e06b5a157f5 and chose option (a) in judgment 7: task B changes only the protected .v4/checkers.json, re-registering 14 checker pins after task A changed kernel/ledger.py. All 14 re-passed their fixtures, doctor shows 21/21 programs match, full suite green on the combined head 8812542.",
+  "at": "2026-10-15T11:11:03.081632+00:00",
+  "stdin_was_a_tty": true,
+  "claim_question": "Does the diff stay inside the declared scope?",
+  "claim_kind": "scope",
+  "commit_anchor": {
+    "head": "8812542ffc04c21a94a494425f14a36274bc5e05",
+    "signature": "N",
+    "configured": false,
+    "verified": false
+  },
+  "note": "Identity comes from git config, which is editable. `git log -1 --format=%G?` here is 'N' and commit signing is not configured, so the commit this file lands in is not signed either: its author line comes from the same editable `git config` as `who`. The durable part is a person reading the diff, not the file being in git. Sign the commits if this record is meant to say more than that."
+}
