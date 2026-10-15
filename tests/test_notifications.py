@@ -17,7 +17,7 @@ class Notifications(unittest.TestCase):
         self.home = Path(td.name)
         self.root = self.repo("repo")
         self.token = self.home / "token"
-        self.token.write_text("123:fixture-token")
+        self.token.write_text("123:TEST-NOT-A-REAL-TOKEN")
         self.token.chmod(0o600)
         self.calls = []
         self.patch = patch.object(n, "api", side_effect=self.provider)
@@ -117,9 +117,9 @@ class Notifications(unittest.TestCase):
 
     def test_bot_token_is_not_emitted_in_errors(self):
         self.patch.stop()
-        with patch("urllib.request.urlopen",side_effect=OSError("https://api.telegram.org/bot123:fixture-token/getUpdates")):
+        with patch("urllib.request.urlopen",side_effect=OSError("https://api.telegram.org/bot123:TEST-NOT-A-REAL-TOKEN/getUpdates")):
             with self.assertRaises(n.DeliveryError) as caught:n.api(str(self.token),"getUpdates")
-        self.assertNotIn("fixture-token",str(caught.exception))
+        self.assertNotIn("TEST-NOT-A-REAL-TOKEN",str(caught.exception))
         self.assertNotIn("api.telegram.org",str(caught.exception))
         self.patch.start()
 
