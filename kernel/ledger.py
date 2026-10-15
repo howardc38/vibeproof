@@ -1894,13 +1894,34 @@ def reconcile_signatures(conn, repo_root=None):
             # control -- are all answerable from the object store, and the
             # third is answered by construction: a commit holds it.
             #
-            # `--diff-filter=d` excludes deletions, so this is the newest commit
+            # Every change class git has except D, so this is the newest commit
             # where the file *exists* rather than the newest that touched it. A
             # record deleted on one branch and alive on another would otherwise
-            # resolve to the deletion and read as unreadable bytes.
+            # resolve to the deletion and read as unreadable bytes -- and a
+            # rename away is a deletion to a diff limited to one path, so
+            # excluding D covers that too. Measured 2026-10-15: `git mv <rec>
+            # other` reports D against <rec>; `git mv other <rec>` reports A.
+            #
+            # Written out rather than downcased to `--diff-filter=d`, which is
+            # how git-diff(1) says to write "exclude deletions", and that is
+            # what this line was until it was measured. In `git log` a filter
+            # with no upper-case class selects no commit at all -- the
+            # exclusion is honoured where a diff is *displayed* and empty where
+            # a commit is being chosen, and this call reads a commit name -- so
+            # the lookup answered "no commit" for every record and the branch
+            # below turned each one into a row on no branch, the forged-row
+            # verdict this block exists to stop. Measured 2026-10-15 on git
+            # 2.47.3, against the repo this test builds: `git log --all -1
+            # --format=%H --diff-filter=d -- <rec>` prints nothing for the
+            # commit that adds <rec>, the same command with `--diff-filter=AMd`
+            # prints that commit, and adding `-p` prints it with `d`. The
+            # filter takes nine letters -- A B C D M R T U X, which is what git
+            # accepted when it was run over the alphabet -- and this is that
+            # list minus D. `git diff` displays, so the `d` in
+            # `checkers/test.py` is not this bug.
             known = subprocess.run(
-                ["git", "log", "--all", "-1", "--format=%H", "--diff-filter=d",
-                 "--", rec],
+                ["git", "log", "--all", "-1", "--format=%H",
+                 "--diff-filter=ACMRTUXB", "--", rec],
                 cwd=root, capture_output=True, text=True)
             rev = known.stdout.strip() if known.returncode == 0 else ""
             if not rev:
