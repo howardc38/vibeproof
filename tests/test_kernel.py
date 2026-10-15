@@ -8268,12 +8268,94 @@ class SigningTheSameKindTwiceIsHistoryNotABrokenChain(unittest.TestCase):
         self.assertFalse((root / ".v4/risks/repo/surface-proof.json").is_file())
         self.assertEqual(ledger.reconcile_signatures(conn, root), [])
 
+    def _record_exists_on_some_branch(self, root, rec):
+        """The precondition the cross-branch read is about: the bytes are in
+        the object store, whatever the working tree holds. Asserted with no
+        `--diff-filter` at all, so it cannot restate the filter under test."""
+        import subprocess
+        known = subprocess.run(["git", "log", "--all", "-1", "--format=%H",
+                                "--", rec], cwd=root, capture_output=True,
+                               text=True)
+        self.assertTrue(known.stdout.strip(),
+                        f"{rec} must be committed on some branch for this case "
+                        f"to be about reading it back")
+
+    def test_a_record_renamed_into_place_on_that_branch_is_read_from_git(self):
+        """`git mv` into the row's path is still a record that exists.
+
+        A diff limited to one path reports the move-into-place as an addition on
+        that path, and the lookup has to name that change class. The earlier
+        filter (`--diff-filter=d`, read as "exclude deletions") selected no
+        commit at all under `git log`, so a record that arrived by rename read
+        as a row on no branch -- the same false verdict as a plain add, by a
+        different route. Measured on git 2.47.3 before the filter was written
+        out as `ACMRTUXB`: `git log --all -1 --diff-filter=d -- <rec>` prints
+        nothing for the commit that moved the record here, and the same command
+        with `ACMRTUXB` prints it.
+        """
+        import subprocess
+        from kernel import ledger
+        rec = ".v4/risks/repo/surface-proof.json"
+        root, conn = self._repo()
+        was = self._on_a_branch(root, conn, "only-claim", "surface-proof",
+                                write=False)
+        subprocess.run(["git", "checkout", "-q", "other"], cwd=root,
+                       capture_output=True)
+        (root / ".v4/risks/repo/under-another-name.json").write_text(json.dumps(
+            {"claim": "only-claim", "kind": "unprovable", "why": "w" * 50}))
+        subprocess.run(["git", "add", "-A"], cwd=root, capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "a record under another name"],
+                       cwd=root, capture_output=True)
+        subprocess.run(["git", "mv", ".v4/risks/repo/under-another-name.json",
+                        rec], cwd=root, capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "renamed into the row's path"],
+                       cwd=root, capture_output=True)
+        subprocess.run(["git", "checkout", "-q", was], cwd=root,
+                       capture_output=True)
+        self.assertFalse((root / rec).is_file())
+        self._record_exists_on_some_branch(root, rec)
+        self.assertEqual(ledger.reconcile_signatures(conn, root), [])
+
+    def test_a_record_copied_on_that_branch_is_read_from_git(self):
+        """Two names, same bytes: the copy is an addition on the new path.
+
+        This is the shape a record takes when it is carried over by hand from an
+        earlier signature instead of being written by `v4 risk accept` -- and
+        like the rename, the only commit that carries the row's path is an
+        addition, which the lookup has to name to find it.
+        """
+        import subprocess
+        from kernel import ledger
+        rec = ".v4/risks/repo/surface-proof.json"
+        root, conn = self._repo()
+        was = self._on_a_branch(root, conn, "only-claim", "surface-proof",
+                                write=False)
+        subprocess.run(["git", "checkout", "-q", "other"], cwd=root,
+                       capture_output=True)
+        source = root / ".v4/risks/repo/copied-from.json"
+        source.write_text(json.dumps(
+            {"claim": "only-claim", "kind": "unprovable", "why": "w" * 50}))
+        shutil.copyfile(source, root / rec)
+        subprocess.run(["git", "add", "-A"], cwd=root, capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "a copy under the row's path"],
+                       cwd=root, capture_output=True)
+        subprocess.run(["git", "checkout", "-q", was], cwd=root,
+                       capture_output=True)
+        self.assertFalse((root / rec).is_file())
+        self._record_exists_on_some_branch(root, rec)
+        self.assertEqual(ledger.reconcile_signatures(conn, root), [])
+
     def test_and_one_edited_on_that_branch_is_still_caught(self):
         """Read from git, not trusted for being in git.
 
         The verdict must not get weaker for being somewhere else: a record whose
         content disagrees with its row is the tamper this reconcile exists for,
         and moving where it is read from cannot become a way to hide it.
+
+        Caught *as* the tamper, not merely caught: `assertTrue(problems)` alone
+        passed on the broken lookup too, because reading the record as "on no
+        branch" also produces a problem. The test now names the disagreement, so
+        it fails when the record is read and is unreadable rather than edited.
         """
         import subprocess
         from kernel import ledger
@@ -8290,6 +8372,9 @@ class SigningTheSameKindTwiceIsHistoryNotABrokenChain(unittest.TestCase):
         problems = ledger.reconcile_signatures(conn, root)
         self.assertTrue(problems, "an edited record must be caught wherever it is")
         self.assertIn("only-claim", " ".join(problems))
+        self.assertIn("disagree about 'claim'", " ".join(problems),
+                      "caught as an edited record, not as a row on no branch")
+        self.assertIn("was edited after the other", " ".join(problems))
 
 
 class ACoverIsADictOnOneSideAndTheTextOfOneOnTheOther(unittest.TestCase):
