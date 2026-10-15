@@ -427,9 +427,10 @@ number still settles nothing: measured over `docs/`, dropping that requirement
 turns 0 findings into 50, of which `v4 check` read as four checks is the
 shortest to explain.
 
-The current table has 14 auth_decision rows. They include committed-symbol
+The current table has 16 auth_decision rows. They include committed-symbol
 rename validation, maintenance repair/dispatch correlation, Telegram recipient
-and callback acknowledgement checks, and receiver-service ownership. Telegram
+and callback acknowledgement checks, receiver-service ownership, and the public
+publisher's baseline and canonical-import checks. Telegram
 operations are classified by their actual method: identity/webhook inspection
 only reads; message delivery, callback UI acknowledgement and update polling
 that advances the provider cursor have external effects. Private file writes
