@@ -16,10 +16,6 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 
 以下角色分工由 host／orchestrator 管理；CLI 本身唔會驗證你係咪 worker。
 
-以下角色分工由 host／orchestrator 管理；CLI 本身唔會驗證你係咪 worker。
-
-以下角色分工由 host／orchestrator 管理；CLI 本身唔會驗證你係咪 worker。
-
 **唔可以自己叫 `v4 ship`。** 出貨係一個判詞唔係一個動作,而你就係嗰個被判嘅人 ——
 你對「呢件嘢做完未」冇獨立性。Ship 由 orchestrator 叫。
 

@@ -41,10 +41,6 @@ JS/TS 的頂層數值／設定 binding 不是 function；新 finding 應省略 `
 
 對 `.md`／JSON 等非程式檔案，不要照例子傳一個不存在的 `--symbol`。
 
-對 `.md`／JSON 等非程式檔案，不要照例子傳一個不存在的 `--symbol`。
-
-對 `.md`／JSON 等非程式檔案，不要照例子傳一個不存在的 `--symbol`。
-
 ## 做完要講一聲
 
 ```
@@ -85,4 +81,4 @@ JS/TS 的頂層數值／設定 binding 不是 function；新 finding 應省略 `
 Lens 入面每一條 check 都要對住個 diff 問一次。「我睇咗最重要嗰幾個檔」係一個
 抽樣器喺度講自己係窮舉器。
 
-如果一條 check 對呢個 diff 唔適用,唔使講 —— 但唔好因為 diff 大而跳過。
+如果一條 check 對呢個 diff 唔適用,記錄 `N/A` 同理由；每一條 check 都要問,唔好因為 diff 大而跳過。

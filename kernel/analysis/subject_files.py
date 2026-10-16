@@ -199,11 +199,13 @@ def deleted_since(root, base: str = "") -> frozenset:
     without one, `HEAD` is what "this change" means for an uncommitted delete.
     """
     import subprocess
-    args = ["diff", "--name-only", "--diff-filter=D", base or "HEAD"]
+    # Match changed_since's raw NUL-delimited names: Git's quoted display and
+    # embedded newlines are not pathname boundaries.
+    args = ["diff", "--name-only", "--no-renames", "-z", "--diff-filter=D", base or "HEAD"]
     r = subprocess.run(["git", *args], cwd=str(root), capture_output=True, text=True)
     if r.returncode != 0:
         return frozenset()
-    return frozenset(l for l in r.stdout.splitlines() if l.strip())
+    return frozenset(p for p in r.stdout.split("\0") if p)
 
 
 def excluded(rel: str, globs) -> bool:
