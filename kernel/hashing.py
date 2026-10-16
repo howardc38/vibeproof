@@ -15,7 +15,11 @@ Two decisions here carry most of the design's weight:
 
 import hashlib
 import json
+import os
 from pathlib import Path
+import re
+import stat
+import subprocess
 
 from .analysis import tables
 from . import layout
@@ -591,6 +595,154 @@ def moved(before: dict, after: dict, limit=6) -> list:
 
 def _sha_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+class SourceUnreadable(ValueError):
+    """A completion observation cannot describe the source reliably."""
+
+
+# Deliberately narrower than KERNEL_WRITTEN, which answers a proof-staleness
+# question. Ignore rules, installed assets, registries and fixtures are source
+# inputs here. Chain/export output and private risk/deferral records are omitted.
+SOURCE_OUTPUTS = (".v4/chain_head.json", ".v4/ledger_export.jsonl",
+                  ".v4/ledger_export.jsonl.projection.json")
+SOURCE_SEGMENTS = r"\.v4/ledger_export\.jsonl\.[0-9]{4,}"
+SOURCE_RECORD_DIRS = (".v4/risks", ".v4/deferred")
+
+
+def _source_output(rel):
+    return (rel in SOURCE_OUTPUTS or re.fullmatch(SOURCE_SEGMENTS, rel) is not None
+            or any(rel == directory or rel.startswith(directory + "/")
+                   for directory in SOURCE_RECORD_DIRS))
+
+
+def worktree_git_env():
+    """The selected checkout owns provenance reads, not inherited Git overrides."""
+    # --repo owns this observation. Inherited Git overrides can substitute an
+    # index, object store, worktree or configuration while cwd stays unchanged.
+    # In particular an alternate index can omit a tracked, ignored file, making
+    # two observations agree about an inventory this worktree never owned.
+    return {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+
+
+def _source_git(root, *args, absent=False):
+    """Binary Git output; exit 1 is permitted only for an explicit ref lookup."""
+    result = subprocess.run(["git", *args], cwd=root, capture_output=True, env=worktree_git_env())
+    if result.returncode == 0:
+        return result.stdout
+    if absent and result.returncode == 1:
+        return None
+    raise SourceUnreadable(f"source observation: git {args[0]} failed "
+                           f"with exit {result.returncode}")
+
+
+def _source_entry(root, rel):
+    path = root / rel
+    # A tracked descendant of a directory replaced by a symlink must not read
+    # another checkout (or an arbitrary target) through that parent.
+    for parent in path.parents:
+        if parent == root:
+            break
+        if parent.is_symlink():
+            raise SourceUnreadable(f"source path has a symlink parent: {rel!r}")
+    try:
+        before = path.lstat()
+    except FileNotFoundError:
+        return None                    # a deleted tracked file is absent content
+    executable = stat.S_IMODE(before.st_mode) & 0o111
+    if stat.S_ISLNK(before.st_mode):
+        value = [rel, "symlink", executable, os.readlink(path)]
+    elif stat.S_ISREG(before.st_mode):
+        digest = hashlib.sha256()
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(fd, "rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if (opened.st_dev, opened.st_ino, opened.st_mode) != (
+                    before.st_dev, before.st_ino, before.st_mode):
+                raise SourceUnreadable(f"source changed while opening: {rel!r}")
+            for chunk in iter(lambda: stream.read(1 << 16), b""):
+                digest.update(chunk)
+        value = [rel, "file", executable, digest.hexdigest()]
+    else:
+        raise SourceUnreadable(f"unsupported source type: {rel!r}")
+    after = path.lstat()
+    if (before.st_dev, before.st_ino, before.st_mode, before.st_size,
+            before.st_mtime_ns, before.st_ctime_ns) != (
+            after.st_dev, after.st_ino, after.st_mode, after.st_size,
+            after.st_mtime_ns, after.st_ctime_ns):
+        raise SourceUnreadable(f"source changed while reading: {rel!r}")
+    return value
+
+
+def _source_status(root):
+    records = _source_git(root, "status", "--porcelain=v1", "-z",
+                          "--untracked-files=all", "--ignore-submodules=none").split(b"\0")
+    entries, index = [], 0
+    while index < len(records) and records[index]:
+        record = records[index]
+        index += 1
+        if len(record) < 4 or record[2:3] != b" ":
+            raise SourceUnreadable("malformed Git status record")
+        code, rel = record[:2].decode("ascii"), os.fsdecode(record[3:])
+        entry = {"status": code, "path": rel}
+        if "R" in code or "C" in code:
+            if index >= len(records) or not records[index]:
+                raise SourceUnreadable("missing Git status rename source")
+            entry["from"] = os.fsdecode(records[index])
+            index += 1
+        if not _source_output(rel) or ("from" in entry and not _source_output(entry["from"])):
+            entries.append(entry)
+    return {"format": "porcelain-v1-z", "excludes_operational_outputs": True,
+            "dirty": bool(entries), "entries": entries}
+
+
+def source_observation(repo_root):
+    """Versioned current content, independent of the proof-staleness digest.
+
+    Git supplies paths, HEAD and its own dirty report. Every present tracked
+    file is read from disk even when assume-unchanged/skip-worktree hides it
+    from status. The digest does not store recoverable dirty bytes or assert
+    that any checker tested these paths or modes. This is a bounded observation,
+    not an atomic filesystem snapshot; unsupported objects (including gitlink
+    directories) and unreadable inputs refuse completion.
+    """
+    root = Path(repo_root).resolve()
+    try:
+        actual = Path(os.fsdecode(_source_git(root, "rev-parse", "--show-toplevel")
+                                 .removesuffix(b"\n"))).resolve()
+        if root != actual:
+            raise SourceUnreadable("source observation requires the actual Git worktree root")
+        head = _source_git(root, "rev-parse", "--verify", "--quiet", "HEAD^{commit}", absent=True)
+        if head is None:
+            ref = _source_git(root, "symbolic-ref", "--quiet", "HEAD").decode().strip()
+            if _source_git(root, "show-ref", "--verify", "--quiet", ref, absent=True) is not None:
+                raise SourceUnreadable("HEAD exists but cannot be read as a commit")
+            head_commit, head_tree = None, None
+        else:
+            head_commit = head.decode("ascii").strip()
+            head_tree = _source_git(root, "rev-parse", "--verify", head_commit + "^{tree}").decode("ascii").strip()
+        paths = {os.fsdecode(p) for p in _source_git(
+            root, "ls-files", "-z", "--cached", "--others", "--exclude-standard").split(b"\0") if p}
+        digest, count = hashlib.sha256(), 0
+        for rel in sorted(paths):
+            if _source_output(rel):
+                continue
+            entry = _source_entry(root, rel)
+            if entry is not None:
+                digest.update(json.dumps(entry, ensure_ascii=True, separators=(",", ":")).encode("ascii") + b"\n")
+                count += 1
+        return {"scheme": "v4-source-observation-1", "actual_worktree": str(actual),
+                "head_commit": head_commit, "head_tree": head_tree,
+                "product_content": {"scheme": "v4-product-content-1", "sha256": digest.hexdigest(),
+                                    "entries": count,
+                                    "inventory": "present tracked and nonignored untracked files; regular files and symlinks",
+                                    "fields": ["path", "type", "executable_bits", "sha256_bytes_or_symlink_target"],
+                                    "excluded_paths": list(SOURCE_OUTPUTS),
+                                    "excluded_directories": list(SOURCE_RECORD_DIRS),
+                                    "excluded_segment_pattern": SOURCE_SEGMENTS},
+                "git_reported_status": _source_status(root)}
+    except (OSError, UnicodeError) as exc:
+        raise SourceUnreadable(f"source observation could not read an input: {exc}") from exc
 
 
 def worktree_digest(repo_root, exclude=None, reads=None) -> str:

@@ -178,6 +178,27 @@ def worktree_of(conn, task_id):
     return json.loads(row["payload"])["root"] if row else None
 
 
+def completion_history(conn, task_id):
+    """Successful historical observations, never reconstructed from this checkout."""
+    _task(conn, task_id)
+    return [{"event_id": row["id"], "created_at": row["created_at"],
+             "source_observation": json.loads(row["payload"]).get("source_observation")}
+            for row in conn.execute(
+                "SELECT id, created_at, payload FROM event "
+                "WHERE task_id = ? AND kind = 'shipped' ORDER BY id", (task_id,))]
+
+
+def _completion_source(conn, cfg, task_id):
+    assigned = worktree_of(conn, task_id)
+    actual = str(Path(cfg.root).resolve())
+    if assigned is not None and str(Path(assigned).resolve()) != actual:
+        raise hashing.SourceUnreadable("completion refused: task belongs to a different worktree")
+    observed = hashing.source_observation(cfg.root)
+    observed.update(original_base_commit=_task(conn, task_id)["base_commit"],
+                    assigned_worktree=assigned)
+    return observed
+
+
 def continues(conn, task_id):
     """The task this one continues, or None."""
     row = conn.execute(
@@ -642,6 +663,30 @@ class CannotAbandon(ValueError):
     """An abandon this refuses, with the reason a person can act on."""
 
 
+def _append_ending(conn, task_id, kind, actor, payload):
+    """Serialize terminal eligibility with the existing committing append.
+
+    Both endings use this boundary: a ship may repeat but cannot follow an
+    abandon; an abandon cannot follow either ending. BEGIN IMMEDIATE precedes
+    the eligibility read. insert commits while holding that lock; the context
+    rolls back on refusal or insert failure. An already active transaction is
+    refused by BEGIN rather than assumed to hold a write lock.
+    """
+    conn.execute("BEGIN IMMEDIATE")
+    with conn:
+        blocked_by = ("shipped", "abandoned") if kind == "abandoned" else ("abandoned",)
+        already = conn.execute(
+            "SELECT kind FROM event WHERE task_id = ? AND kind IN ("
+            + ",".join("?" for _ in blocked_by) + ") LIMIT 1",
+            (task_id, *blocked_by)).fetchone()
+        if already:
+            if kind == "abandoned":
+                raise CannotAbandon(f"{task_id} already {already['kind']}")
+            raise hashing.SourceUnreadable("completion refused: task was abandoned")
+        return insert(conn, "event", task_id=task_id, claim_id=None, kind=kind,
+                      actor=actor, payload=payload, created_at=_now())
+
+
 def abandon(conn, cfg, task_id, why):
     """A task's second ending.  `(unsettled, )` on success; raises otherwise.
 
@@ -661,11 +706,6 @@ def abandon(conn, cfg, task_id, why):
     row = conn.execute("SELECT id FROM task WHERE id = ?", (task_id,)).fetchone()
     if row is None:
         raise CannotAbandon(f"no such task: {task_id}")
-    already = conn.execute(
-        "SELECT kind FROM event WHERE task_id = ? AND kind IN "
-        "('shipped', 'abandoned')", (task_id,)).fetchone()
-    if already:
-        raise CannotAbandon(f"{task_id} already {already['kind']}")
     floor = cfg.thresholds["min_chars"]
     why = (why or "").strip()
     if len(why) < floor:
@@ -681,11 +721,8 @@ def abandon(conn, cfg, task_id, why):
     # write it into three prose fields by hand. A list of ids in the event is
     # what `doctor` can count.
     unsettled = ledger_mod.unsettled_fails(conn, task_id)
-    ledger_mod.insert(conn, "event", task_id=task_id, claim_id=None,
-                      kind="abandoned", actor="worker",
-                      payload={"why": why,
-                               "unsettled_fails": [c[0] for c in unsettled]},
-                      created_at=_now())
+    _append_ending(conn, task_id, "abandoned", "worker",
+                   {"why": why, "unsettled_fails": [c[0] for c in unsettled]})
     return unsettled
 
 
@@ -698,6 +735,11 @@ def _hook_coverage(conn, task_id):
 def ship(conn, cfg, task_id, max_rounds=None):
     """SPEC.md §4.  One predicate, plus a bounded re-derive."""
     from .ledger import audit_chain
+    _task(conn, task_id)
+    if conn.execute("SELECT 1 FROM event WHERE task_id = ? AND kind = 'abandoned'",
+                    (task_id,)).fetchone():
+        raise hashing.SourceUnreadable("completion refused: task was abandoned")
+    source_before = _completion_source(conn, cfg, task_id)
     max_rounds = max_rounds or cfg.thresholds["ship_rederive_max"]
 
     # The budget belongs to the task, not to one invocation. Reading it fresh
@@ -780,6 +822,9 @@ def ship(conn, cfg, task_id, max_rounds=None):
     # repo's own `.v4/secret_patterns.json`. This is the call that writes the
     # committed export, so it is the one where a narrower table costs the most.
     ledger_mod.export_jsonl(conn, export, cfg.root)
+    source_after = _completion_source(conn, cfg, task_id)
+    if source_after != source_before:
+        raise hashing.SourceUnreadable("completion refused: source changed during ship; no completion recorded")
 
     # A facts table whose absences the installer wrote and nobody confirmed.
     # Adoption is allowed to proceed on those -- refusing there is what made a
@@ -794,8 +839,8 @@ def ship(conn, cfg, task_id, max_rounds=None):
     if ok:
         # Recorded so the stop gate can tell a finished task from one nobody
         # tried to finish. Without it every ended turn looks the same.
-        insert(conn, "event", task_id=task_id, claim_id=None, kind="shipped",
-               actor="kernel", payload={"claims": len(rows)}, created_at=_now())
+        _append_ending(conn, task_id, "shipped", "kernel",
+                       {"claims": len(rows), "source_observation": source_after})
     lens_reports = review_mod.lens_reports(conn, task_id=task_id)
     return ok, {
         "converged": True, "rounds": rounds,

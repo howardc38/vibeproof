@@ -17,7 +17,7 @@ from pathlib import Path
 from . import config as config_mod
 from . import layout as layout_mod
 from . import facts as facts_mod
-from . import (composition, coverage, engagement, ledger, lifecycle, register,
+from . import (composition, coverage, engagement, hashing, ledger, lifecycle, register,
                review, risk, runner, scope as scope_mod, state)
 
 
@@ -987,6 +987,7 @@ def cmd_status(args):
     # answer anybody could ask for. This is where an orchestrator looks.
     _after = lifecycle.continues(conn, args.task)
     _before = lifecycle.continued_by(conn, args.task)
+    completions = lifecycle.completion_history(conn, args.task)
     if getattr(args, "json", False):
         u = scope_mod.usage(conn, cfg, args.task)
         # `risk.signatures`, not the join written out here. This entry surface
@@ -997,6 +998,7 @@ def cmd_status(args):
             "task": args.task,
             "continues": _after,
             "continued_by": _before,
+            "completion_history": completions,
             # `note` is here because of what this output is for. A review
             # finding's note *is* the finding -- "what did the lens see" --
             # and an orchestrator handed thirty of them has file, symbol and
@@ -1032,6 +1034,16 @@ def cmd_status(args):
             "signed_by": by_signer,
         }, indent=2, ensure_ascii=False))
         return 0 if not blocked else 1
+    print("historical completions: " + str(len(completions)))
+    for completed in completions:
+        observed = completed["source_observation"]
+        if observed is None:
+            print(f"  event {completed['event_id']}: source observation unknown (legacy completion)")
+        else:
+            print(f"  event {completed['event_id']}: HEAD {observed['head_commit'] or 'unborn'}; "
+                  f"content {observed['product_content']['sha256']}; "
+                  f"Git-reported dirty={observed['git_reported_status']['dirty']}")
+    print("current claim states:")
     if reported:
         # Printed before the claim list, not after it. A line at the bottom of
         # a forty-row report is a line that scrolls past, and the whole risk
@@ -1133,7 +1145,11 @@ def _print_nothing_seen(rep) -> None:
 
 def cmd_ship(args):
     conn, cfg = ledger.connect(_repo(args)), _cfg(args)
-    ok, rep = lifecycle.ship(conn, cfg, args.task)
+    try:
+        ok, rep = lifecycle.ship(conn, cfg, args.task)
+    except (hashing.SourceUnreadable, OSError) as exc:
+        print(f"HELD: {exc}", file=sys.stderr)
+        return 2
     if not rep["converged"]:
         print("REFUSED: ship did not converge")
         print(f"  rounds produced: {rep['rounds']}")
@@ -2612,9 +2628,22 @@ def cmd_export(args):
 
 
 def cmd_audit(args):
+    signatures = getattr(args, "signatures", False)
+    if signatures and not getattr(args, "events", None):
+        print("REFUSED: --signatures requires --events; live audit already reconciles records", file=sys.stderr)
+        return 2
+    if getattr(args, "events", None) and getattr(args, "compositions", False):
+        print("REFUSED: --events and --compositions are separate audits", file=sys.stderr)
+        return 2
     if getattr(args, "events", None):
         details = {}
-        n, problems = ledger.verify_exported(args.events, details=details)
+        n, problems = ledger.verify_exported(
+            args.events, details=details, signature_root=_repo(args) if signatures else None)
+        if signatures:
+            print("signature scope: exported accepted-risk rows against Git records; "
+                  "rows are unchained, and agreement does not authenticate a signer or original redacted values.")
+        else:
+            print("chain-only audit: signature records were not reconciled (add --signatures).")
         if problems:
             print(f"FAIL: {len(problems)} problem(s) across {n} chained row(s).\n")
             for pr in problems:
@@ -2629,6 +2658,8 @@ def cmd_audit(args):
                   "it is not an authenticated signature or recovery of the original secret.")
         else:
             print(f"chain intact across {n} chained row(s) in {args.events}")
+        if signatures:
+            print(f"signature records consistent across {details.get('signature_rows', 0)} accepted-risk row(s)")
         return 0
 
     conn = ledger.connect(_repo(args))
@@ -3091,6 +3122,8 @@ def main(argv=None):
 
     a = sub.add_parser("audit", help="walk the attempt hash chain")
     a.add_argument("--events", help="walk an exported JSONL instead of the live ledger")
+    a.add_argument("--signatures", action="store_true",
+                   help="with --events, reconcile exported accepted-risk rows against --repo Git records")
     a.add_argument("--compositions", action="store_true",
                    help="also ask whether any two claims can never hold at once")
     a.set_defaults(fn=cmd_audit)

@@ -742,6 +742,7 @@ passes ⟺ ① the pre-ship re-scan converges (≤3 rounds)
              and no unanswered `gate: report` claim has crossed an escalation threshold (§10.4, `split_open`)
           ③ no fatal chain/signature inconsistency remains (nonfatal warnings are printed)
           ④ the facts table has no unconfirmed `AUTO:` absence (see §8.8)
+          ⑤ the assigned worktree's source can be observed consistently before the predicate and after export
 always printed (not a gate): which detectors ran, which did not, how many widens, accepted_risk per kind,
           and every unanswered claim of a `gate: report` kind, beside the reason that kind defers
 ```
@@ -749,6 +750,57 @@ always printed (not a gate): which detectors ran, which did not, how many widens
 **"Which detectors did not run" has to have a reader.** An honest record with no
 consumer is the same false move as V3's severity column that nothing branched
 on.
+
+<!-- pinned: kernel/hashing.py::source_observation -->
+<!-- pinned: kernel/lifecycle.py::completion_history -->
+
+A successful `shipped` event carries a versioned `source_observation`: the
+task's original base, assigned and actual worktree, observed Git HEAD and HEAD
+tree (both null for an unborn repository), an independent product-content
+fingerprint, and explicitly **Git-reported** dirty context. The inventory is
+present tracked files plus nonignored untracked files. Regular-file bytes,
+path, type, executable bits and symlink targets contribute to the fingerprint;
+tracked files are read even when assume-unchanged or skip-worktree hides their
+edits from Git status. A clean Git report therefore does not establish equality
+with HEAD. Observation Git commands discard inherited `GIT_*` environment
+overrides, so an alternate index, object store, worktree or configuration cannot
+silently replace the checkout selected by `--repo`.
+Ignored untracked content and empty directories are not inventoried;
+unreadable or unsupported objects, including gitlink directories, refuse the
+observation rather than producing a partial fingerprint.
+
+The observation records its exact operational-output and private-record
+exclusions, shared by the fingerprint and dirty report. Product ignore rules,
+configuration, registries, installed assets and tracked fixtures remain inputs;
+neither checker `reads` nor `derive_exclude` narrows this inventory. This is
+separate from the existing proof-staleness key, which does not include executable
+mode. **It records source observed when the ship predicate succeeded, not a
+claim that every byte or mode was tested, a recoverable copy of dirty content,
+or an atomic freeze.** The existing `attempt.head_commit` field is unchanged;
+a repo-scoped attempt can hold its staleness digest there, not a Git commit ID.
+
+The kernel compares observations before the predicate and after the existing
+export. A wrong assigned worktree, unreadable input or unequal observation
+prevents a new completion. An abandoned task cannot complete. Repeated successful
+ships append history; a later failure preserves earlier completions. `status`
+and `status --json` expose that immutable history separately from claim states
+computed against current inputs. Legacy completions without an observation are
+explicitly unknown; open or abandoned tasks have no successful completion unless
+one already exists in their history. Readers never fill historical gaps from
+the checkout's current HEAD.
+
+<!-- pinned: kernel/lifecycle.py::_append_ending -->
+Ship and abandon serialize their final eligibility read and event append with
+SQLite `BEGIN IMMEDIATE`. Ship cannot follow abandonment, including abandonment
+during export; abandon cannot follow either ending. The existing insert commits
+under that lock, and refusal or insertion failure rolls back the transition.
+The lock covers this database decision, not the preceding export or source
+observation.
+
+Completion does not rewrite task base or scope. `--after` records continuation
+context and an edge; a new task still defaults to its actual opening HEAD unless
+`--base` is supplied. Another task's intervening commit remains in an existing
+task's delta, including its scope and protected-path checks.
 
 **There is no `--json`, deliberately.** The machine-readable half is the exit
 code (§13); the report is for a person. A structured output immediately invites
@@ -3865,7 +3917,7 @@ whether it mentions them — a document with no list has no incomplete list.
 | `v4 facts` | `propose` / `validate` / `verify` / `scan` / `restate` a facts table. The first four were once reachable only through `python3 -m kernel.facts` while `USING.md` says everything goes through `./bin/v4`; `restate` rewrites a row whose cited line has moved (`doctor`'s `facts drift` row points at it) and refuses the ambiguous ones; CI runs `verify --gone-only` |
 | `v4 doctrine` | Generates or checks layer ①'s `CLAUDE.md` (§14) |
 | `v4 export` | Writes the ledger as portable JSONL |
-| `v4 audit` | Walks the attempt hash chain. `--events <file>` walks an exported file |
+| `v4 audit` | Walks live attempt/event chains and reconciles risk records. `--events <file>` walks an export; add `--signatures` to reconcile exported risk rows against `--repo` Git records |
 | `v4 run-checker` | Runs one checker once against a subject file |
 
 ### Exit code
@@ -3903,12 +3955,47 @@ not exist.
 ```
 v4 --repo . export --out .v4/ledger_export.jsonl   # ship does this itself
 v4 --repo . audit --events .v4/ledger_export.jsonl # works with no database
+v4 --repo . audit --events .v4/ledger_export.jsonl --signatures # also reconcile risk records
 ```
 
 `verify_exported` deliberately **does not reuse** the live walk: the live walk
 reads the very rows it is judging, and a tampered database feeds it a
 self-consistent lie. The export set has to stand on its own without access to
 the live database.
+
+<!-- pinned: kernel/ledger.py::_reconcile_signature_rows -->
+
+`--events` alone explicitly reports a chain-only audit. `--signatures` requires
+`--events` and a readable Git checkout at `--repo`; it collects accepted-risk
+rows from every sealed segment and the open export without connecting to or
+creating a ledger. Live and offline audits share latest-record-per-path
+supersession, task/repo record comparison and lookup in available Git history
+when a record is absent from the current checkout. Tracked or present risk
+records with no exported row fail, as do missing records, field disagreements,
+malformed rows/records, duplicate identities and invalid continuation offsets.
+Offline record paths refer to the adopter's generated risk records:
+`.v4/risks/<claim>.json` for task scope and
+`.v4/risks/repo/<kind>.json` for repo scope. `risk accept` creates them on
+demand; they are not shipped product files. Verification requires regular JSON
+files inside that generated risk directory; symlinks and nonregular historical
+Git objects are refused. Supply the complete
+export set, any projection sidecar, and the Git refs/history holding its records.
+
+This is **record consistency**, not authentication of accepted risks. The
+`accepted_risk` table is not chained and the current writer produces no chained
+acceptance event to bind it to. A matching export row and Git record do not
+prove a human signed, establish current risk coverage, or authenticate every
+exported field. The `why` comparison uses the same repository redaction on both
+sides and never prints their values: it proves agreement of that permitted
+view, not the original secret-bearing reasons. Legacy rows without `signed_by`
+retain the live audit's explicit pre-column exception. If the row records a
+signing route, omitting that attribution from the record fails in both modes.
+Record paths are passed literally to Git, so wildcard characters in a filename
+cannot borrow another record's tracking or history. No acceptance events,
+missing records or historical hashes are invented by this audit.
+Reconciliation uses the same Git-environment isolation as source observation:
+the checkout selected by `--repo` owns the index, history, blob and mode reads;
+inherited Git overrides cannot supply another index or repository.
 
 <!-- pinned: kernel/ledger.py::_write_export_projection -->
 <!-- pinned: kernel/ledger.py::_load_export_projection -->
@@ -3950,10 +4037,18 @@ match current redaction, preserve them and generate a reviewed fresh export
 destination from the original ledger; do not relabel unsafe old bytes as safe.
 
 `.v4/ledger_export.jsonl`, like `.v4/chain_head.json`, is **excluded from the
-worktree digest** — the kernel may not move the tree it is judging. `ship`
-writes it on both the passing and the failing side: a held task is exactly the
-one an auditor most wants to walk, and writing only on success means "auditable
-only when nobody needs to audit".
+worktree digest** — the kernel may not move the tree it is judging. Once `ship`
+reaches the predicate and export stage, it exports both passing and held results:
+a held task is exactly the one an auditor most wants to walk. Earlier refusals,
+including an unreadable source or an already abandoned task, may stop before
+export.
+
+The successful ship's export precedes its new `shipped` event. That export is a
+valid prefix and does not contain the completion just recorded; run an explicit
+later `v4 export` to include it. There is no second automatic export. Export
+failure prevents a new completion but can leave a partial or sealed export;
+completion insertion failure is non-success and does not erase older events.
+The database append and filesystem export are not one atomic transaction.
 
 **One file cannot grow forever.** GitHub warns at 50 MiB per file and refuses
 a push at 100 MiB, and an adopter's export was measured at 58.7 MB after 23
@@ -3973,28 +4068,43 @@ the lines added since the last version and a gzip of it is a whole new blob on
 every ship.
 
 ### What CI runs
-<!-- pinned: kernel/ledger.py::audit_chain -->
+<!-- pinned: kernel/ledger.py::verify_exported -->
 
-`.github/workflows/v4.yml` runs seven named steps: **Tests**, **This repo's
-facts table still cites something that exists**, **The spec still describes this
-repo**, **Every checker and detector still passes its fixtures**, **Walk the
-exported chain**, **Refuse a truncated export**, and a separate job asking
-**is the after-gate due**.
+In canonical private development, `.github/workflows/v4.yml` runs product
+tests, documentation/facts checks, checker/detector fixtures and real Chromium
+proof. Its scheduled/manual `sweep` job reports whether the after-gate is due
+from the operational export; it does not conduct a review. The separate
+[canonical-only private-history workflow](https://github.com/howardc38/vibeproof-private/blob/main/.github/workflows/private-history.yml)
+owns **Walk the exported chain** and **Refuse a truncated export**, with
+read-only repository permissions and full Git history for records absent from
+the current branch. That workflow is not shipped in the public distribution.
 
-The two chain steps run `v4 audit --events .v4/ledger_export.jsonl` and then
-check the attempt count against the `_chain_head` row **inside the export** --
-not against `.v4/chain_head.json`. **A chain verified only forwards falls to
-having a few rows cut off the end, so the count has to answer to an anchor the
-walk did not produce.** The workflow's own comment records why the anchor moved:
-comparing against the committed file failed all six runs of this workflow,
-because that file is refreshed on a different beat from the export.
+Public `.github/workflows/v4.yml` comes from `publishing/public-config/v4.yml`.
+Its `kernel` job runs product tests, documentation/facts checks, fixtures and
+the public demo; `browser` runs real Chromium proof and false-green controls;
+`provenance` verifies the published tree against its manifest. It has no
+scheduled sweep job and requires no private operational exports or risk records
+(see `docs/SYNC.md`).
 
-Both chain steps print a line and exit 0 when there is no export and no
-committed chain head. **At the time** this section said "No export file is a
-failure, not a skip", and that was a statement about a job which by then did the
-opposite -- what the steps actually refuse is an export that is *there* and
-short. A section describing a topology the repository has moved on from is worse
-than no section: it is read by people deciding whether CI covers them.
+The first private-history step runs
+`v4 audit --events .v4/ledger_export.jsonl --signatures`.
+Its offline owner, `verify_exported`, compares each file's attempt count and
+head hash with the `_chain_head` row **inside that export file**, including
+sealed segments. **A chain verified only forwards falls to having a few rows
+cut off the end, so the count has to answer to an anchor the walk did not
+produce.** The following step requires the open export to contain an anchor
+and prints its attempt count and anchor hash; it does not perform the count
+comparison again. **Historical measurement, recorded in the workflow's
+comment:** comparing against the committed `.v4/chain_head.json` failed all six
+runs measured then, because that file is refreshed on a different beat from
+the export.
+
+When neither export nor committed chain head exists, both steps explain that
+there is no chain to inspect and exit 0. If the export is absent but a committed
+chain head exists, the first step refuses and the following step does not run.
+An export that is present but truncated is refused by the audit. **At the time**
+this section said "No export file is a failure, not a skip", it omitted the
+never-shipped case; the distinction is whether a chain head is present.
 
 ### Hook
 <!-- pinned: hooks/stop_gate.py -->

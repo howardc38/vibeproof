@@ -70,6 +70,38 @@ class PublicDistribution(unittest.TestCase):
         self.assertEqual(set(files), {"README.md", "bin/program"})
         self.assertNotIn(".v4/risks/internal.json", manifest["files"])
 
+    def test_committed_public_export_satisfies_its_spec(self):
+        # Release input is committed HEAD, even when this test is run before
+        # committing a documentation edit. Use the full real policy/exporter:
+        # a miniature fixture cannot expose a private-only path in our SPEC.
+        manifest, files = plan(ROOT, "HEAD", self.parent)
+        out = self.root / "full-public"
+        write_export(out, manifest, files)
+        self.git(out, "init", "-q", "-b", "main")
+        self.git(out, "add", "--all")
+        self.assertFalse((out / ".github/workflows/private-history.yml").exists())
+        self.assertFalse((out / ".v4/risks").exists())
+
+        def problems():
+            # Import the exported checker in a new interpreter. Neither the
+            # canonical working tree nor its private Git history can answer.
+            result = subprocess.run([
+                sys.executable, "-c",
+                "import json; from pathlib import Path; "
+                "from kernel.spec_coverage import check; root = Path.cwd(); "
+                "print(json.dumps(check(root, "
+                "(root / 'docs/SPEC.md').read_text(encoding='utf-8'))))"],
+                cwd=out, capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            return json.loads(result.stdout)
+
+        self.assertEqual(problems(), [])
+        # The negative control changes only this disposable exported tree.
+        # A checker that silently ignores shipped paths must still fail here.
+        (out / "hooks/stop_gate.py").unlink()
+        self.assertIn("the spec names hooks/stop_gate.py, which is not there",
+                      problems())
+
     def test_policy_cannot_accidentally_export_private_operational_paths(self):
         self.policy["include"].append(".v4/**")
         self.save_policy(); self.commit(self.source)
@@ -100,7 +132,8 @@ class PublicDistribution(unittest.TestCase):
             git(self.target, "diff", "--check")
 
     def test_private_override_and_sealed_segments_cannot_be_renamed_into_public(self):
-        for origin in (".v4/risks/internal.json", ".v4/ledger_export.jsonl.0001"):
+        for origin in (".v4/risks/internal.json", ".v4/risks/repo/lint.json",
+                       ".v4/ledger_export.jsonl.0001", ".v4/ledger_export.jsonl.projection.json"):
             with self.subTest(origin=origin):
                 self.put(self.source, origin, "private operational record\n")
                 self.policy["overrides"] = {"docs/innocent.txt": origin}
