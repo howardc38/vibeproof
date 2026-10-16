@@ -100,7 +100,8 @@ class PublicDistribution(unittest.TestCase):
             git(self.target, "diff", "--check")
 
     def test_private_override_and_sealed_segments_cannot_be_renamed_into_public(self):
-        for origin in (".v4/risks/internal.json", ".v4/ledger_export.jsonl.0001"):
+        for origin in (".v4/risks/internal.json", ".v4/risks/repo/lint.json",
+                       ".v4/ledger_export.jsonl.0001", ".v4/ledger_export.jsonl.projection.json"):
             with self.subTest(origin=origin):
                 self.put(self.source, origin, "private operational record\n")
                 self.policy["overrides"] = {"docs/innocent.txt": origin}

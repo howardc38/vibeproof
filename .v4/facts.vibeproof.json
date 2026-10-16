@@ -89,6 +89,18 @@
   ],
   "auth_decision": [
     {
+      "pattern": "_completion_source",
+      "seen_at": "kernel/lifecycle.py:742",
+      "kind": "authz",
+      "note": "Refuses completion observation in a checkout other than the task assignment; ship compares actual source observations before the predicate and after export before appending a successful event. Existing subprocess.run and INSERT INTO patterns cover Git reads and ledger appends."
+    },
+    {
+      "pattern": "_append_ending",
+      "seen_at": "kernel/lifecycle.py:724",
+      "kind": "authz",
+      "note": "Serializes ship and abandon eligibility under the SQLite write lock before the existing committing insert. Ship cannot follow abandon; abandon cannot follow either ending."
+    },
+    {
       "pattern": "verify_checker",
       "seen_at": "kernel/register.py:499",
       "kind": "authz",

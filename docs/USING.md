@@ -55,6 +55,12 @@ them teaches you that the sentences do not matter.
 `--request` takes the original wording. `v4 cover` will later ask you to quote
 it **verbatim**, and a rewrite cannot be quoted back.
 
+The base defaults to this checkout's HEAD when the task opens. Use `--base`
+explicitly when earlier committed work belongs in its delta. `--after <task>`
+adds continuation context and a recorded edge; it does not inherit or reset a
+base. Later commits by other tasks remain visible to the original task's delta
+and protected-path checks.
+
 For new work whose claims do not exist yet, the host can record pre-work
 engagement by task/kind before the worker edits:
 
@@ -178,12 +184,33 @@ because the re-derive can find a claim `v4 check` never saw. **Ship does not run
 checkers for you; it applies the current gate policy.** Unanswered report-only
 claims may remain visible without holding the task. Run that one, then ship again.
 
+A successful ship records a source observation in its append-only completion
+event. `status --task t-xxx` (also `--json`) shows that history separately from
+current claim states. It identifies the observed worktree, HEAD/tree and product
+content, including executable modes and symlink targets. Dirty context is what
+Git reported; clean status can hide edits under Git index flags. The fingerprint
+reads tracked files independently. This observation is not proof that every byte
+or mode was tested, and cannot reconstruct uncommitted content. Old completion
+events have explicitly unknown provenance. Source movement during ship, an
+unreadable source or the wrong assigned checkout prevents a new completion.
+
 Shipping writes `.v4/ledger_export.jsonl` — **commit it**, CI walks the chain
 through that file. A held ship attempt or explicit export can also create it. Before any export,
 `./bin/v4 audit --events .v4/ledger_export.jsonl` has nothing to read. Once
 the file outgrows 25 MB a ship seals it as `ledger_export.jsonl.0001` beside
 a fresh open file — commit the sealed one too, and never edit it; the walk
 crosses from one to the next by itself.
+
+The automatic export happens **before** the new successful completion event.
+To include that completion in the portable record, run a later explicit export:
+
+```sh
+./bin/v4 --repo . export --out .v4/ledger_export.jsonl
+```
+
+Export failure can leave partial output and records no new completion. An event
+insertion failure is also non-success; older completions remain in the ledger.
+The export and database append are separate operations.
 
 For old rows redacted after hashing, normal export also writes an adjacent
 `<export>.projection.json`. Commit that sidecar too: it verifies the public

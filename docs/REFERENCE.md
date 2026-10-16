@@ -93,7 +93,40 @@ The SQLite ledger lives under the Git common directory, so worktrees of one repo
 
 Passes are checked against relevant subject content, config, checker implementation, facts, detector identity and, for repo-scoped questions, a relevant worktree digest. Accepted risks also cover an input-state key rather than remaining valid forever. Sources: [stale reasons](../kernel/state.py), [accepted-risk state](../kernel/state.py).
 
+Successful ship events retain a versioned source observation: original task
+base, actual and assigned worktree, observed HEAD/tree, a product-content
+fingerprint and Git-reported dirty context. `status` exposes completion history
+separately from current claim states, so later edits can make claims stale
+without rewriting the historical observation. Legacy completion provenance is
+unknown; it is never inferred from today's HEAD. The fingerprint reads tracked
+files despite Git status flags and includes executable bits and symlink targets,
+with explicit operational exclusions. Observation Git commands ignore inherited
+Git environment overrides; an alternate index cannot substitute its inventory.
+It does not prove every input was tested,
+recover dirty bytes, or change existing proof staleness or attempt field meaning.
+See [source observation](../kernel/hashing.py) and [completion lifecycle](../kernel/lifecycle.py).
+
+A ship exports before appending its successful completion event. Use a later
+explicit export to carry that event into portable history. Export failure before
+the append records no new completion and can leave partial filesystem output.
+An insertion or commit error returns non-success and preserves older history;
+a fresh ledger read determines whether the append committed. This ordering is
+not a database/filesystem transaction.
+The final ship/abandon eligibility read and append share a SQLite write lock,
+so a concurrent abandonment prevents a later completion and a completion
+prevents later abandonment.
+
 The ledger uses append-only SQLite triggers and hash chains to make ordinary writes controlled and recorded. It is not an immutable external trust service. The `task` table is not covered by the same chain as attempts and events. A process with sufficient file access can tamper with local state; do not market the ledger as impossible to edit. Some signer identities are supplied by the calling process; see [Hooks and accepted risk](#hooks-and-accepted-risk).
+
+`v4 --repo <checkout> audit --events <export> --signatures` checks the exported
+attempt/event chains and reconciles accepted-risk rows from all segments with
+Git risk records, including available history when a record is absent on the
+current branch. It creates no live ledger. Without `--signatures`, the command
+reports a chain-only check. Accepted-risk rows are unchained and have no chained
+acceptance event: agreement with a record does not authenticate those rows or a
+human signer. Redacted reasons are compared as permitted views, without proving
+their original values. Supply the full export set, projection sidecar if any,
+and the Git history containing the records; missing or malformed evidence fails.
 
 ## Hooks and accepted risk
 
