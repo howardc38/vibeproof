@@ -1231,7 +1231,7 @@ def _rows_of(path):
     from pathlib import Path as _Path
     for line in _Path(path).read_text(encoding="utf-8").splitlines():
         if line.strip():
-            yield _json.loads(line)
+            yield _json.loads(line, object_pairs_hook=_unique_json_fields)
 
 
 def _seal_if_full(path, seal_at):
@@ -1514,7 +1514,84 @@ def export_jsonl(conn, out_path, root, seal_at=SEAL_AT):
     return n
 
 
-def verify_exported(path, *, details=None):
+def _offline_rows(path, seen, counts):
+    """Read one segment, rejecting ambiguous identities before any verdict."""
+    rows = []
+    try:
+        for line_no, row in enumerate(_rows_of(path), 1):
+            if (not isinstance(row, dict) or not isinstance(row.get("_table"), str) or row["_table"] not in {
+                    *_APPEND_ONLY, ANCHOR_TABLE, SEGMENT_TABLE}):
+                raise ValueError(f"line {line_no}: expected a known table object")
+            table = row["_table"]
+            if table in (ANCHOR_TABLE, SEGMENT_TABLE):
+                if any(r["_table"] == table for r in rows):
+                    raise ValueError(f"duplicate {table} row")
+                if table == ANCHOR_TABLE and (
+                        type(row.get("attempts")) is not int or row["attempts"] < 0 or
+                        not isinstance(row.get("head_hash"), str)):
+                    raise ValueError("invalid chain anchor")
+            else:
+                ident = row.get("id")
+                if ((table in ("task", "claim") and (not isinstance(ident, str) or not ident)) or
+                        (table not in ("task", "claim") and (type(ident) is not int or ident <= 0))):
+                    raise ValueError(f"line {line_no}: invalid {table} id")
+                key = (table, ident)
+                if key in seen:
+                    raise ValueError(f"duplicate {table} id {ident}")
+                seen.add(key)
+                if table in ("attempt", "event"):
+                    for field in ("row_hash", "prev_hash", "scheme"):
+                        if not isinstance(row.get(field, ""), str):
+                            raise ValueError(f"{table} {ident}: invalid {field}")
+                    fields = (("claim_id", "subject_digest", "checker_sha", "config_sha", "head_commit",
+                               "argv", "stdout", "stderr", "started_at", "ended_at")
+                              if table == "attempt" else ("kind", "actor", "payload", "created_at"))
+                    if any(not isinstance(row.get(field), str) for field in fields):
+                        raise ValueError(f"{table} {ident}: missing or malformed chain fields")
+                    if table == "attempt" and type(row.get("exit_code")) is not int:
+                        raise ValueError(f"attempt {ident}: invalid exit_code")
+                    if table == "attempt" and any(not isinstance(row.get(field, ""), str)
+                            for field in ("claim_digest", "facts_sha", "worktree")):
+                        raise ValueError(f"attempt {ident}: invalid chain fields")
+                    if table == "event" and row.get("row_hash") and row.get("scheme") != EVENT_SCHEME:
+                        raise ValueError(f"event {ident}: unknown chain scheme")
+                if "_redacted" in row and (not isinstance(row["_redacted"], list) or
+                        any(not isinstance(field, str) for field in row["_redacted"])):
+                    raise ValueError(f"{table} {ident}: invalid redacted fields")
+            rows.append(row)
+        header = next((r for r in rows if r["_table"] == SEGMENT_TABLE), None)
+        if header is not None:
+            if (rows[0] is not header or not isinstance(header.get("skip"), dict) or
+                    type(header.get("seq")) is not int or header["seq"] < 1 or
+                    not isinstance(header.get("starts_after"), str)):
+                raise ValueError("invalid continuation header")
+            if any(type(n) is not int or n < 0 for n in header["skip"].values()):
+                raise ValueError("invalid continuation offsets")
+            if any(header["skip"].get(t, 0) != counts.get(t, 0) for t in _APPEND_ONLY):
+                raise ValueError("continuation offsets differ: this file continues from a missing segment or table row")
+        for row in rows:
+            table = row["_table"]
+            if table in _APPEND_ONLY:
+                counts[table] = counts.get(table, 0) + 1
+        return rows, []
+    except (OSError, UnicodeError, ValueError) as exc:
+        # JSONDecodeError includes document fragments in some callers. Report
+        # coordinates, never the input text, which can contain a risk reason.
+        reason = (f"invalid JSON at line {exc.lineno}, column {exc.colno}"
+                  if isinstance(exc, json.JSONDecodeError) else str(exc))
+        return [], [f"{path.name}: invalid export input ({reason})"]
+
+
+def _unique_json_fields(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON field")
+        result[key] = value
+    return result
+
+
+def verify_exported(path, *, details=None, signature_root=None):
     """Re-walk an exported chain with no database in reach.
 
     Deliberately re-derived against the JSONL rather than by reusing the live
@@ -1522,12 +1599,14 @@ def verify_exported(path, *, details=None):
     database hands it a consistent set of lies. Legacy redactions additionally
     need the adjacent projection sidecar. Its public-byte commitments do not
     recover the original secret preimage; `details` reports that distinction.
+    With `signature_root`, also reconcile exported risk rows against that Git
+    checkout. Those rows are unchained; consistency does not authenticate them.
     """
     from pathlib import Path as _Path
     open_file = _Path(path)
     files = segment_files(open_file) + [open_file]
     projection, projection_problems, projection_snapshot = _load_export_projection(open_file, files)
-    used_projection = set()
+    used_projection, seen, counts, risks = set(), set(), {}, {}
     if details is not None:
         details["redacted_projection_events"] = []
     # `ev_prev` beside `prev`, and outside the loop for the same reason: the
@@ -1553,7 +1632,10 @@ def verify_exported(path, *, details=None):
                     f"so a sealed segment is missing or misnamed and the rows it "
                     f"held are gone.")
         header, attempts, anchor, events = None, [], None, []
-        for r in _rows_of(f):
+        rows, invalid = _offline_rows(f, seen, counts)
+        if invalid:
+            return total, problems + invalid
+        for r in rows:
             t = r.get("_table")
             if t == "attempt":
                 attempts.append(r)
@@ -1568,6 +1650,11 @@ def verify_exported(path, *, details=None):
                 anchor = r
             elif t == SEGMENT_TABLE:
                 header = r
+            elif t == "accepted_risk":
+                risks[r["id"]] = r
+        if ((seq > 1 and header is None) or
+                (header is not None and header.get("seq") != seq)):
+            problems.append(f"{where}missing or invalid continuation sequence")
         if header is not None:
             claimed = header.get("starts_after") or GENESIS
             if claimed != prev:
@@ -1690,6 +1777,10 @@ def verify_exported(path, *, details=None):
             problems.append("redacted export proof changed while the export was being verified; retry audit")
     if details is not None:
         details["original_hashes_rederived"] = total - len(used_projection)
+    if signature_root is not None:
+        problems += _reconcile_signature_rows(risks, signature_root, exported=True)
+        if details is not None:
+            details["signature_rows"] = len(risks)
     return total, problems
 
 
@@ -1807,7 +1898,39 @@ def reconcile_signatures(conn, repo_root=None):
                         f"signature has a row and a record is unknown")
         return problems
 
+    return _reconcile_signature_rows(rows, root)
+
+
+def _reconcile_signature_rows(rows, repo_root, *, exported=False):
+    """Compare latest records at each path, using the same Git lookup offline.
+
+    Exported accepted_risk rows are not chained. This proves agreement with
+    available Git records, not authentication of rows, original redacted
+    values or the person named by the record.
+    """
+    from .hashing import worktree_git_env
+    root, problems = Path(repo_root), []
+    git_env = worktree_git_env()
+    if not root.is_dir():
+        return ["signature records require the root of a readable Git checkout"]
+    git = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=root,
+                         capture_output=True, text=True, env=git_env)
+    if git.returncode != 0 or Path(git.stdout.strip()).resolve() != root.resolve():
+        return ["signature records require the root of a readable Git checkout"]
+    if exported:
+        for rid, row in rows.items():
+            required = ("claim_id", "kind", "who", "why", "git_record", "subject_digest", "created_at")
+            if (any(not isinstance(row.get(k), str) or not row[k] for k in required) or
+                    type(row.get("was_tty")) is not int or row["was_tty"] not in (0, 1) or
+                    row.get("scope") not in ("task", "repo") or
+                    not isinstance(row.get("signed_by", ""), str) or
+                    not isinstance(row.get("cover_key", ""), str)):
+                problems.append(f"accepted_risk {rid}: malformed signature row")
+        if problems:
+            return problems
     risks_dir = root / ".v4" / "risks"
+    if exported and ((root / ".v4").is_symlink() or risks_dir.is_symlink()):
+        return ["signature record directory must not be a symlink"]
     # Every record under `.v4/risks/`, keyed by its repo-relative path.
     #
     # Two things were wrong with `{p.stem: p for p in risks_dir.glob("*.json")}`.
@@ -1825,6 +1948,13 @@ def reconcile_signatures(conn, repo_root=None):
     # than one per layout.
     on_disk = {str(p.relative_to(root)): p for p in risks_dir.rglob("*.json")} \
         if risks_dir.is_dir() else {}
+    if exported:
+        tracked = subprocess.run(["git", "--literal-pathspecs", "ls-files", "-z", "--", ".v4/risks"],
+                                 cwd=root, capture_output=True, text=True, env=git_env)
+        if tracked.returncode != 0:
+            return ["signature record inventory could not be read from Git"]
+        on_disk.update({rel: root / rel for rel in tracked.stdout.split("\0")
+                        if rel.endswith(".json")})
 
     # A repo-scoped signature writes `.v4/risks/repo/<kind>.json` -- one file
     # per kind -- while the ledger holds one row per claim. Sign the same kind
@@ -1862,12 +1992,22 @@ def reconcile_signatures(conn, repo_root=None):
                 f"claim {cid} is signed for and the row names no record. The "
                 f"signature exists only inside the database it exempts.")
             continue
+        rel = Path(rec)
+        if ("\0" in rec or rel.is_absolute() or ".." in rel.parts or
+                rel.parts[:2] != (".v4", "risks") or rel.suffix != ".json"):
+            problems.append(f"claim {cid}: invalid signature record path")
+            continue
         path = root / rec
+        if exported and (any(root.joinpath(*rel.parts[:i]).is_symlink()
+                             for i in range(1, len(rel.parts) + 1)) or
+                         (path.exists() and not path.is_file())):
+            problems.append(f"{rec}: signature record must be a regular file without symlinks")
+            continue
         from_commit = ""
         if path.is_file():
             try:
                 text = path.read_text(encoding="utf-8")
-            except OSError as exc:
+            except (OSError, UnicodeError) as exc:
                 problems.append(f"{rec} does not read: {exc}")
                 continue
         else:
@@ -1920,9 +2060,9 @@ def reconcile_signatures(conn, repo_root=None):
             # list minus D. `git diff` displays, so the `d` in
             # `checkers/test.py` is not this bug.
             known = subprocess.run(
-                ["git", "log", "--all", "-1", "--format=%H",
+                ["git", "--literal-pathspecs", "log", "--all", "-1", "--format=%H",
                  "--diff-filter=ACMRTUXB", "--", rec],
-                cwd=root, capture_output=True, text=True)
+                cwd=root, capture_output=True, text=True, env=git_env)
             rev = known.stdout.strip() if known.returncode == 0 else ""
             if not rev:
                 problems.append(
@@ -1930,26 +2070,58 @@ def reconcile_signatures(conn, repo_root=None):
                     f"this repo. The row is the whole signature, and a row is "
                     f"what an insert can forge.")
                 continue
-            blob = subprocess.run(["git", "show", f"{rev}:{rec}"],
-                                  cwd=root, capture_output=True, text=True)
+            blob = subprocess.run(["git", "--literal-pathspecs", "show", f"{rev}:{rec}"],
+                                  cwd=root, capture_output=True, env=git_env)
             if blob.returncode != 0:
                 problems.append(
                     f"claim {cid} is signed for and {rec} is named by commit "
                     f"{rev[:12]} whose bytes will not read "
-                    f"({blob.stderr.strip().splitlines()[0][:80]
+                    f"({blob.stderr.decode('utf-8', errors='replace').strip().splitlines()[0][:80]
                        if blob.stderr.strip() else 'no reason given'}). "
                     f"The record cannot be paired with its row.")
                 continue
-            text, from_commit = blob.stdout, rev
+            if exported:
+                entry = subprocess.run(["git", "--literal-pathspecs", "ls-tree", rev, "--", rec],
+                                       cwd=root, capture_output=True, text=True, env=git_env)
+                if entry.returncode != 0 or entry.stdout.split(" ", 1)[0] not in ("100644", "100755"):
+                    problems.append(f"{rec}: historical signature record must be a regular Git blob")
+                    continue
+            try:
+                text, from_commit = blob.stdout.decode("utf-8"), rev
+            except UnicodeError:
+                problems.append(f"{rec} does not read: invalid UTF-8 record")
+                continue
         try:
-            rec_data = json.loads(text)
-        except json.JSONDecodeError as exc:
-            problems.append(f"{rec} does not read: {exc}")
+            rec_data = json.loads(text, object_pairs_hook=_unique_json_fields)
+        except ValueError:
+            problems.append(f"{rec} does not read: invalid JSON record")
+            continue
+        if not isinstance(rec_data, dict) or (exported and (
+                any(not isinstance(rec_data.get(k), str) or not rec_data[k]
+                    for k in ("claim", "kind", "why", "who")) or
+                rec_data.get("scope") not in ("task", "repo") or
+                any(k in rec_data and not isinstance(rec_data[k], str) for k in ("who", "signed_by")) or
+                type(rec_data.get("stdin_was_a_tty")) is not bool or
+                (rec_data.get("scope") == "repo" and not isinstance(rec_data.get("covers"), dict)) or
+                ("covers" in rec_data and not isinstance(rec_data["covers"], dict)))):
+            problems.append(f"{rec}: malformed signature record")
             continue
         for field, column, read, when_empty in SIGNATURE_FIELDS:
             if field not in rec_data:
+                if when_empty == ROW_PREDATES_THE_COLUMN and row.get(column):
+                    problems.append(f"{rec} omits {field!r} recorded by the ledger for claim {cid}")
                 continue
             theirs, ours = read(rec_data[field]), read(row.get(column))
+            if exported and field == "why":
+                # Match only permitted public bytes. Call the filter directly:
+                # an inability to filter is unknown, never matching two error
+                # placeholders. Neither original value is printed on failure.
+                from .analysis.redaction import redact
+                try:
+                    theirs, ours = redact(theirs, root), redact(ours, root)
+                except Exception:                              # noqa: BLE001
+                    problems.append(f"{rec}: signature reason redaction could not be evaluated")
+                    continue
             if theirs == ours:
                 continue
             # A record that carries a cover against a row that carries none is
@@ -1971,7 +2143,7 @@ def reconcile_signatures(conn, repo_root=None):
                 continue
             problems.append(
                 f"{rec} and the ledger disagree about {field!r} for claim "
-                f"{cid} ({theirs!r} against {ours!r}). One of them was "
+                f"{cid}. One of them was "
                 f"edited after the other.")
         # Only for a record read off disk. `ls-files` asks about the index, and
         # the index is this branch's -- a record read out of a commit on another
@@ -1979,8 +2151,8 @@ def reconcile_signatures(conn, repo_root=None):
         # to "is this under version control" from yes into no. It came out of a
         # commit; that is the same fact this line exists to establish.
         if not from_commit:
-            tracked = subprocess.run(["git", "ls-files", "--error-unmatch", rec],
-                                     cwd=root, capture_output=True, text=True)
+            tracked = subprocess.run(["git", "--literal-pathspecs", "ls-files", "--error-unmatch", "--", rec],
+                                     cwd=root, capture_output=True, text=True, env=git_env)
             if tracked.returncode != 0:
                 problems.append(
                     f"{rec} is not tracked by git, so the signature carries no "

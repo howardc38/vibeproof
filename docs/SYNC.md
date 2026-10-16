@@ -122,6 +122,13 @@ Private `v4` CI validates product tests, facts, docs and fixtures. The separate
 `Private history audit` workflow retains operational-ledger verification and
 reports failures independently. Public CI validates product behavior and the
 manifest without requiring private operational records or private history.
+The private workflow uses a full read-only checkout and runs
+`v4 --repo . audit --events .v4/ledger_export.jsonl --signatures` without creating
+a live ledger. It reconciles exported accepted-risk rows with Git records,
+including supersession and records found in available history. These rows are
+unchained; matching them to records is consistency evidence, not authentication
+of the rows, original redacted values or a human signer. Existing orphan records
+remain failures and must not be hidden by inventing acceptance history.
 
 At migration, the sealed private export has three legacy engagement rows whose
 values were redacted after hashing. At that checkpoint its audit failed; no
