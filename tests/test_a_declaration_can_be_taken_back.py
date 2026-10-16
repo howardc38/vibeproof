@@ -25,6 +25,7 @@ import tempfile
 import types
 import unittest
 from contextlib import redirect_stdout, redirect_stderr
+from itertools import product
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -402,6 +403,104 @@ class ADeletionDoesNotHoldTheVerdict(unittest.TestCase):
         self.assertEqual(
             ss.report(find, sup, scanned, oos, unver, out=quiet, deleted=dele),
             0, "a deletion carries no committed credential")
+
+
+class ARenameStillDeletesItsSource(unittest.TestCase):
+    """Git's rename presentation must not hide a removed subject path."""
+
+    CHECKERS = ("secret_scan", "fail_closed", "external_write")
+    OLD_PATHS = ("old.py", 'quote".py', "舊.py", "line\nbreak.py")
+
+    def _renamed(self, body, committed, *, fixture=None, old="old.py"):
+        root = _repo(self, {old: body})
+        if fixture:
+            shutil.copyfile(ROOT / "tests" / "fixtures" / fixture, root / old)
+            subprocess.run(["git", "add", old], cwd=root,
+                           capture_output=True, check=True)
+            subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root,
+                           capture_output=True, check=True)
+        subprocess.run(["git", "config", "diff.renames", "true"], cwd=root,
+                       capture_output=True, check=True)
+        base = subprocess.check_output(["git", "rev-parse", "HEAD"],
+                                       cwd=root, text=True).strip()
+        subprocess.run(["git", "mv", old, "replacement.py"], cwd=root,
+                       capture_output=True, check=True)
+        if committed:
+            subprocess.run(["git", "commit", "-qm", "rename"], cwd=root,
+                           capture_output=True, check=True)
+        renamed = subprocess.check_output(
+            ["git", "diff", "--name-status", "-z", base], cwd=root, text=True)
+        self.assertEqual(renamed.split("\0"), ["R100", old, "replacement.py", ""],
+                         "the fixture must actually exercise Git rename detection")
+        return root, base
+
+    def _run_checker(self, name, root, base, *, missing=False, repo_subject=False,
+                     old="old.py"):
+        paths = [old, "replacement.py"] + (["typo.py"] if missing else [])
+        subject = root / "subject.json"
+        subject.write_text(json.dumps({
+            "repo_root": str(root), "diff_base": base,
+            "subject_refs": [] if repo_subject else
+                [{"kind": "file", "path": path} for path in paths],
+        }))
+        return subprocess.run(
+            [sys.executable, str(ROOT / "checkers" / f"{name}.py"),
+             "--subject", str(subject)], cwd=root, capture_output=True, text=True)
+
+    def test_staged_and_committed_renames_remove_the_source(self):
+        for committed, old in product((False, True), self.OLD_PATHS):
+            with self.subTest(committed=committed, old=old):
+                root, base = self._renamed("x = 1\n", committed, old=old)
+                self.assertEqual(subject_files.deleted_since(root, base),
+                                 frozenset({old}))
+
+    def test_clean_renames_pass_all_three_consumers(self):
+        for committed, old in product((False, True), self.OLD_PATHS):
+            root, base = self._renamed("x = 1\n", committed, old=old)
+            for name in self.CHECKERS:
+                with self.subTest(committed=committed, checker=name, old=old):
+                    result = self._run_checker(name, root, base, old=old)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn(f"{old}: deleted by this change", result.stdout)
+
+    def test_a_genuinely_missing_path_still_refuses_all_three_consumers(self):
+        for committed, old in product((False, True), self.OLD_PATHS):
+            root, base = self._renamed("x = 1\n", committed, old=old)
+            for name in self.CHECKERS:
+                with self.subTest(committed=committed, checker=name, old=old):
+                    result = self._run_checker(name, root, base, missing=True, old=old)
+                    self.assertEqual(result.returncode, 4, result.stdout + result.stderr)
+                    self.assertIn("typo.py: file is missing", result.stdout)
+                    self.assertNotIn(f"{old}: file is missing", result.stdout)
+
+    def test_replacement_findings_still_fail_all_three_consumers(self):
+        fixtures = {
+            "secret_scan": "secret/red/stripe_live.py",
+            "fail_closed": "fail_closed/red/swallowed_http_post.py",
+            "external_write": "external_write/red/publish_result_dropped.py",
+        }
+        for committed, old in product((False, True), self.OLD_PATHS):
+            for name, fixture in fixtures.items():
+                with self.subTest(committed=committed, checker=name, old=old):
+                    root, base = self._renamed("", committed, fixture=fixture, old=old)
+                    result = self._run_checker(name, root, base, old=old)
+                    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                    self.assertIn("replacement.py:", result.stdout)
+                    self.assertNotIn(f"{old}: file is missing", result.stdout)
+
+    def test_repo_secret_subject_discovers_both_sides_of_the_rename(self):
+        for committed, old in product((False, True), self.OLD_PATHS):
+            for fixture, wanted in ((None, 0), ("secret/red/stripe_live.py", 1)):
+                with self.subTest(committed=committed, expected=wanted, old=old):
+                    root, base = self._renamed("x = 1\n", committed, fixture=fixture,
+                                               old=old)
+                    result = self._run_checker("secret_scan", root, base,
+                                               repo_subject=True, old=old)
+                    self.assertEqual(result.returncode, wanted,
+                                     result.stdout + result.stderr)
+                    self.assertIn("replacement.py", result.stdout)
+                    self.assertIn(f"{old}: deleted by this change", result.stdout)
+                    self.assertNotIn(f"{old}: file is missing", result.stdout)
 
 
 if __name__ == "__main__":

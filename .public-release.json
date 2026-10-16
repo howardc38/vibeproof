@@ -28,7 +28,7 @@
     },
     ".claude/agents/reviewer.md": {
       "mode": "100644",
-      "sha256": "6788cadb8e04946e030474a26d9061add46d4e80f53dda433ba3cc9dcae908b5",
+      "sha256": "b1c46876ddb2bba561f37326d1f7b8a3f393824bac0bdbfe3a5e2d565bd33f59",
       "source": ".claude/agents/reviewer.md"
     },
     ".claude/agents/task-splitter.md": {
@@ -38,7 +38,7 @@
     },
     ".claude/agents/worker.md": {
       "mode": "100644",
-      "sha256": "65b46c4d9f0ebf9a3cce458ff81b4f311ff05f9184e11883141000fc5333dc3a",
+      "sha256": "382ab85bf212854c4c7f6d0f325cb98f8106822719faea6253bb211e8250f7d9",
       "source": ".claude/agents/worker.md"
     },
     ".claude/commands/maintain.md": {
@@ -83,7 +83,7 @@
     },
     ".codex/agents/v4-reviewer.toml": {
       "mode": "100644",
-      "sha256": "6180414529af31af6411eebcc9f56bb4443ae2dd1d2164da5265aa561f7e7823",
+      "sha256": "4acd4b4b1c1fcb29d170929ba02b90d2fb28702cad46c769b7419a57b587fb94",
       "source": ".codex/agents/v4-reviewer.toml"
     },
     ".codex/agents/v4-task-splitter.toml": {
@@ -93,7 +93,7 @@
     },
     ".codex/agents/v4-worker.toml": {
       "mode": "100644",
-      "sha256": "209bc5e62302e14c4b84c382a4d63d1f1748fb51d2d00469a1e596957c5b9ec0",
+      "sha256": "8d64022b35dc1d7cf9558d0aaa09de0da046cc99b61b70f9e9cd1dbd6ce68219",
       "source": ".codex/agents/v4-worker.toml"
     },
     ".codex/config.template.toml": {
@@ -138,7 +138,7 @@
     },
     ".v4/checkers.json": {
       "mode": "100644",
-      "sha256": "20af4f3671e37c61879393de39b9382ca2fc93a8a8c5b5becc6ec900c540367a",
+      "sha256": "4e67415420f6ddc021ac50bbe673bf50ab27b18597412b3dd3f8298a639c9e7c",
       "source": ".v4/checkers.json"
     },
     ".v4/claim_kinds.json": {
@@ -153,7 +153,7 @@
     },
     ".v4/control_plane_budget.json": {
       "mode": "100644",
-      "sha256": "4e90afe5d4aedc14b64bfd778a2aa4abaa4b67afc49781dc81f778cf7fae78c1",
+      "sha256": "116b75fb932765ed00090b8e82f3c18b8d29302c07293bc6acd8b0c373c9aab5",
       "source": ".v4/control_plane_budget.json"
     },
     ".v4/detectors.json": {
@@ -908,7 +908,7 @@
     },
     "kernel/analysis/subject_files.py": {
       "mode": "100644",
-      "sha256": "a0f068a64556f04445f9c2c78e607fc642274d9c945d8a2b52c79aa7479b202f",
+      "sha256": "e149de35a83e8c4f3ab51524b1f4c1d7c3ab4e401c47e3aa0911a0db622256e2",
       "source": "kernel/analysis/subject_files.py"
     },
     "kernel/analysis/symbol_rename.py": {
@@ -13733,7 +13733,7 @@
     },
     "tests/test_a_declaration_can_be_taken_back.py": {
       "mode": "100644",
-      "sha256": "2b8cddef11c41bd74cbe51f113bfd8f0a73e20a23876432a02dfbd01174667d5",
+      "sha256": "733b5a52dd09907bb3c12c68b0066717bb39a329a46cc215bfa9b8348fa2a2a6",
       "source": "tests/test_a_declaration_can_be_taken_back.py"
     },
     "tests/test_a_declaration_with_no_reader.py": {
@@ -14533,7 +14533,7 @@
     }
   },
   "policy_sha256": "a0e2137ce5d1aa2704008b496950286242212e9520d7238472fb49e6f39f0ac5",
-  "public_parent": "4f381df06cf3069306596dc0669e04daf6d449b0",
+  "public_parent": "7951701ea22d65644551cf0c8c16b7f561926461",
   "schema": 1,
-  "source_revision": "14b4c82ce9e6538ab63c54f1e319f6872c213365"
+  "source_revision": "569f8d215fd6ad0f693dd541dca7f3fdb6cc9166"
 }
