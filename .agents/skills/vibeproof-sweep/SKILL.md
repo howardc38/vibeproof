@@ -110,7 +110,7 @@ Codex host contract:
 
 Codex orchestration:
 - Use the native v4-task-splitter, v4-worker, v4-reviewer and v4-checker-author agents.
-- Start every native role with a fresh context and explicit inputs; inherited-context forks are unavailable in some ephemeral Codex runs. For reviewers pass only repo, lens and necessary diff coordinates.
-- Dispatch up to the available agent capacity, queue the rest, and wait for every requested result. This replaces the Claude source's all-at-once scheduling and single-shell export instructions.
+- Start every native role with a fresh context and explicit inputs; inherited-context forks are unavailable in some ephemeral Codex runs. For lens reviewers pass repo, lens and necessary diff coordinates. For managed document review also pass original input/source refs, current work/design versions and affected code/test/document coverage; omit worker engagement/rationale.
+- Dispatch up to the available agent capacity, queue the rest, and wait for every requested result. For managed assignments, check-dispatch is read-only; commit coordinate begin-dispatch before native spawn and launch only on its fresh launch_authorized=true response. Never spawn on an idempotent replay. Claimed dispatch without a receipt must reconcile actual host state; a replacement launch needs authoritative release, a new assignment and a new launch claim. Leave future-worker identity unknown until an actual dispatched receipt binds it; never invent it or borrow the parent identity. A known existing parent with an empty agent ID remains distinct from unknown. Review/completion must hold on unknown/conflicting worker identity.
 - One worker task per worktree. Bind the task before writing; use explicit --repo and supported --task flags.
 - The orchestrator owns ship and risk decisions; never attribute an agent signature to a person.

@@ -15,6 +15,70 @@ description: 由一個 request 行到 ship —— 開 task、出 claim、答、r
 仍有自己派出的角色運行時不要結束 turn；「已派出」「仍在做」不是交付。
 被 stopped／中斷的角色按未完成處理，核對實際檔案及 ledger 後續跑，不能用舊摘要當現況。
 
+## 先查現有工作、選 goal，再記原文
+
+每次收到 request，先在同一 repo 跑不帶 goal filter 的 `v4 coordinate status`，讀現有 goals、
+原始 inputs、queued/running work 與 assignments；同時核對 active task/worktree 紀錄及當前 code。
+`v4 doctor` 的 open tasks 摘要與 `git worktree list --porcelain` 可協助定位；摘要有截斷或未知
+歸屬時補讀現有 ledger 的原始 task/request/worktree 紀錄，不能當成完整清單或無關證據。
+逐段比較新 request 原文與現有原意、source 及 work：部分重疊或保留舊工作時重用相關 goal；
+只有明確記下無關判斷及理由才開新 goal，後續 assessment 保留該理由。不可未查就先建 fresh goal。
+關係不清或意圖相衝時保留原文，把未決關係交 owner 判斷，暫停依賴該判斷的 fanout；
+不可盲目派工、把全部舊工作改排 queued，或強行納入無關的 legacy task。
+
+選定 goal 後，用 `v4 coordinate input --data <file|->` 保存原文及宿主實際提供的
+source identity/message_id，再用 `coordinate assess` 逐段記錄 add、change、cancel 及關係。
+先讀 `coordinate schema`；JSON 以 stdin 或 tree 外檔案提供。CLI 不會讀聊天、理解授權、
+開 agent 或停止 process。宿主沒有 message_id 就記缺少，不能拿 synthetic ID 當實際訊息證據。
+父 session 沒有 agent ID 時保留空值／省略，不能發明一個。
+
+拆工作之前，對帳該 goal 的 queued/running work、依賴及版本；每項 live work 都要有
+change、cancel 或 unaffected 的決定。相關 queued work 按 revision 更新，保留 unaffected work；
+相關 running work 沿用 stop／宿主對帳協定，不能另開 goal 避開舊 owner。改一部分不等於取消整個舊 request。
+有新輸入先記 input 再 assess；pending input 期間不要繼續派工或收貨。
+先前無關的 task/claim 不因本次入帳而全部重開。
+
+Orchestrator 管理最新接受的設計文件版本。優先沿用專案現有設計／規格文件，選出實際
+受影響段落；缺少 baseline 時先核對 code、tests 與已知原意，標明 observed_baseline，
+由宿主建立所選文件後再 register content。觀察到的實作不能冒稱已批准的產品意圖。
+`v4 design register` 只記 metadata；missing path 的 needs_initialization 要真的完成文件
+才可消除。每個 managed work revision 用 `design disposition` 記 required 及 affected coverage，
+或附 source-bound 理由的 not_applicable；不需要藉此全面重審整個 repo 的舊文件。
+欄位以 `design schema` 為準，不設固定章節／heading 閘，不另建一份平行 wiki。
+
+## 派工與變更要讀回
+
+先把 settled dependency 的 artifact commits 帶入實際 consumer checkout 並重驗組合；
+assign、pre-launch 及 ship 都會核對 consumer HEAD ancestry，另一棵樹的 settled 記錄不能代替。
+有實際 open task/worktree 才 `coordinate assign`。`coordinate check-dispatch` 只讀 eligibility，
+即使 ready 亦不是 launch 授權。每次宿主 spawn 之前必須先完成 durable `coordinate begin-dispatch`，
+只有首次提交回覆的 `launch_authorized=true` 才可 launch 一次；idempotent replay 永遠不能 launch。
+欄位以 `coordinate schema` 為準。Claim 已提交但尚無 receipt 時保留 dispatching owner：先向
+宿主核對是否已啟動，不可樂觀重試。即使 claim 回覆本身遺失，亦不能靠重送取得第二次授權。
+需要重新 launch 時，先取得實際未開始／已停止的 observation，解除舊 owner，再建新 assignment
+及取得新 claim；不可重用舊 claim。宿主派工後用 `coordinate receipt` 保存真實 host_ref 與
+observation，並把 goal/work/revision、assignment、dependency versions、task/worktree、原文及
+文件 coverage 交給 worker。結果未知時先向宿主對帳，不能重複 launch。
+準備 future child 時，尚未取得的 worker identity 保留 unknown，不能發明或借 parent identity。
+Spawn 後用實際 dispatched receipt 綁定觀察到的 worker identity，再進行獨立 review／收貨；
+未知或 conflicting identity 都要 hold。已知既有 worker／parent 可在 assignment 提供實際 tuple；
+parent 本身的空 agent ID 是已知 parent，不能與 unknown 混為一談。表示方式以 schema 為準。
+`coordinate stop` 只是請求停止；宿主實際
+停止／未開始的觀察要另記 receipt，不能把 requested stop 當 observed stopped。
+同一 worker 的 dispatched receipt 晚於 observed stopped 到達時保留歷史，不重新開 owner。
+每次派工及收結果前重新讀 current version；過期結果仍留作 observation，不當成新版本交付。
+
+Worker 修改 scoped 文件段落後，由另一個 reviewer 獨立讀原始 input、code、tests 及文件，
+用 `design review` 記問題、coverage 及證據。不得傳 worker engagement/rationale 引導判斷。
+Reviewer 必須異於文件 author 及 assigned worker；receipt 綁 current work/design revision、
+文件內容及 task source。後續改 source/content 要重新核實，不能沿用 stale approval。
+接受的目標設計可能未實作；review receipt 是有版本的審閱紀錄，不是 identity 認證或語義正確證明。
+
+Worker 回來後記 `coordinate result` 並讀回；orchestrator 才處理 check/ship。
+`coordinate settle` 沒有 integration evidence 時只會留下 artifact-ready/waiting-integration，
+不解鎖依賴。宿主合併後重驗測試、remerge 及 current versions，再提供實際 target task/worktree/head
+的 integrated proof；分支綠燈或一次 task ship 不能冒稱整合後已實作。CLI 不替你 merge。
+
 ## 次序
 
 ```

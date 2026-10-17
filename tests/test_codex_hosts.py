@@ -14,6 +14,72 @@ from kernel import config, doctrine, doctor, host_binding, hosts, install, ledge
 ROOT = Path(__file__).resolve().parent.parent
 
 
+class NativeAcceptanceRunner(unittest.TestCase):
+    def test_persistent_retry_changes_only_session_storage_and_records_it(self):
+        from tools import native_host_acceptance as acceptance
+        from tools import request_acceptance
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "adopter"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            executable = root / "fixture-host"
+            executable.write_text(
+                "#!" + sys.executable + "\n"
+                "import json, sys\n"
+                "if sys.argv[1:] == ['--version']:\n"
+                "    print('synthetic runner fixture')\n"
+                "else:\n"
+                "    print(json.dumps({'argv': sys.argv[1:], 'prompt': sys.stdin.read()}))\n")
+            executable.chmod(0o755)
+            prompt_file = root / "prompt.txt"
+            prompt_file.write_text("synthetic prompt")
+            observed = []
+            for persistent in (False, True):
+                out = root / str(persistent)
+                result = acceptance.run("codex", repo, "synthetic prompt", out,
+                    codex_bin=str(executable), persist_session=persistent, reviewed_hooks=True)
+                event = json.loads((out / "events.jsonl").read_text())
+                saved = json.loads((out / "run.json").read_text())
+                self.assertEqual(result["code"], 0)
+                self.assertEqual(saved["persist_session"], persistent)
+                self.assertEqual(event["prompt"], "synthetic prompt")
+                self.assertIn("--ignore-user-config", event["argv"])
+                self.assertIn("--dangerously-bypass-hook-trust", event["argv"])
+                self.assertEqual("--ephemeral" in event["argv"], not persistent)
+                observed.append([arg for arg in event["argv"] if arg != "--ephemeral"])
+                # This executable fixture verifies driver/helper argument
+                # forwarding; it provides no native identity or hook proof.
+                driver_out = root / ("driver-" + str(persistent))
+                command = request_acceptance._native_command(
+                    "codex", repo, prompt_file, driver_out, 30,
+                    codex_bin=str(executable), persist_session=persistent, reviewed_hooks=True)
+                launched = subprocess.run(command, cwd=repo, text=True, capture_output=True, timeout=40)
+                self.assertEqual(launched.returncode, 0, launched.stderr)
+                driver_event = json.loads((driver_out / "events.jsonl").read_text())
+                driver_saved = json.loads((driver_out / "run.json").read_text())
+                self.assertEqual(driver_event, event)
+                self.assertEqual(driver_saved["persist_session"], persistent)
+            self.assertEqual(observed[0], observed[1])
+
+    def test_codex_driver_options_are_refused_without_codex_native_host(self):
+        from tools import request_acceptance
+        with tempfile.TemporaryDirectory() as directory:
+            out = Path(directory) / "unstarted"
+            for host in ([], ["--native-host", "claude"]):
+                for option in (["--codex-bin", "synthetic-host"], ["--persist-session"]):
+                    result = subprocess.run(
+                        [sys.executable, str(ROOT / "tools/request_acceptance.py"),
+                         "--out", str(out), *host, *option], text=True, capture_output=True)
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                    self.assertIn("require native-host codex", result.stderr)
+                    self.assertFalse(out.exists())
+            for options in ({"codex_bin": "synthetic-host"}, {"persist_session": True}):
+                with self.assertRaisesRegex(ValueError, "require the Codex native host"):
+                    request_acceptance.native("claude", out, 30, **options)
+                self.assertFalse(out.exists())
+
+
 class HostIntegration(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -119,7 +185,9 @@ class HostIntegration(unittest.TestCase):
         answer, _ = self.hook("write_block", self.patch("app.py", "other.py"))
         self.assertTrue(self.denied(answer))
         self.assertIn("other.py", str(answer))
-        self.assertEqual((self.root / "app.py").read_text(), "value = 1\n")
+        observed = subprocess.run([sys.executable, "-B", "-c", "import app; print(app.value)"],
+                                  cwd=self.root, env=self.env, text=True, capture_output=True, check=True)
+        self.assertEqual(observed.stdout.strip(), "1")
 
     def test_patch_rename_checks_destination_and_deletion_checks_target(self):
         self.task("one")

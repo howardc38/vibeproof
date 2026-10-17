@@ -197,6 +197,28 @@ class Maintenance(unittest.TestCase):
         review.record_lens_reviewed(c, self.root, slug="probe", findings=0, run_id="context", result="not_evaluable", note="The requested input is missing")
         self.assertEqual(maintenance.finish(self.root, "context")["status"], "partial")
 
+    def test_run_report_checks_current_lens_and_source_before_writing(self):
+        self.lenses(("probe",))
+        c = self.connect()
+        maintenance.start(self.root, run_id="bound", selected=["probe"])
+        lens = review.lenses(self.root)["probe"]
+        review.record_lens_run(c, slug="probe", lens=lens, root=self.root, run_id="bound")
+        path = self.root / ".v4/lenses/probe.json"
+        original = path.read_text()
+        changed = json.loads(original)
+        changed["checks"].append("Inspect changed criteria")
+        path.write_text(json.dumps(changed))
+        with self.assertRaisesRegex(ValueError, "lens definition changed"):
+            review.record_lens_reviewed(c, self.root, slug="probe", findings=0, run_id="bound")
+        path.write_text(original)
+        (self.root / "app.py").write_text(APP.replace("value - 2", "value + 2"))
+        with self.assertRaisesRegex(ValueError, "source/config changed"):
+            review.record_lens_reviewed(c, self.root, slug="probe", findings=0, run_id="bound")
+        self.assertEqual(maintenance.events(c, review.LENS_REVIEWED_KIND), [])
+        (self.root / "app.py").write_text(APP)
+        review.record_lens_reviewed(c, self.root, slug="probe", findings=0, run_id="bound")
+        self.assertEqual(len(maintenance.events(c, review.LENS_REVIEWED_KIND)), 1)
+
     def test_two_hosts_cannot_own_the_same_maintenance_run(self):
         self.lenses(("probe",))
         maintenance.start(self.root, run_id="one", host="claude", session="s1")

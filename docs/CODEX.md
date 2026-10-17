@@ -92,6 +92,73 @@ the original once-only continuation behavior for a single host stop episode;
 a later independent turn may ask again. Read-only questions do not require
 opening or binding development tasks.
 
+The maintained run/wave prompts also manage original request intake and current
+project documents. Before recording input, the host reads same-repo `coordinate
+status` without a goal filter, active task/worktree records and current source,
+then compares the original new request with existing inputs/work. Partial overlap
+and preserved work reuse the relevant goal; a new goal needs an explicit
+reasoned unrelated decision. Unclear relationships or contradictory intent are
+preserved for owner judgment before dependent fanout. Do not force all work back
+into a queue or enroll unrelated legacy tasks. Related queued work changes by
+revision; running work follows the existing stop/reconciliation protocol.
+The host then records input text and actual source identities,
+assesses partial additions/changes/cancellations and reconciles queued/running
+work before fanout. Each managed assignment carries goal/work/revision,
+dependency versions and task/worktree coordinates. `check-dispatch` is read-only
+and cannot authorize a launch. Commit `coordinate begin-dispatch` before native
+spawn and launch once only on its fresh `launch_authorized=true` response. Never
+spawn on an idempotent replay. If the claim response or subsequent receipt is
+lost, reconcile the dispatching assignment with the actual host; a replacement
+requires authoritative release, a new assignment and a new launch claim. Record
+the real host observation after spawning. No
+message ID or agent ID supplied means missing provenance; an empty parent agent
+is valid and must not be replaced with a fabricated name. A recorded stop request needs a separate
+actual host stopped observation.
+When preparing a future child, leave its worker identity unknown until the
+actual dispatched receipt can bind the observed tuple. Do not invent a child ID
+or substitute the parent's identity. A known existing worker or parent can
+provide its actual tuple at assignment; a known parent with an empty agent ID
+is distinct from unknown identity. Unknown or conflicting worker identity holds
+independent design review and completion.
+The consumer checkout must contain settled dependency artifact commits in its
+current HEAD ancestry; assignment, pre-launch checks and completion recheck this.
+Revalidate the actual combined source after bringing those commits into the tree.
+
+The orchestrator selects existing project design/specification files and manages
+accepted versions; workers update affected scoped coverage. Missing documents
+need actual host authorship after checking code/tests/known intent, retaining an
+observed-baseline basis where appropriate. Each managed revision needs required
+coverage or a source-bound N/A. A distinct reviewer reads the original inputs,
+code, tests and document and records a fresh content/source/version-bound review
+from the assigned worktree. The receipt does not authenticate identity or prove
+all semantic correctness. Accepted target design can remain unimplemented.
+
+After results, the orchestrator checks current versions and task evidence. Git
+integration and merged revalidation remain native work. Without actual clean
+target completion and artifact ancestry, settlement stays waiting for integration
+and dependencies remain held. `coordinate`/`design` do not read conversations,
+spawn/stop agents, author project documents or merge. Their executable schemas
+own argument details; see [SPEC](SPEC.md#request-evolution-and-project-design-documents)
+and [USING](USING.md#the-seven-steps-of-a-task).
+
+For retained disposable acceptance evidence, run
+`python3 tools/request_acceptance.py --out <private-evidence-dir>`. The default
+mode exercises the public JSON CLI against real Git worktrees and a shared
+ledger. `--native-host codex` or `--native-host claude` additionally requests a
+real native host session with independent document review; `--timeout` bounds
+that transport. Inspect the retained results and transcript separately: direct
+CLI scenario success does not establish that a host followed its prompts.
+For Codex, `--codex-bin <executable>` selects the native binary and
+`--persist-session` retains its transcript for child hooks; the driver forwards
+both to `native_host_acceptance.py`. Without these flags it uses Codex on PATH
+and an ephemeral session. Both options are refused for Claude.
+
+Retain the native child reference the spawn tool actually returns, whether a
+canonical task name or an ID, and use the available wait API's argument schema.
+Close a child only when the host exposes that operation. Map the native
+reference to the actual injected or raw-hook identity tuple; a returned name,
+an assumed UUID or a child's narrative does not establish that its hooks ran.
+
 If an existing review finding names a Python function/method that was renamed,
 keep its original claim ID. Offer the normal executable closure with
 `review close --rename-commit <commit>` as well as its test, command and
@@ -145,6 +212,13 @@ an explicit denial is not permission to switch launch methods or disable guards.
 In the tested Codex CLI 0.153.4, retaining the session avoids the ephemeral
 mode's unavailable guardian transcript warning. This is a host permission flow,
 not a promise that Chromium runs inside an unchanged restrictive sandbox.
+
+`tools/native_host_acceptance.py` uses an ephemeral Codex session by default.
+For an acceptance scenario whose subagent hooks need the parent transcript,
+pass `--persist-session`; the runner records that choice in `run.json` and
+otherwise keeps the same reviewed hook and permission arguments. Retain the
+failed ephemeral attempt separately. A persistent retry still needs read-back
+from the actual task, agent and hook owners before the scenario can pass.
 
 Claude-only installations retain the original protected-path defaults so adding
 host support does not silently impose new risk requirements on existing Claude

@@ -8,6 +8,19 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 
 每次 CLI 都填入被分派的 task ID 與 worktree 路徑。收到 host identity 時先綁定；不要靠一次 shell export 跨工具傳遞身份。
 
+Managed work 要同時保留 goal/work/revision、assignment、dependency versions、原始 input 及
+受派文件 coverage。開工、收到新訊息及回報前讀 `coordinate status`；若 pending input、
+過期 revision/dependency 或 stop requested，先交回 orchestrator 對帳，不能自行當新版本。
+Stop requested 不等於宿主已停止；宿主 observation 由 orchestrator 記 receipt。
+
+在 scope 內更新專案現有文件的受派段落；缺 baseline 時先核對 code/tests 與已知原意，
+標 observed_baseline，建立選定文件後才 register。不要把觀察到的行為寫成已批准的意圖，
+不要另建平行 wiki。每個 managed revision 需 required affected coverage 或 source-bound N/A。
+文件版本由 orchestrator 管；交獨立 reviewer 核原始 input、code/tests/docs，記 fresh content/source/
+version-bound `design review`。你不能替自己作 reviewer。後續 edits 令舊 receipt 過期就重查。
+回報實際 source/head、測試與 evidence，並保留已接受 target 與尚未實作的差別；worker success、
+task ship 或 artifact ready 都不能代替合併後 proof。CLI 不會讀聊天、派 agent、stop 或 merge。
+
 沿用已核實的 runner／環境與已完成步驟，集中處理派來的未完成工作；新失敗才重查相關前提。
 負例或 mutation control 放在獨立 copy／worktree；保留正在開發的正式 source 與 tests。
 「測完再還原」不能代替隔離，因為中斷可以發生在兩步之間。只有正式修復才改 task 的真測試。
