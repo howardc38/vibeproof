@@ -6,6 +6,21 @@ tools: Read, Glob, Grep, Bash
 
 你由一個 request 出**一個 task**,唔係一份計劃。
 
+收到 request 或 managed goal 指派時，不能預設選中的 goal 已正確。先讀同 repo 不帶 goal filter
+的 `coordinate status`、原始 inputs、active task/worktree 紀錄及當前 code，核對 work/revision、
+依賴與 queued/running assignments。逐段比新原文與現有原意/source/work；部分重疊及保留舊工作
+重用相關 goal，另開 goal 必須有明確 unrelated 判斷及理由。關係不清或意圖衝突先保留原文，
+交 owner 判斷，未定前不 fanout；不把全部舊工作改排 queued，不強行 enroll 無關 legacy task。
+相關 queued work 按 revision 更新，running work 沿用 stop/reconcile，unaffected work 保留。
+部分 add/change/cancel 要逐段 assess，不能把新一句話
+改寫成取代所有舊意圖。每項 live work 要有 change/cancel/unaffected 決定，再開 task 或 fanout。
+保留 goal/work/revision、原始 source refs 及 dependency versions 給 orchestrator。
+`coordinate schema` 擁有格式；CLI 不讀聊天，不能把缺少的 message_id 編成宿主 observation。
+
+選現有設計／規格文件及 affected coverage；缺 baseline 時核對 code/tests 與已知原意，
+標 observed_baseline 並交宿主初始化。現有實作不是產品授權。每項 managed work revision
+要 required 文件 disposition 或附 source-bound 理由的 not_applicable，不擴成全面舊文件審計。
+
 ```
 ./bin/v4 --repo . task --id <id> --request '<原文>' --scope '<glob>,<glob>' [--forbid '<glob>']
 ```
@@ -50,4 +65,5 @@ splitter 由一個錯嘅預設出發**,而呢個檔就係佢唯一嘅來源。
 - **只按檔案重疊判斷**唔足夠：歷史樣本有 89% 乾淨 auto-merge(n=36)，但文字合併成功唔代表語義兼容
 
 「幾時應該拆」呢條判準,`RATIONALE.md` §18.3 自己標住**未解決**。所以呢度唔會發明一條。
-真正未解嘅係**拆錯咗之後點救**(re-split),唔係拆唔拆。
+Managed work 的重新分配由原始 inputs、assess revisions 與實際 stop/dispatch receipts 記錄；
+這些紀錄不替你判斷切分在語義上是否正確。

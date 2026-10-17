@@ -21,7 +21,7 @@ from kernel import hosts
 
 
 def run(host, repo, prompt, out, *, git_operations=False, reviewed_hooks=False,
-        timeout=1200, codex_bin=None):
+        timeout=1200, codex_bin=None, persist_session=False):
     repo, out = Path(repo).resolve(), Path(out).resolve()
     if repo == FRAMEWORK or (repo / ".public-release.json").exists():
         raise ValueError("native acceptance uses a disposable adopter, not a framework checkout")
@@ -31,15 +31,19 @@ def run(host, repo, prompt, out, *, git_operations=False, reviewed_hooks=False,
         binary = codex_bin or (str(bundled) if bundled.is_file() else shutil.which("codex"))
         if not binary:
             raise FileNotFoundError("Codex executable is unavailable")
-        cmd = [binary, "exec", "--ignore-user-config", "--ephemeral", "--json",
+        cmd = [binary, "exec", "--ignore-user-config", "--json",
                "-c", "projects={" + json.dumps(str(repo)) + '={trust_level="trusted"}}',
                "-c", 'default_permissions="vibeproof"',
                "-c", "permissions.vibeproof=" + hosts.inline_toml(
                    hosts.permission_profile(repo, git_operations=git_operations)),
                "-C", str(repo), "-"]
+        if not persist_session:
+            cmd.insert(2, "--ephemeral")
         if reviewed_hooks:
             cmd.insert(2, "--dangerously-bypass-hook-trust")
     elif host == "claude":
+        if persist_session:
+            raise ValueError("--persist-session is supported for Codex acceptance only")
         binary = shutil.which("claude")
         if not binary:
             raise FileNotFoundError("Claude executable is unavailable")
@@ -69,6 +73,7 @@ def run(host, repo, prompt, out, *, git_operations=False, reviewed_hooks=False,
               "seconds": round(time.monotonic() - started, 3),
               "reviewed_test_hook_bypass": reviewed_hooks if host == "codex" else False,
               "git_operations": git_operations,
+              "persist_session": persist_session,
               "framework_head": subprocess.check_output(
                   ["git", "rev-parse", "HEAD"], cwd=FRAMEWORK, text=True).strip(),
               "note": "Exit 0 is transport completion. Read back task, source, agent and hook evidence before declaring scenario PASS."}
@@ -86,10 +91,13 @@ def main():
     p.add_argument("--reviewed-test-hooks", action="store_true")
     p.add_argument("--timeout", type=int, default=1200)
     p.add_argument("--codex-bin")
+    p.add_argument("--persist-session", action="store_true",
+                   help="retain the Codex session transcript for subagent hooks")
     args = p.parse_args()
     result = run(args.host, args.repo, args.prompt_file.read_text(), args.out,
                  git_operations=args.git_operations, reviewed_hooks=args.reviewed_test_hooks,
-                 timeout=args.timeout, codex_bin=args.codex_bin)
+                 timeout=args.timeout, codex_bin=args.codex_bin,
+                 persist_session=args.persist_session)
     print(json.dumps(result))
     return result["code"]
 

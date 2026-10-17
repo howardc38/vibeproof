@@ -89,6 +89,36 @@
   ],
   "auth_decision": [
     {
+      "pattern": "design.validate",
+      "seen_at": "kernel/design_cli.py:27",
+      "kind": "authz",
+      "note": "Validates the design CLI action's exact JSON schema before reading or writing document bookkeeping; metadata never authors the selected product document."
+    },
+    {
+      "pattern": "coordination.validate",
+      "seen_at": "kernel/coordination_cli.py:22",
+      "kind": "authz",
+      "note": "Validates the request-coordination CLI action's exact JSON schema before transition; actual host dispatch/stop/merge remains outside the CLI."
+    },
+    {
+      "pattern": "coordination.transition",
+      "seen_at": "kernel/coordination_cli.py:27",
+      "kind": "authz",
+      "note": "Owns serialized request/work/assignment mutations with stable operation IDs, revision checks, a durable single-launch claim whose replay cannot authorize spawn, unresolved-owner and consumer dependency ancestry checks, and current artifact/integration evidence before settlement. Existing ledger and subprocess vocabulary covers the event append and Git reads."
+    },
+    {
+      "pattern": "_mutation",
+      "seen_at": "kernel/design.py:218",
+      "kind": "authz",
+      "note": "Owns the single-event design transaction: validates action data, stable operation identity and current document/work/source evidence before append."
+    },
+    {
+      "pattern": "_require_current_completion",
+      "seen_at": "kernel/lifecycle.py:672",
+      "kind": "authz",
+      "note": "Holds managed task completion on current coordination and design obligations, at ship entry and again inside the final append transaction; unmanaged historical tasks are unchanged."
+    },
+    {
       "pattern": "_completion_source",
       "seen_at": "kernel/lifecycle.py:742",
       "kind": "authz",
@@ -204,6 +234,8 @@
     "checkers/**",
     "detectors/**",
     "kernel/maintenance_cli.py",
+    "kernel/coordination_cli.py",
+    "kernel/design_cli.py",
     ".v4/surface/playwright-reporter.cjs",
     ".v4/surface/playwright.cjs",
     ".v4/surface/playwright-sourcemap.cjs",

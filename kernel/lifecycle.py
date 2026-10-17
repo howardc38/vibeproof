@@ -23,7 +23,7 @@ from . import derive as derive_mod
 from . import facts as facts_mod
 from . import review as review_mod
 from .analysis import subject_files
-from . import hashing, runner, state
+from . import hashing, runner, state, task_provenance
 from . import ledger as ledger_mod
 from .ledger import insert
 
@@ -88,7 +88,7 @@ def carry_forward(conn, after: str) -> str:
     return "\n".join(lines)
 
 
-WORKTREE_KIND = "task_worktree"
+WORKTREE_KIND = task_provenance.WORKTREE_KIND
 CONTINUES_KIND = "task_continues"
 
 
@@ -170,33 +170,17 @@ def open_task(conn, cfg, *, task_id, request, scope_globs, forbid_globs=None,
 
 
 def worktree_of(conn, task_id):
-    """The working tree this task was opened in, or None for one opened before
-    that was recorded."""
-    row = conn.execute(
-        "SELECT payload FROM event WHERE task_id = ? AND kind = ? "
-        "ORDER BY id LIMIT 1", (task_id, WORKTREE_KIND)).fetchone()
-    return json.loads(row["payload"])["root"] if row else None
+    """The recorded task worktree, shared with coordination's provenance reader."""
+    return task_provenance.worktree_of(conn, task_id)
 
 
 def completion_history(conn, task_id):
     """Successful historical observations, never reconstructed from this checkout."""
-    _task(conn, task_id)
-    return [{"event_id": row["id"], "created_at": row["created_at"],
-             "source_observation": json.loads(row["payload"]).get("source_observation")}
-            for row in conn.execute(
-                "SELECT id, created_at, payload FROM event "
-                "WHERE task_id = ? AND kind = 'shipped' ORDER BY id", (task_id,))]
+    return task_provenance.completion_history(conn, task_id)
 
 
 def _completion_source(conn, cfg, task_id):
-    assigned = worktree_of(conn, task_id)
-    actual = str(Path(cfg.root).resolve())
-    if assigned is not None and str(Path(assigned).resolve()) != actual:
-        raise hashing.SourceUnreadable("completion refused: task belongs to a different worktree")
-    observed = hashing.source_observation(cfg.root)
-    observed.update(original_base_commit=_task(conn, task_id)["base_commit"],
-                    assigned_worktree=assigned)
-    return observed
+    return task_provenance.completion_source(conn, cfg.root, task_id)
 
 
 def continues(conn, task_id):
@@ -663,7 +647,18 @@ class CannotAbandon(ValueError):
     """An abandon this refuses, with the reason a person can act on."""
 
 
-def _append_ending(conn, task_id, kind, actor, payload):
+def _completion_holds(conn, root, task_id):
+    from . import coordination
+    return coordination.completion_holds(conn, root, task_id)
+
+
+def _require_current_completion(conn, root, task_id):
+    holds = _completion_holds(conn, root, task_id)
+    if holds:
+        raise hashing.SourceUnreadable("completion held: " + json.dumps(holds, ensure_ascii=False))
+
+
+def _append_ending(conn, task_id, kind, actor, payload, *, root=None):
     """Serialize terminal eligibility with the existing committing append.
 
     Both endings use this boundary: a ship may repeat but cannot follow an
@@ -674,6 +669,15 @@ def _append_ending(conn, task_id, kind, actor, payload):
     """
     conn.execute("BEGIN IMMEDIATE")
     with conn:
+        if kind == "shipped":
+            observed = payload.get("source_observation")
+            target = root or (observed or {}).get("actual_worktree")
+            if target is None:
+                raise hashing.SourceUnreadable("completion refused: source worktree is unknown")
+            _require_current_completion(conn, target, task_id)
+            current = hashing.source_observation(target)
+            if not isinstance(observed, dict) or any(observed.get(key) != value for key, value in current.items()):
+                raise hashing.SourceUnreadable("completion refused: source changed before final append")
         blocked_by = ("shipped", "abandoned") if kind == "abandoned" else ("abandoned",)
         already = conn.execute(
             "SELECT kind FROM event WHERE task_id = ? AND kind IN ("
@@ -736,6 +740,7 @@ def ship(conn, cfg, task_id, max_rounds=None):
     """SPEC.md §4.  One predicate, plus a bounded re-derive."""
     from .ledger import audit_chain
     _task(conn, task_id)
+    _require_current_completion(conn, cfg.root, task_id)
     if conn.execute("SELECT 1 FROM event WHERE task_id = ? AND kind = 'abandoned'",
                     (task_id,)).fetchone():
         raise hashing.SourceUnreadable("completion refused: task was abandoned")
@@ -840,7 +845,7 @@ def ship(conn, cfg, task_id, max_rounds=None):
         # Recorded so the stop gate can tell a finished task from one nobody
         # tried to finish. Without it every ended turn looks the same.
         _append_ending(conn, task_id, "shipped", "kernel",
-                       {"claims": len(rows), "source_observation": source_after})
+                       {"claims": len(rows), "source_observation": source_after}, root=cfg.root)
     lens_reports = review_mod.lens_reports(conn, task_id=task_id)
     return ok, {
         "converged": True, "rounds": rounds,

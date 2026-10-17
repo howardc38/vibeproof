@@ -3373,7 +3373,7 @@ The fourth state arrived the same way. `record_lens_reviewed` stored `result`,
 `v4 review done --lens near-miss --result not_evaluable --findings 0` exited 0
 and left `{"lens": "near-miss", "findings": 0}`, the identical row a lens that
 ran and found nothing writes. Every reader counted it as a clean review. The
-result is now stored on both rows and checked against `maintenance.RESULTS` at
+result is now stored on both rows and checked against `maintenance_state.RESULTS` at
 the writer; a row written before the field existed means `completed`, so the old
 record is not retracted.
 
@@ -3382,7 +3382,7 @@ report with neither non-blank is refused where the row would be written —
 REFUSED, exit 2. The run-bound writer refused that from the start and the
 run-less one did not, so the spelling a sweep's reviewer uses — a sweep has no
 run to name — was the one that could say `not_evaluable` and nothing else.
-`maintenance.check_lens_reason` is the one copy of the rule; both writers call
+`maintenance_state.check_lens_reason` is the one copy of the rule; both writers call
 it, and an evidence reference is the reason with a pointer on it, not a weaker
 floor. Ship uses the same single-read projection as sweep and carries the full
 reports as `lenses_reports`; its summary prints their saved notes and evidence.
@@ -3806,9 +3806,10 @@ design and not because it holds. **Do not read it as a boundary.**
 .claude/commands/sweep.md           `/sweep` — the back gate, one reviewer per lens, at once, blind
 ```
 
-**`/wave` and `/sweep` are only the "at once" part, and neither adds a
-mechanism.** After `/wave`, each cut runs steps 4 to 7 of `/run` inside its own
-tree; after `/sweep`, each reviewer runs `reviewer.md`. Both files exist because
+**The host executes `/wave` and `/sweep`.** Managed `/wave` work also uses the
+request/design bookkeeping below; the CLI does not launch its agents. After
+`/wave`, each cut runs steps 4 to 7 of `/run` inside its own tree; after `/sweep`,
+each reviewer runs `reviewer.md`. Both files exist because
 "at once" has one point that depends on a person remembering, and they do not:
 
 - `/wave` — each worker needs an identity the hook can read. The write hook
@@ -3837,6 +3838,128 @@ each time is no limit at all, and every round adds claims to an append-only
 ledger.
 
 ---
+
+### Request evolution and project design documents
+<!-- pinned: kernel/coordination.py::schema -->
+<!-- pinned: kernel/coordination.py::transition -->
+<!-- pinned: kernel/coordination_state.py::task_context -->
+<!-- pinned: kernel/coordination.py::task_holds -->
+<!-- pinned: kernel/coordination.py::_begin_dispatch -->
+<!-- pinned: kernel/coordination.py::_dependency_source_holds -->
+<!-- pinned: kernel/design.py::schema -->
+<!-- pinned: kernel/design.py::register -->
+<!-- pinned: kernel/design.py::disposition -->
+<!-- pinned: kernel/design.py::review -->
+<!-- pinned: kernel/design.py::task_holds -->
+<!-- pinned: kernel/lifecycle.py::_append_ending -->
+
+`coordinate` retains original request inputs, the host's assessment of exact
+source quotes, live work revisions, dependency revisions and actual assignment
+observations in the shared append-only event ledger. `coordinate schema` and
+`design schema` are the executable argument contracts; this section explains
+their invariants rather than duplicating their fields.
+
+Before recording a new input, the host reads unscoped same-repo `coordinate
+status`, active task/worktree records and current source, then compares the
+original request with existing inputs/work. Partial overlap and preserved work
+reuse the relevant goal. A new goal requires an explicit reasoned unrelated
+decision. Unclear relationships or contradictory intent remain owner judgments:
+preserve the original request and surface the decision before dependent fanout,
+without forcing all work into a queue or enrolling unrelated legacy tasks.
+This discovery/selection is a host workflow obligation; the kernel does not
+infer semantic relationships across goals. Summaries that omit tasks must be
+completed against the existing records before relying on their coverage.
+
+Within the selected goal, the host records an input before assessing it. Pending inputs fence further
+assignment, dispatch eligibility and completion. An assessment accounts for each
+live work item as changed, cancelled or unaffected while adding new work as
+needed. Partial changes preserve the remaining request history. Exact quote and
+reference validation does not establish that the host understood intent. An
+unaffected item retains its work revision, so unrelated new work does not
+globally invalidate it. Related queued work changes by revision; related running
+work follows the existing stop/reconciliation protocol rather than escaping into
+a fresh goal. Dependency edges name revisions and reject cycles,
+cancelled work and stale targets. Dependencies must be settled before dispatch.
+Assignment, pre-launch checks and task completion also check that each settled
+producer's artifact commit is an ancestor of the current consumer worktree's
+HEAD. A dependency's settled label alone cannot make a consumer checkout ready.
+Ancestry does not establish that later edits preserve every dependency behavior;
+the consumer's actual source and integration still need their own proof.
+
+Assignments require an actual open task in its recorded Git worktree, sharing
+the same ledger, without another unresolved owner for that task, work or
+worktree. `check-dispatch` reads current eligibility and never grants launch
+authorization. Before native spawn the host must commit `begin-dispatch`; only
+its first committed response authorizes one launch. Idempotent replay returns
+no launch authorization. The durable claim leaves an unresolved dispatching
+owner until actual host observations arrive, so a lost response or receipt
+requires host reconciliation rather than an optimistic repeat. A replacement
+launch requires authoritative release of the old owner, a new assignment and a
+new launch claim. The host performs the authorized native launch and records its
+actual receipt. A stop request is distinct from an observed stop. Unknown
+dispatch keeps ownership unresolved until the host reconciles it. Late receipt/result observations
+remain recorded even with an older goal version, but obsolete work cannot be
+promoted to current delivery. A delayed dispatched receipt for the same observed
+worker after an observed stop stays historical and does not reopen ownership.
+Other mutation decisions use a current expected
+version. Repeating a stable operation ID with the same input returns its prior
+record; different input under that ID is refused. Each mutation serializes its
+read/check/one-event append under `BEGIN IMMEDIATE`, including the append's
+commit. Replaying a prior operation does not refresh its evidence.
+Secret filtering may mask free prose, but a redaction that changes a stable
+identifier, source/author/reviewer identity, path or coverage reference refuses
+the operation instead of silently recording different provenance.
+
+Design bookkeeping is targeted to managed work. The orchestrator selects and
+versions the project's existing design/specification documents; workers update
+the scoped affected portions. A missing selected file is registered as
+`needs_initialization`. The host then authors the document from verified code,
+tests and known intent and registers its actual UTF-8 content hash as another
+revision. The metadata endpoint writes no product document. Registrations keep
+their selected path, affected coverage, exact recorded input quotes, author,
+basis and evidence. `observed_baseline` distinguishes implementation facts from
+`approved_intent`; a reviewer approval of observations does not turn them into
+authorization for future product behavior. The accepted target design may
+describe work not yet implemented. There is no second framework-owned wiki,
+fixed section list or heading gate. Coverage references are host-reviewed
+descriptions, not a lexical test of document meaning.
+
+Every current managed work revision needs an explicit document disposition:
+required affected document references, or a reasoned N/A bound internally to its
+source inputs and work/dependency revision. This does not require an audit of
+unrelated historical documents or reopen unmanaged tasks/claims. Required
+coverage is reviewed independently against the original inputs, code, tests and
+document. The reviewer identity must differ from the document author and assigned
+worker; absent parent agent IDs normalize to an empty value. These are
+host-supplied identities, not authenticated proof of independence. A receipt
+cannot use an unknown future worker as a distinct reviewer: future-worker
+identity stays unknown at preparation until an actual dispatched receipt binds
+the observed tuple. A known existing worker or parent can supply its actual
+tuple at assignment; a known parent with an empty agent ID is distinct from
+unknown identity. Conflicting observed tuples are retained and hold review and
+completion rather than replacing the bound worker. A review receipt
+records the actual questions/coverage, intent quotes, evidence and outcome at
+the current design/work revision, document bytes and scoped task source. Source
+reads include live content, modes and symlink targets even if Git index flags
+hide an edit. Changed content, scoped source, disposition, assignment or work
+revision requires fresh review; unrelated work outside that scope does not.
+`needs_changes` and `not_evaluable` remain holds. A receipt is a versioned review
+record, not proof of complete semantic correctness.
+
+Managed completion is held for missing/current-version coordination or document
+evidence both at ship entry and again inside the final completion transaction.
+An actual task completion proves the observed assigned worktree; it does not
+establish Git integration. Settlement without integration evidence records an
+artifact ready and waiting for integration, leaving downstream work held. The
+host merges and revalidates, then supplies the actual integration target. The
+target must use a distinct task and actual Git checkout from the source artifact,
+resolving filesystem aliases, even when fast-forward integration leaves both at
+the same commit. A settled dependency requires a clean committed artifact, a
+current clean target completion in the same ledger and artifact commit ancestry
+in that target.
+No metadata command performs a merge, dispatches/stops a process, reads a chat,
+authenticates user authorization or proves every requested semantic outcome.
+Missing host message IDs and observations must be reported as missing.
 
 ### Codex host integration
 <!-- pinned: kernel/hosts.py::selected -->
@@ -3886,6 +4009,8 @@ whether it mentions them — a document with no list has no incomplete list.
 | Command | What it does |
 |---|---|
 | `v4 host` | `bind` a host session/agent to an open task, `status` for recorded coverage, or `permissions` for a local profile proposal |
+| `v4 coordinate` | Retains original inputs and versioned assessments, dependencies, task assignments, durable pre-launch claims, host receipts/stops/results and integration settlement; `schema` owns JSON input fields. Hosts interpret requests and execute actual work |
+| `v4 design` | Registers selected existing project documents or initialization needs, current work dispositions and independent content/source/version-bound review receipts; `schema` owns JSON input fields. It does not author documents or certify semantic correctness |
 | `v4 init` | Creates `.v4/` for a new repo (config · claim_kinds · two empty registries). It **does not guess** `test_command`, and writes no facts template — see §13.6 |
 | `v4 install` | Copies eligible checkers, detectors, fixtures, lenses and hooks, **registering gated programs through their fixture gates**, regenerates `CLAUDE.md`, and writes a `bin/v4`. See §8.7 |
 | `v4 accept` | Runs all of this repo's own gates at once, on a tree with **no local state**: the declared test command, every checker against its fixtures, every detector likewise, and the four checkers that ask about the whole tree rather than this diff. It takes the **index** (`git write-tree`) rather than HEAD — what is uncommitted is what needs verifying. `--here` skips the archive; CI runs this. **Why the archive: `.git/v4/` is not cloned, so anything that only holds because of local state dies exactly here** — measured (**at the time**) at `7d8f9c0`: 2 of 31 checkers failed to register in a clone and nowhere else |

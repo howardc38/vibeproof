@@ -122,5 +122,17 @@ class TheDroppedRuleIsAnAssertedBlindSpot(unittest.TestCase):
                 f"it cannot rot into an unexamined belief")
 
 
+class FrameworkRunDependencies(unittest.TestCase):
+    def test_review_run_projection_does_not_cycle_through_lifecycle(self):
+        from kernel.analysis import structural_lint as lint
+        sources = {str(p.relative_to(ROOT)): p.read_text()
+                   for p in (ROOT / "kernel").rglob("*.py")}
+        paths = {"kernel/review.py", "kernel/lifecycle.py", "kernel/state.py",
+                 "kernel/maintenance.py", "kernel/maintenance_state.py"}
+        violations, unparsed = lint.analyse(sources, only=paths)
+        self.assertEqual(unparsed, [])
+        self.assertEqual([v.render() for v in violations if v.rule == lint.IMPORT_CYCLE], [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

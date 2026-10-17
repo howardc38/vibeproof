@@ -146,6 +146,51 @@ This provides a useful check on custom rule code. It does not make fixtures exha
 
 ## Maintenance and host coordination
 
+The host first reads same-repo unscoped `coordinate status`, active task/worktree
+records and current source before selecting a goal and recording a new input.
+Partial overlap and preserved work reuse the relevant goal; a new goal requires
+a reasoned unrelated decision. Unclear relationships or conflicting intent stay
+visible for owner judgment before dependent fanout. This selection is a host
+discipline, not kernel inference, and does not force enrollment of unrelated
+legacy tasks. Related queued work changes by revision; related running work uses
+the existing stop/reconciliation protocol.
+
+`coordinate` records original inputs and per-clause host assessments, partial
+changes/cancellations, work/dependency revisions and actual assignment
+observations. Pending inputs fence dispatch and completion. The host must commit
+`begin-dispatch` before spawning: read-only `check-dispatch` does not authorize
+launch, and replaying a launch claim never authorizes another launch. A claimed
+assignment without a response/receipt retains ownership until actual host
+reconciliation; replacement needs authoritative release, a new assignment and a
+new claim. A requested stop is not an observed stop.
+Delayed observations for the same worker remain history after an observed stop;
+they cannot reopen the stopped assignment.
+Future-worker identity remains unknown until an actual dispatched receipt binds
+it; known existing worker/parent identities can be provided at assignment. A
+known parent's empty agent ID is distinct from unknown. Unknown or conflicting
+identities hold independent document review and completion; tuple comparison is
+still host-supplied attribution rather than identity authentication.
+Stable IDs make repeated transitions idempotent, while old revision results stay
+observations rather than current delivery. Settlement distinguishes an artifact
+ready in its task worktree from integrated work with current target completion
+and commit ancestry. The host executes all actual dispatch, stop and merge
+operations. Assignment, pre-launch and completion also check settled artifact
+ancestry in the actual consumer HEAD; the ledger's settled status alone does not
+supply the consumer's code or prove later edits preserve its behavior.
+See [the contract](SPEC.md#request-evolution-and-project-design-documents)
+and [coordination implementation](../kernel/coordination.py).
+
+`design` selects existing project documents, records missing-file initialization,
+versions actual content, and binds required coverage or N/A to each managed work
+revision. Review receipts identify original intent quotes, affected references,
+evidence and the current scoped source/document versions. Stale source/content,
+missing initialization/disposition/review and non-approved outcomes hold managed
+completion. Observed baselines retain that basis; accepted target design is not
+automatically implemented behavior. Coverage and identity checks are bookkeeping,
+not semantic or identity authentication. Unmanaged tasks have no new document
+hold. The executable schemas and [design implementation](../kernel/design.py)
+own the details; no fixed document structure is required.
+
 Maintenance adds a shared Claude `/maintain` / Codex `$vibeproof-maintain` entrance for current attention, native job setup, versioned review and authorized repair handoffs. Its snapshots store source/configuration fingerprints and link review results; they do not archive the source tree. Monitor work concerns framework setup and criteria drift, rather than service uptime. Telegram transport and its macOS receiver keep delivery/acknowledgement separate from claim closure. A selected-lens review does not reset full-review cadence. See [USING](USING.md#periodic-maintenance-and-findings) and [SPEC](SPEC.md#maintenance-workflow-and-versioned-review).
 
 ## Evidence you can reproduce

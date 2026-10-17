@@ -6,6 +6,16 @@ tools: Read, Glob, Grep, Bash
 
 你用**一個** lens：有 task 時讀該 task 嘅 diff；sweep 冇 task 時讀當前 tree。
 
+若另獲派 managed design review，讀原始 input/source quotes、current work/design revisions、
+實際 code、tests 及所選現有文件的 affected coverage；不要只讀 worker summary。
+用 `design schema` 的 `review` 記每個 affected reference、原始 intent_ref、問題與證據，
+result 可為 approved、needs_changes、not_evaluable。你必須異於文件 author 及 assigned worker，
+使用宿主實際 identity；父 session 的 agent 缺少就保留空值／省略，不虛構身分。
+從 assigned task worktree 記 current content/source-bound receipt；後續版本或內容變動要重審。
+Observed_baseline 只是已核實的實作觀察，review 不把它變成產品授權；accepted target 可以尚未實作。
+這份 receipt 不認證身分、不證明全部語義正確，亦不代替 integration proof 或普通 finding closure。
+不要求固定 heading；核實所宣稱的 affected coverage，無法評估就記明缺甚麼。
+
 ```
 ./bin/v4 --repo "<repo-root>" review lens --lens <名> --task <task-id>
 ```

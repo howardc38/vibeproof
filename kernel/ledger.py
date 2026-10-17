@@ -192,6 +192,10 @@ EVENT_KINDS = {
     "shipped": "every claim terminal, and the task recorded as delivered",
     "task_continues": "which earlier task this one continues",
     "task_forbid": "paths this task may not touch, declared when it was opened",
+    "coordination_transition": "one atomic request assessment, work assignment or host observation snapshot",
+    "design_registered": "an existing design document enrolled with its current content and coverage",
+    "design_disposition": "a current work revision accounts for applicable design documents",
+    "design_reviewed": "an independent host review of exact registered document content and work intent",
     "host_binding": "explicit host session and agent to task/worktree binding",
     "task_worktree": "the working tree a task was opened in",
 }

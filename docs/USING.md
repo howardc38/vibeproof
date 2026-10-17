@@ -26,6 +26,55 @@ Complete [preparation](GETTING_STARTED.md#1-prepare), [installation](GETTING_STA
 
 ## The seven steps of a task
 
+Before `coordinate input`, read same-repo `coordinate status` without a goal
+filter and inspect active task/worktree records and current source. Compare the
+new request's original wording with existing inputs/work. Reuse the relevant
+goal for partial overlap and preserved work; opening a new goal requires an
+explicit reasoned decision that the request is unrelated. If the relationship
+or intent conflicts remain unclear, retain the original request and surface the
+owner's decision before dependent fanout. Do not reset all work to queued or
+enroll unrelated legacy tasks to resolve that uncertainty.
+
+Once the goal is selected, preserve the original input with `coordinate input`,
+then assess its clauses against queued/running work.
+Use `coordinate schema` for the JSON contract and `coordinate status` to read it
+back. Record partial add/change/cancel decisions and relationships, including an
+explicit unaffected decision for each remaining live work item. Resolve pending
+inputs before dispatching or accepting work. Existing unrelated tasks remain
+unmanaged unless explicitly enrolled in an assignment.
+Update related queued work by revision; related running work uses the existing
+stop/reconciliation protocol. An abbreviated task summary is not a complete
+inventory or proof that omitted work is unrelated.
+
+Select the project's existing design/specification document and affected
+coverage. If the baseline is missing, register the selected path, verify code,
+tests and known intent, author the document and register its content. Preserve
+the difference between an observed baseline and approved intent; an accepted
+target can still await implementation. Record a required document disposition
+or a source-bound N/A for each managed work revision. `design schema` owns the
+fields; there are no required document headings or a separate wiki to maintain.
+
+After opening the actual task/worktree below, `coordinate assign` enrolls it.
+Read `check-dispatch` for eligibility, then commit `coordinate begin-dispatch`
+immediately before native spawn. Launch once only when that first committed
+response authorizes it; idempotent replay never authorizes a launch. A submitted
+claim without a received response or host receipt retains ownership and requires
+reconciliation with the host. To launch a replacement, first establish that the
+old assignment did not start or stopped, then obtain a new assignment and launch
+claim. Record the actual host receipt after spawning. Include goal/work/revision,
+assignment and dependency versions in worker context. Supply real message/agent
+IDs only when the host provides them. Requesting a stop does not mean the process
+has stopped.
+Future children have unknown worker identity until the actual dispatched receipt
+binds it. Do not invent an ID or use the parent as a substitute. Known existing
+workers/parents can supply their actual identity at assignment; an actual parent
+with an empty agent ID is still known. Unknown or conflicting worker identities
+hold independent document review and completion.
+Bring settled dependency artifact commits into the actual consumer checkout
+before assignment. The CLI rechecks that ancestry against the consumer HEAD at
+assignment, pre-launch and completion; a settled ledger entry in another tree
+does not provide the consumer's code. Revalidate the resulting combined source.
+
 ### 1 · Open the task
 
 ```sh
@@ -146,6 +195,18 @@ other number.
 
 ### 6 · Check
 
+For required managed document coverage, have a distinct reviewer read the
+original inputs, code, tests and actual document in the assigned task worktree,
+then record `design review`. Do this after the scoped edits are complete. The
+receipt binds current document/work versions, bytes and scoped source; further
+edits can require fresh review. Record needs-changes or not-evaluable honestly.
+Document author/worker cannot provide their own independent approval, and the
+record still does not authenticate identities or certify all document meaning.
+
+Record the worker's actual current result with `coordinate result` and read it
+back before the orchestrator proceeds. Older observations remain history and
+cannot deliver an obsolete revision.
+
 ```sh
 ./bin/v4 check --task t-xxx
 ```
@@ -211,6 +272,14 @@ To include that completion in the portable record, run a later explicit export:
 Export failure can leave partial output and records no new completion. An event
 insertion failure is also non-success; older completions remain in the ledger.
 The export and database append are separate operations.
+
+Managed work also needs integration settlement. `coordinate settle` without
+integration evidence records artifact readiness and leaves dependencies waiting.
+After the host merges, rerun the relevant tests and `remerge`, verify the latest
+request/design versions and complete the actual integration target task. Supply
+that clean target's task/worktree/head as integration evidence to settlement.
+Branch completion alone cannot establish integrated implementation. The CLI
+records and checks this evidence; the host performs dispatch, stop and merge.
 
 For old rows redacted after hashing, normal export also writes an adjacent
 `<export>.projection.json`. Commit that sidecar too: it verifies the public

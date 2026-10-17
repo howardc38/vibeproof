@@ -18,7 +18,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
-from . import hashing
+from . import hashing, maintenance_state
 from . import redgreen
 from .config import DEFAULT_THRESHOLDS
 from . import ledger as ledger_mod
@@ -905,7 +905,7 @@ def lens_brief(lens, slug=None, task=None, *, repo=".", context=None, run=None):
 
 
 #: A lens printed its brief.  Written every time, task or no task.
-LENS_RUN_KIND = "lens_run"
+LENS_RUN_KIND = maintenance_state.LENS_RUN_KIND
 
 #: A reviewer said it had finished with one, and how many findings it reported.
 LENS_REVIEWED_KIND = "lens_reviewed"
@@ -953,15 +953,14 @@ def lens_evaluated(payload):
     `lifecycle` -- already import this module and a predicate of their own
     would be a second copy of a rule that has one home: a `not_evaluable` or
     `failed` row is a report, and not a review, and counting it as coverage is
-    claiming a review that did not happen. The vocabulary itself stays in
-    `maintenance`, where `lens_result` validates against it.
+    claiming a review that did not happen. The vocabulary and source-bound
+    run rules stay in `maintenance_state`, shared by both report writers.
 
     A row written before `result` existed carries none and means `completed`:
     every row written then was one, and reading the absence as anything else
     would retract the old record.
     """
-    from . import maintenance
-    return (payload.get("result") or "completed") in maintenance.EVALUATED_RESULTS
+    return (payload.get("result") or "completed") in maintenance_state.EVALUATED_RESULTS
 
 
 def record_lens_run(conn, *, slug, lens, task_id=None, root=None, run_id=None):
@@ -989,8 +988,7 @@ def record_lens_run(conn, *, slug, lens, task_id=None, root=None, run_id=None):
     # twelve did not have to, because they were told to omit the flag.
     payload = {"lens": slug, "checks": len(lens["checks"])}
     if run_id:
-        from . import maintenance
-        r = maintenance.validate_run(conn, root, run_id, slug)
+        r = maintenance_state.validate_run(conn, root, run_id, slug, lenses(root).get(slug))
         if task_id != r["task"]:
             raise BadCoordinates("review task differs from assigned maintenance run")
         payload.update(run_id=run_id, lens_sha=r["expected"][slug]["sha256"], snapshot=r["snapshot"])
@@ -1015,14 +1013,14 @@ def record_lens_reviewed(conn, root, *, slug, findings, task_id=None, run_id=Non
     `{"lens": X, "findings": 0}`: a lens that could not be evaluated, stored
     as one that ran and found nothing. That is the confusion `--findings`
     exists to prevent, one field over. The vocabulary is checked here, at the
-    writer, against the same `maintenance.RESULTS` `lens_result` uses.
+    writer, against the same `maintenance_state.RESULTS` `lens_result` uses.
 
     A non-completed result also has to carry its reason here: a report with
     neither a non-blank `note` nor a non-blank `evidence` reference is
     refused as `BadCoordinates`. The run-bound writer has refused a reasonless
     `not_evaluable` since it was written and this one did not, so the
     spelling a sweep's reviewer uses was the one that left a report nobody
-    could argue with. `maintenance.check_lens_reason` holds the rule for both.
+    could argue with. `maintenance_state.check_lens_reason` holds the rule for both.
     """
     known, skipped = lens_files(root, include_legacy=True)
     if slug in skipped:
@@ -1038,16 +1036,16 @@ def record_lens_reviewed(conn, root, *, slug, findings, task_id=None, run_id=Non
     # The same normalisation as its sibling, and this is the row that matters
     # more: `sweep` reads `lens_reviewed` to answer "did anybody review", and an
     # empty `--task` filed it where that query cannot see it.
-    from . import maintenance
     payload = {"lens": slug, "findings": findings}
     if run_id:
-        r = maintenance.get_run(conn, run_id)
+        r = maintenance_state.get_run(conn, run_id)
         if task_id != r["task"]:
             raise BadCoordinates("review task differs from assigned maintenance run")
-        payload = maintenance.lens_result(conn, root, run_id, slug, result=result,
-                                          findings=findings, note=note, evidence=evidence)
+        payload = maintenance_state.lens_result(
+            conn, root, run_id, slug, current=lenses(root).get(slug),
+            result=result, findings=findings, note=note, evidence=evidence)
     else:
-        maintenance.check_lens_result(result, findings)
+        maintenance_state.check_lens_result(result, findings)
         # The reason, from the same function the run-bound writer uses. Only
         # `lens_result` refused a `not_evaluable` with nothing on it, so this
         # spelling -- the one a sweep's reviewer uses, since a sweep has no
@@ -1057,7 +1055,7 @@ def record_lens_reviewed(conn, root, *, slug, findings, task_id=None, run_id=Non
         # is about the coordinates a reviewer handed in is that class, and
         # the CLI prints it as REFUSED with exit 2.
         try:
-            maintenance.check_lens_reason(result, note, evidence)
+            maintenance_state.check_lens_reason(result, note, evidence)
         except ValueError as exc:
             raise BadCoordinates(str(exc)) from exc
         payload["result"] = result

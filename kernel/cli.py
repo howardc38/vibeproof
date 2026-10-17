@@ -2753,6 +2753,11 @@ def main(argv=None):
     p.add_argument("--repo", default=".")
     p.add_argument("--acceptance", default=".v4/acceptance.json")
     sub = p.add_subparsers(dest="cmd", required=True)
+    from . import coordination_cli, design_cli
+    coordinate = sub.add_parser("coordinate", help="retain requests and coordinate current work revisions")
+    coordination_cli.configure_parser(coordinate)
+    design = sub.add_parser("design", help="versioned project-document coverage and review")
+    design_cli.configure_parser(design)
 
     host = sub.add_parser("host", help="bind a host agent to its task or read hook coverage")
     hp = host.add_subparsers(dest="action", required=True)

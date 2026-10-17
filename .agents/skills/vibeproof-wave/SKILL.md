@@ -7,6 +7,17 @@ description: Coordinate multiple requested vibeproof tasks, each in its own Git 
 
 一次過開 N 刀,每刀一個 worktree、一個 task、一個 worker。**你係 orchestrator。**
 
+Fanout 前先完成 `/run` 的 managed intake：在同 repo 讀不帶 goal filter 的 `coordinate status`，
+核對 active task/worktree 紀錄與當前 source，逐段比較新 request 原文和現有工作，先選相關 goal
+再保存 input。部分重疊／保留舊工作重用原 goal；只有明確記下 unrelated 理由才開新 goal。
+關係不清／意圖衝突時保留原文交 owner 判斷，未定前不 fanout，不把全部工作重排 queued，
+不強制 enroll 無關 legacy tasks。逐段 assess add/change/cancel/關係並對帳依賴；相關 queued
+work 按 revision 更新，running work 用既有 stop/reconcile 協定，unaffected work 保留。
+再定每個 current work revision 的文件 disposition。
+沿用已有文件；缺少 baseline 時核對 code/tests/已知原意，保留 observed_baseline 標記，
+由宿主初始化文件再 register。Accepted target 可以尚未實作，不拿現有 code 當批准。
+`coordinate schema`／`design schema` 擁有 JSON 格式；不要另抄一份 schema。
+
 呢個 command 唔係新機制 —— 佢係把已經手做緊嘅嘢寫低。實測喺 reference adopter:
 八個 worktree、五個 task 同時開住,全部人手開,而唯一冇人記得嗰步就係下面第 5 步。
 
@@ -18,26 +29,43 @@ description: Coordinate multiple requested vibeproof tasks, each in its own Git 
 3  task       v4 --repo ../wt-<id> task --id t-<id> --request '…' --scope '<嗰組嘅檔>'
 4  engage     v4 --repo ../wt-<id> engage --task t-<id> --kind <kind> --actor splitter --text '…'
               ↑ 句子要提到一個喺嗰組 scope 入面嘅路徑,唔係就會被拒
-5  開 worker  一個 message 一次過開 N 個                      ← 見下
-6  驗收        v4 --repo ../wt-<id> accept
-7  收          v4 --repo ../wt-<id> ship --task t-<id>
-8  合          git merge wave/<id>  ×N,  git worktree remove ../wt-<id>
+5  指派／派工  coordinate assign → check-dispatch → begin-dispatch 首次授權 → 宿主派工 → receipt
+6  驗收        scoped code/tests/docs、獨立 design review、coordinate result、accept
+7  收          orchestrator check current versions，再 ship --task t-<id>
+8  合          宿主 merge、整合後測試/remerge、settle integration 證據；最後才移除 worktree
 ```
 
 第 1 至 4 步係 `task-splitter` 嘅嘢，一組一次；每個 worker 先 derive，
 再跟 `/run` 的 engagement、修改、檢查、request accounting 和 ship 流程，
 喺各自嗰棵樹入面行。呢個檔只負責「同時」嗰部分。
 
-## 第 5 步:一個 message 一次過開晒
+## 第 5 步:按宿主容量派工，逐個記 observation
 
 ```
 每個 worker sub-agent 個 prompt 要帶:
     ./bin/v4 --repo /absolute/wt-<id> status --task t-<id>
     # 收到 host identity 時，從該 worktree 執行 host bind。
+    # goal/work/revision、assignment、dependency versions、原文、affected doc coverage。
 ```
 
 用 host 支援嘅並行 dispatch；唔好等一個 worker 完成先開下一個。
 Message 數目本身唔決定並行，亦要遵守 host 的 concurrency 上限。
+把 settled dependency 的 artifact commits 帶入實際 consumer checkout 並重驗組合；
+assign、pre-launch 及 ship 核對 consumer HEAD ancestry，不只看另一項 work 的 settled label。
+超過容量的工作保留 queued；dispatch 前再核對 current versions。`coordinate check-dispatch` 只讀，不能
+授權 launch；每次 native spawn 前必須完成 durable `coordinate begin-dispatch`，只接受首次
+提交回覆的 `launch_authorized=true`。Idempotent replay 不能 spawn；claim 已提交但 receipt
+遺失的 dispatching owner 要向宿主對帳，不可再 launch。若連 claim 回覆都遺失，同樣先對帳；
+重送不會再給 launch 授權。重新 launch 要實際未開始／已停止 observation 解除舊 owner，
+再建新 assignment 及取得新 claim。`coordinate schema` 擁有格式。每次宿主實際回覆用
+`coordinate receipt` 入帳，host_ref/message_id 缺少就講缺少，不造一個當成實際證據。
+Future child 的 identity 在 spawn 前保留 unknown，不借 parent 或造 ID；實際 dispatched
+receipt 再綁定觀察到的 worker tuple，未知／conflicting identity 不能通過獨立 review／收貨。
+已知既有 worker／parent 的實際 tuple 可在 assignment 記錄；已知 parent 空 agent 不等於 unknown。
+Outcome unknown 時先向宿主對帳，不能再 launch 同一份工作；stop request 與 observed stopped
+分開記。Observed stopped 後同一 worker 的晚到 dispatched receipt 只留歷史，不能重開 owner。
+收到部分 change/cancel 先 input/assess，令 obsolete assignment 停止收貨，再依宿主
+實際停止觀察決定可否重新指派。不要把晚到的舊 result 晉升為 current revision。
 
 **一個 worker task 對一個 worktree。** Ledger 由 Git common directory 共用，
 hook 先按 task_worktree 記錄選出當前 worktree 的 task。同一棵樹有幾個 open
@@ -113,6 +141,12 @@ CI 紅 —— `spec-coverage` 捉到兩個新 command 冇入 SPEC。跑 test 唔
 
 ## Scope 重疊與合併後驗證
 
+每個 managed revision 要有 affected document coverage 或 source-bound N/A。Worker 更新受派段落，
+orchestrator 管接受版本；獨立 reviewer 核原始 input、code/tests/docs 並記 fresh `design review`。
+文件、source 或版本改動會使 receipt 過期。沒有 integration 證據的 settle 只是 artifact ready，
+不是 downstream dependency ready；讀回實際整合 target 後才可解鎖。Metadata CLI 不會派 agent、
+stop process、寫產品文件或 merge；這些都是宿主的責任。
+
 每棵樹只 diff 自己,所以 A 棵樹嘅寫入喺 B 棵樹嘅 `scope` claim 度睇唔見。合併時仍可能有文字衝突或冇文字衝突的語義錯誤。合併後要重驗測試及
 用 `v4 remerge`／status 檢查舊證據，不能把各自綠燈當成整合後已通過。
 
@@ -138,7 +172,7 @@ Kernel 沒有在這份流程定工作數上限；host、資源和可安全合併
 Headless 執行亦要收齊結果先回覆最後答案：驗收指令同步等到 exit code；如用了背景工作，讀回其完成結果後才繼續。單純「等待中」不是完成或阻塞證據。
 
 
-由維護流程派工時，每組保留原 claim IDs 與 handoff ID。主控先記 prepared，再用宿主派工並記真實 host_ref；派工回覆不明就對帳，不能再開一個相同 worker。完成後向原 claims 提供有效 proof，並在合併後重驗。讀取固定 snapshot 的 review 可以與另一棵樹的 dev 並行；修改與合併仍要重新核對授權、目標狀態及相互依賴。
+由維護流程派工時，每組保留原 claim IDs 與 handoff ID。主控先記 prepared；已加入 managed goal 的 assignment 亦必須按上面的 begin-dispatch 首次授權才 spawn，再記真實 host_ref。派工回覆不明就對帳，不能再開一個相同 worker。完成後向原 claims 提供有效 proof，並在合併後重驗。讀取固定 snapshot 的 review 可以與另一棵樹的 dev 並行；修改與合併仍要重新核對授權、目標狀態及相互依賴。
 
 Codex host contract:
 - Run CLI commands with explicit --repo; supply --task only on commands that accept it. Use --help for action-specific flags. A shell export does not bind hooks.
@@ -150,7 +184,7 @@ Codex host contract:
 
 Codex orchestration:
 - Use the native v4-task-splitter, v4-worker, v4-reviewer and v4-checker-author agents.
-- Start every native role with a fresh context and explicit inputs; inherited-context forks are unavailable in some ephemeral Codex runs. For reviewers pass only repo, lens and necessary diff coordinates.
-- Dispatch up to the available agent capacity, queue the rest, and wait for every requested result. This replaces the Claude source's all-at-once scheduling and single-shell export instructions.
+- Start every native role with a fresh context and explicit inputs; inherited-context forks are unavailable in some ephemeral Codex runs. For lens reviewers pass repo, lens and necessary diff coordinates. For managed document review also pass original input/source refs, current work/design versions and affected code/test/document coverage; omit worker engagement/rationale.
+- Dispatch up to the available agent capacity, queue the rest, and wait for every requested result. For managed assignments, check-dispatch is read-only; commit coordinate begin-dispatch before native spawn and launch only on its fresh launch_authorized=true response. Never spawn on an idempotent replay. Claimed dispatch without a receipt must reconcile actual host state; a replacement launch needs authoritative release, a new assignment and a new launch claim. Leave future-worker identity unknown until an actual dispatched receipt binds it; never invent it or borrow the parent identity. A known existing parent with an empty agent ID remains distinct from unknown. Review/completion must hold on unknown/conflicting worker identity.
 - One worker task per worktree. Bind the task before writing; use explicit --repo and supported --task flags.
 - The orchestrator owns ship and risk decisions; never attribute an agent signature to a person.

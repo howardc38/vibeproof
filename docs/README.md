@@ -11,6 +11,7 @@ the behavior and record whether code or explanation needs repair.
 |---|---|
 | First use | Run the [standalone demo](../examples/first-proof/README.md), then follow [GETTING_STARTED](GETTING_STARTED.md) to adopt it and complete one real task. Use [CODEX](CODEX.md) for Codex or dual-host setup. |
 | Daily use | Follow [USING](USING.md) for tasks, updates and maintenance. Use [FEATURES](FEATURES.md) to find a capability or command and [REFERENCE](REFERENCE.md) to interpret its evidence and limits. |
+| Evolving requests and project design | Follow [USING](USING.md#the-seven-steps-of-a-task) for intake/reconciliation, existing-document reuse and independent review; [SPEC](SPEC.md#request-evolution-and-project-design-documents) owns the mechanism and executable schemas own JSON fields. |
 | Framework development | Start with [AGENTS](../AGENTS.md) and the map below, read [SPEC](SPEC.md) alongside implementation/tests, and use [SYNC](SYNC.md) for the canonical-source/public-release boundary. Consult the historical evidence below for dated rationale. |
 
 ## Repository map

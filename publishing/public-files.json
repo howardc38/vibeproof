@@ -64,6 +64,7 @@
     "docs/CODEX.md",
     "tools/render_host_assets.py",
     "tools/host_acceptance.py",
+    "tools/request_acceptance.py",
     "tools/native_host_acceptance.py",
     ".v4/lens_catalogue.json",
     ".v4/review_contract.json"

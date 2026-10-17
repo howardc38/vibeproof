@@ -1,6 +1,6 @@
 # What is included in vibeproof
 
-This derived map is grounded in the implementation and shipped assets. Its command and registry inventory was rechecked on 2026-10-04. It describes a workflow with distinct mechanical and judgment-based parts. It does not turn the existence of a prompt into proof that an agent followed it.
+This derived map is grounded in the implementation and shipped assets. Its command and registry inventory was rechecked on 2026-10-04; the request/design command additions were checked on 2026-10-16. It describes a workflow with distinct mechanical and judgment-based parts. It does not turn the existence of a prompt into proof that an agent followed it.
 
 ## The whole path
 
@@ -20,6 +20,8 @@ Claims and actual checker attempts use the local ledger. Report-only is a gate c
 | Component | What it does | What it does not establish |
 |---|---|---|
 | Task and scope | Records the request, starting commit and allowed paths; records widening/narrowing decisions | That the original request was understood correctly |
+| Request coordination | Retains original inputs, partial changes/cancellations, work/dependency revisions, durable pre-launch claims and observed host assignment/results; distinguishes artifact readiness from integrated settlement | That metadata launched or stopped an agent, interpreted intent or merged code |
+| Project design lifecycle | Reuses selected project documents, tracks initialization and affected coverage/N/A, and requires current independent content/source/version-bound review for managed work | That an accepted target is implemented, an observed baseline authorizes future behavior, or a receipt certifies semantic correctness |
 | Detectors | Raise applicable claims from scoped code/subjects and declarations; some need language tools | A verdict that the code is correct |
 | Checkers | Execute already registered checks, report exit codes and preserve actual attempt output | Automatic checker authorship or complete semantic correctness |
 | Review lenses | Supply structured questions for human/agent review, including design fit, request fidelity and test sufficiency | That a reviewer actually read everything or reviewed independently |
@@ -37,12 +39,13 @@ The installer copies **four agent prompt files**: `task-splitter`, `worker`, `re
 
 Codex adds generated roles for those responsibilities and the independent monitor, plus run/sweep/wave/maintain skills and native lifecycle hooks. These use the same kernel. See [CODEX.md](CODEX.md) for the host-specific mechanics.
 
-The **34 `v4` CLI commands** are a separate executable interface, defined by [the CLI parser](../kernel/cli.py):
+The **36 `v4` CLI commands** are a separate executable interface, defined by [the CLI parser](../kernel/cli.py):
 
 | Purpose | Commands |
 |---|---|
 | Adopt and inspect | `init`, `install`, `doctor`, `facts`, `doctrine`, `explain`, `host` |
 | Operate a task | `task`, `scope`, `derive`, `engage`, `check`, `status`, `ship`, `abandon`, `cover` |
+| Reconcile requests and documents | `coordinate`, `design` |
 | Review and unresolved work | `review`, `sweep`, `maintain`, `risk` |
 | Validate and register checks | `verify`, `register`, `verify-detector`, `register-detector`, `run-checker`, `accept` |
 | Inspect history and measurement | `round`, `coverage`, `trend`, `foresee`, `remerge`, `cost`, `export`, `audit` |
@@ -67,6 +70,7 @@ Registration verifies custom checkers and detectors against fixtures and pins th
 
 ## Other useful mechanisms
 
+- `coordinate schema` and `design schema` expose executable JSON contracts. The host preserves original inputs, reconciles queued/running work before fanout, records actual dispatch/stop observations and manages current project-document review. Existing unrelated tasks remain unchanged: [contract](SPEC.md#request-evolution-and-project-design-documents), [coordination](../kernel/coordination.py), [documents](../kernel/design.py).
 - Scope narrowing refuses to hide paths already changed by the task: [scope.py](../kernel/scope.py).
 - Runtime proof runs a configured trigger and asks the declared truth owner: [runtime_proof.py](../checkers/runtime_proof.py).
 - The stop hook interrupts once and then permits a further stop: [stop_gate.py](../hooks/stop_gate.py).

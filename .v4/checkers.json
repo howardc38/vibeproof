@@ -39,7 +39,7 @@
       "dead-wiring"
     ],
     "path": "checkers/dead_wiring.py",
-    "program_sha": "a6ef867751291dbe5cd125fe3eafb8641307aed049502031063e1d06c1aa5123",
+    "program_sha": "fa579058ca7f3eec16bf4cca7069e8b8609a01d2f8f0cb6929e92d71b45541a3",
     "reads": [
       "**/*"
     ],
@@ -66,7 +66,7 @@
       "external-write"
     ],
     "path": "checkers/external_write.py",
-    "program_sha": "fa74010026248bcc472e2d4f39b3b56af0ee700472fcd187947cd4b5cdefd406",
+    "program_sha": "b2fe4ac7075dbab38e05a5f040a8d1ada06dd7cbe56386bfff8706faec55a6d5",
     "reads": [
       "**/*"
     ],
@@ -79,7 +79,7 @@
       "fail-closed"
     ],
     "path": "checkers/fail_closed.py",
-    "program_sha": "c8aff4af79f7c7418ee38de9f309e5113be6853d3816040800a1185a3dae9eba",
+    "program_sha": "0bc364b816e12fc45a28e5d423a160734b6e93ee47f183d2ca453aee1272947b",
     "reads": [
       "**/*.py",
       "**/*.go",
@@ -99,7 +99,7 @@
       "layer-boundary"
     ],
     "path": "checkers/layer_boundary.py",
-    "program_sha": "eecef1ac7fd02439c030cbebb849567d9b0ed0f8c124abcbe0efc5b176d19039",
+    "program_sha": "114701228808dac1cdaa5f86f96b62df07ef61f9132e88a8070c444327a3190a",
     "reads": [
       "**/*.py",
       "**/*.go",
@@ -119,7 +119,7 @@
       "lint"
     ],
     "path": "checkers/structural_lint.py",
-    "program_sha": "21a6b530e1d2811ca1d914146b04431ae0eb1907be2957da26b005fbb95309bf",
+    "program_sha": "f948dd6393d559966d49690f0045d3347360b74aac30dd9c42a315ba4d508eee",
     "reads": [
       "**/*.py"
     ],
@@ -132,7 +132,7 @@
       "registry-consistency"
     ],
     "path": "checkers/registry_consistency.py",
-    "program_sha": "ce0701c0d76cba750e56c8063c465855995078079394aaec7f1968eb8846c076",
+    "program_sha": "6854f3f7b90bbac7e9ecfec8280d58435cfc42cfbb11ab50710dfbe644dd9d9d",
     "reads": [
       "**"
     ],
@@ -145,7 +145,7 @@
       "review-finding"
     ],
     "path": "checkers/review_finding.py",
-    "program_sha": "dba980e0ff6064aa0bbca774487c6f4d0a069864599147b030d677b06adb0fba",
+    "program_sha": "ab8b08faf9d2cbddf536d69c522d06fcdbdd14c857c990e236a0f5f2bce8456d",
     "reads": [
       "**"
     ],
@@ -158,7 +158,7 @@
       "runtime-proof"
     ],
     "path": "checkers/runtime_proof.py",
-    "program_sha": "f33bce6543f7b6c737127efe954683559b6916f4244b6d95b896e2bdd829eee7",
+    "program_sha": "06ba3423e3898b63a2e2a8985de2f4381f5a63b46f3763e20f37223ff463bca4",
     "reads": [
       "**/*"
     ],
@@ -171,7 +171,7 @@
       "scope"
     ],
     "path": "checkers/scope.py",
-    "program_sha": "fb722cd64194c06440673a8426fa70e2f85f73d9b5b21c59d9a60a0962f19b43",
+    "program_sha": "c53f3a8e43ecdb642c018b55bf20b508c9a58869bb0fb739311280f324fec577",
     "reads": [
       "**/*"
     ],
@@ -216,7 +216,7 @@
       "spec-coverage"
     ],
     "path": "checkers/spec_coverage.py",
-    "program_sha": "65667029d4c3abca7da1885edec5f3214e685334ebac3989b64c4ea33e8e82ab",
+    "program_sha": "5f15504fed644130fe65c57f13ae20bff954c8f0609e924ab0483ffe271659b4",
     "reads": [
       "**/*"
     ],
@@ -229,7 +229,7 @@
       "surface-proof"
     ],
     "path": "checkers/surface_proof.py",
-    "program_sha": "2b4c33f22d8b5c7bdf28cc5732ccdcd2d508ce38e51184986fa87a1422a37240",
+    "program_sha": "a64304d7d4cbb6996d2cc21524cfcd86430d9c9514b1b68a7a8915612a22ba6d",
     "reads": [
       "**"
     ],
@@ -242,7 +242,7 @@
       "test"
     ],
     "path": "checkers/test.py",
-    "program_sha": "41df32f2b0cbc933e0c971917429b2ec130b4805b4b560372e5eb7cb502b87bb",
+    "program_sha": "f20c4c69f7bdcd1093e9b6eaf2bb1be3b55ccfdc8edf1a404d596faa297952c0",
     "reads": [
       "**"
     ],
@@ -276,7 +276,7 @@
       "test-shape"
     ],
     "path": "checkers/test_shape.py",
-    "program_sha": "17f34608d0f0a0396af371a6f8653ab144d6d55caa43677769035e0783d7c0d4",
+    "program_sha": "efa7a5412066ab8f2ce453719bee8ef04b9546c6da4e145eaa086f04c5690a71",
     "reads": [
       "**/*.py",
       "**/*.go",
@@ -296,7 +296,7 @@
       "test-token-shape"
     ],
     "path": "checkers/test_token_shape.py",
-    "program_sha": "3a66711b525462c8d5f07214e16f690d977ed12431f8ab3fe8e102d71f1f8ecc",
+    "program_sha": "b9f8789949362b3d1d723f75f0884a96e216745fa6b054a0dad143e666aca1f3",
     "reads": [
       "**/*.py",
       "**/*.go",
